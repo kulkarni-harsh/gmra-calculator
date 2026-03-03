@@ -1,22 +1,33 @@
-.PHONY: install run test lint format typecheck precommit
+.PHONY: install lock run test lint format typecheck precommit add add-dev
+PKG_ARG := $(or $(PKG),$(filter-out add add-dev,$(MAKECMDGOALS)))
 
 install:
-	python -m pip install .[dev]
+	uv sync --dev
+
+lock:
+	uv lock
 
 run:
-	uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+	uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 test:
-	pytest
+	uv run pytest
 
 lint:
-	ruff check .
+	uv run ruff check .
 
 format:
-	ruff format .
+	uv run ruff format .
 
 typecheck:
-	mypy app
+	uv run mypy app
 
 pre-commit:
-	pre-commit run --all-files
+	uv run pre-commit run --all-files
+
+add:
+	uv add $(PKG_ARG)
+
+# Allow `make add pandas` and `make add-dev pytest` without make trying to build those as targets.
+%:
+	@:

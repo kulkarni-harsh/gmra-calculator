@@ -9,6 +9,7 @@ Production-focused FastAPI starter with clean structure, typed settings, SQLAlch
 - Environment-based configuration with Pydantic Settings
 - Async SQLAlchemy session management scaffold
 - Pytest setup with API test example
+- uv for dependency and environment management
 - Ruff + MyPy + pre-commit
 - Dockerfile + docker-compose (API + Postgres)
 
@@ -33,11 +34,10 @@ backend/
 ## Quick Start
 
 ```bash
+# install uv once (macOS): brew install uv
 cd backend
 cp .env.example .env
-python -m venv .venv
-source .venv/bin/activate
-pip install .[dev]
+uv sync --dev
 make run
 ```
 
@@ -46,9 +46,20 @@ Open: http://127.0.0.1:8000/docs
 ## Testing & Quality
 
 ```bash
+make install
 make test
 make lint
 make typecheck
+```
+
+## Add Dependencies
+
+```bash
+# runtime dependency
+make add PKG="pandas"
+
+# development-only dependency
+make add-dev PKG="ipython"
 ```
 
 ## Docker

@@ -1,5 +1,7 @@
 import pandas as pd
 
+from app.core.types import SexAgeCounts
+
 from .cpt import parse_anchor_codes_filters
 
 
@@ -7,8 +9,8 @@ def get_specialty_population(
     hospitals_within_range_df: pd.DataFrame,
     specialty_master_df: pd.DataFrame,
     specialty_name: str,
-    locality_demographics_dict: dict,
-) -> tuple[str, int, float | None, float | None, bool | None]:
+    locality_demographics_dict: SexAgeCounts,
+) -> tuple[str, int, float, float, bool]:
     """
     Calculate specialty-specific population and provider metrics.
 
@@ -19,7 +21,7 @@ def get_specialty_population(
     locality_demographics_dict (dict): Dictionary containing demographic information for the locality.
 
     Returns:
-    tuple[str, int, float, float, bool | None]: A tuple containing the specialty demographic type, total population,
+    tuple[str, int, float, float, bool]: A tuple containing the specialty demographic type, total population,
     target average providers per 100k, current average providers per 100k, and a boolean indicating if the current
     supply is less than the target supply.
     """
@@ -29,9 +31,7 @@ def get_specialty_population(
         raise ValueError("Error: 'Specialty' column not found in specialty master sheet.")
 
     if specialty_name not in specialty_master_df["Specialty"].apply(lambda x: str(x).strip().lower()).values:
-        print(f"Warning: Specialty '{specialty_name}' not found in specialty master sheet.")
-        print(f"Defaulting to entire population for specialty '{specialty_name}'.")
-        return "N/A", locality_demographics_dict["Total"], None, None, None
+        raise ValueError(f"Error: Specialty '{specialty_name}' not found in specialty master sheet.")
 
     specialty_row = specialty_master_df[
         specialty_master_df["Specialty"].astype(str).str.strip().str.lower() == specialty_name

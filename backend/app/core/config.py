@@ -11,9 +11,10 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str
     DEBUG: bool
     DATABASE_URL: str
-    OPENCAGE_API_KEY: SecretStr
+    OPENCAGE_API_KEY: str
+    CENSUS_API_KEY: str
 
-    # Settings for file paths
+    # Settings for file paths, use cwd as base
     LOOKUP_DIR: Path = Path("resources/lookups")
     TEMPLATES_DIR: Path = Path("resources/templates")
 

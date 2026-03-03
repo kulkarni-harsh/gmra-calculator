@@ -73,7 +73,7 @@ def generate_map(
         icon=folium.DivIcon(
             html=(
                 '<div style="font-size: 20pt; color: blue; font-weight: bold;'
-                'text-align: center; white-space: nowrap;">{circle_radius_miles} miles</div>'
+                f'text-align: center; white-space: nowrap;">{circle_radius_miles} miles</div>'
             )
         ),
     ).add_to(m)

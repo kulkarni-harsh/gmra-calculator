@@ -2,10 +2,12 @@ from contextlib import asynccontextmanager
 
 import pandas as pd
 from fastapi import FastAPI
+from opencage.geocoder import OpenCageGeocode
 
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.logging import configure_logging
+from app.utils.validator import validate_speciality_master_df
 
 
 @asynccontextmanager
@@ -14,8 +16,10 @@ async def lifespan(app: FastAPI):
     # Load lookup data
     app.state.zip_centroids_df = pd.read_csv(settings.LOOKUP_DIR / "zip_centroids.csv")
     app.state.cpt_lookup_df = pd.read_csv(settings.LOOKUP_DIR / "cpt_lookup.csv")
+    app.state.geocoder_client = OpenCageGeocode(settings.OPENCAGE_API_KEY)
     # Load Specialty Master Sheet
     app.state.specialty_master_df = pd.read_excel(settings.LOOKUP_DIR / "Specialty Master Sheet.xlsx")
+    validate_speciality_master_df(app.state.specialty_master_df)
     print("Lookup data loaded successfully.")
 
     yield

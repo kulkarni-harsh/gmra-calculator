@@ -1,8 +1,13 @@
 import os
 
-import matplotlib.pyplot as plt
+import matplotlib
 import pandas as pd
 import seaborn as sns
+
+from app.core.types import SexAgeCounts
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 
 def create_population_df(data):
@@ -23,12 +28,12 @@ def create_population_df(data):
     return pop_df
 
 
-def plot_population_distribution(combined_demographics_dict: dict, png_path: str) -> str:
+def plot_population_distribution(combined_demographics_dict: SexAgeCounts, png_path: str) -> str:
     """Plot the population distribution by age and gender and save it as a PNG file."""
     demographic_population_df = create_population_df(combined_demographics_dict)
 
     sns.set_theme(style="whitegrid")
-    plt.figure(figsize=(14, 7))
+    fig = plt.figure(figsize=(14, 7))
 
     # Create grouped bar chart
     plot = sns.barplot(
@@ -71,4 +76,5 @@ def plot_population_distribution(combined_demographics_dict: dict, png_path: str
 
     plt.tight_layout()
     plt.savefig(png_path, dpi=300)
+    plt.close(fig)
     return os.path.abspath(png_path)

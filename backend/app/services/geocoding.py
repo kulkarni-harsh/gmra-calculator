@@ -24,7 +24,7 @@ def normalize_street(address):
 @lru_cache(maxsize=20000)
 def get_location_coordinates(
     geocoder_client, address_line_1: str, city: str, state: str, zip_code: str
-) -> tuple[float, float] | tuple[None, None]:
+) -> tuple[float, float]:
     """Get latitude and longitude for a given address using the geocoder client."""
     street = normalize_street(address_line_1)
     zip_code = str(zip_code).removesuffix(".0")
@@ -34,8 +34,7 @@ def get_location_coordinates(
 
     if location_results:
         return location_results[0]["geometry"]["lat"], location_results[0]["geometry"]["lng"]
-    print("Geocoding failed for:", [address_line_1, street, city, state, zip_code])
-    return None, None
+    raise ValueError("Geocoding failed for:", [address_line_1, street, city, state, zip_code])
 
 
 def geocode_addresses(df: pd.DataFrame, geocoder_client) -> pd.DataFrame:

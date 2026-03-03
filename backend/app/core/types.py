@@ -6,4 +6,5 @@ class SexAgeCounts(TypedDict):
     F: dict[str, int]
     Total: int
 
+
 ZipPopulationMap = dict[str, SexAgeCounts]

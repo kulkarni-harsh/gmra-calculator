@@ -9,5 +9,3 @@ class GenerateSlidesRequest(BaseModel):
     zip_code: str = Field(..., description="The ZIP code of the provider's location")
     specialty_name: str = Field(..., description="The medical specialty of the provider")
     miles_radius: int = Field(..., description="The radius in miles for the provider's service area")
-
-    

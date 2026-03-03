@@ -1,6 +1,5 @@
 import logging
 import traceback
-from datetime import UTC, datetime
 from functools import reduce
 
 import pandas as pd
@@ -20,8 +19,8 @@ from app.services.cpt import (
 )
 from app.services.geocoding import calculate_distance_miles, geocode_addresses, get_location_coordinates
 from app.services.mapper import generate_map
-from app.services.plots import plot_population_distribution
-from app.services.ppt import remove_specific_text_row, replace_all_placeholders, replace_master_map
+from app.services.plots import get_population_distribution_bytes
+from app.services.ppt import remove_specific_text_row, replace_all_placeholders, replace_image
 from app.services.screenshotter import capture_screen, get_driver
 from app.services.specialty import get_specialty_anchor_cpt_info, get_specialty_population
 from app.utils.common import get_anchor_cpt_severity_scoring, get_population_severity_scoring
@@ -29,9 +28,13 @@ from app.utils.common import get_anchor_cpt_severity_scoring, get_population_sev
 router = APIRouter()
 
 
-@router.post("/generate", )
+@router.post(
+    "/generate",
+)
 def generate_slides(payload: GenerateSlidesRequest, request: Request):
-    filename_prefix = f"slides_{payload.zip_code}_{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}"
+    filename_prefix = f"outputs/{payload.address_line_1}_{payload.city}_{payload.state}_{payload.zip_code}".replace(
+        " ", "_"
+    ).replace(".", "_")
     # Get coordinates for input location
     try:
         input_latitude, input_longitude = get_location_coordinates(
@@ -39,14 +42,19 @@ def generate_slides(payload: GenerateSlidesRequest, request: Request):
             address_line_1=payload.address_line_1,
             city=payload.city,
             state=payload.state,
-            zip_code=payload.zip_code
+            zip_code=payload.zip_code,
         )
     except Exception as e:
         logging.log(logging.ERROR, f"Error geocoding input address: {e}")
         return JSONResponse(content={"message": "Error geocoding input address"}, status_code=400)
 
+    # TODO: Replace with API request to get nearby providers based on input location and specialty
     nearby_providers_df = pd.read_excel("/Users/kulkarni-harsh/Downloads/Frisco OB_GYN.xlsx")
-    zip_centroids_df = request.app.state.zip_centroids_df
+
+    # Get ZIP code centroids DataFrame from app state
+    zip_centroids_df = request.app.state.zip_centroids_df.copy()
+
+    # Geocode nearby provider addresses to get their latitudes and longitudes
     nearby_providers_df = geocode_addresses(nearby_providers_df, request.app.state.geocoder_client)
 
     # Calculate distances from input location to each provider
@@ -60,15 +68,8 @@ def generate_slides(payload: GenerateSlidesRequest, request: Request):
         axis=1,
     )
 
-    hospitals_within_range_df = nearby_providers_df[
-        nearby_providers_df["distance_from_source_miles"] <= payload.miles_radius
-    ].sort_values(by="distance_from_source_miles", ascending=True)
-    logging.log(
-        logging.INFO, f"Found {hospitals_within_range_df.shape[0]} providers within {payload.miles_radius} miles."
-    )
-
-    # Generate map HTML
-    map_html_path = generate_map(
+    # Generate map with nearby providers and save as HTML
+    generate_map(
         nearby_providers_df,
         input_latitude,
         input_longitude,
@@ -77,27 +78,42 @@ def generate_slides(payload: GenerateSlidesRequest, request: Request):
         payload.state,
         payload.zip_code,
         circle_radius_miles=payload.miles_radius,
-        html_filepath=f"{filename_prefix}.html",
+        html_filepath=filename_prefix + "_map.html",
+    )
+
+    # Filter providers within the specified radius and sort by distance
+    hospitals_within_range_df = nearby_providers_df[
+        nearby_providers_df["distance_from_source_miles"] <= payload.miles_radius
+    ].sort_values(by="distance_from_source_miles", ascending=True)
+    
+    # Log the number of providers found within the radius
+    logging.log(
+        logging.INFO, f"Found {hospitals_within_range_df.shape[0]} providers within {payload.miles_radius} miles."
     )
 
     # Take screenshot of the map
     browser = get_driver(width=1600, height=900, scale=2.5)
     try:
         # Use many times without re-installing or re-opening Chrome
-        capture_screen(browser, map_html_path, map_html_path.removesuffix(".html") + ".png")
+        map_bytes = capture_screen(
+            browser,
+            filename_prefix + "_map.html",
+        )
+    except Exception as e:
+        logging.log(logging.ERROR, f"Error capturing map screenshot: {e}")
+        map_bytes = None
     finally:
         # Close ONCE at the very end
         browser.quit()
 
-    logging.log(logging.INFO, f"Slides generated successfully and saved as {filename_prefix}.png")
-
-    # Load ZIP centroids
+    # Calculate distances from input location to each ZIP code centroid
     zip_centroids_df["distance_from_source_miles"] = zip_centroids_df.progress_apply(
         lambda row: geodesic((input_latitude, input_longitude), (row["lat"], row["lon"])).miles,
         axis=1,
     )
     # Filter ZIP codes within the specified radius
     filtered_zips_df = zip_centroids_df[zip_centroids_df["distance_from_source_miles"] <= payload.miles_radius]
+
     # Fallback, if no ZIPs found, take the entered ZIP code
     if filtered_zips_df.empty:
         print("No ZIP codes found within the specified radius. Using the input ZIP code only.")
@@ -119,9 +135,7 @@ def generate_slides(payload: GenerateSlidesRequest, request: Request):
     combined_demographics_dict = reduce(combine_demographics, zip_demographic_dict.values())
 
     # Plot population distribution
-    population_distribution_plot_path = plot_population_distribution(
-        combined_demographics_dict, f"{filename_prefix}_population_distribution.png"
-    )
+    population_distribution_bytes = get_population_distribution_bytes(combined_demographics_dict)
 
     (
         target_demographic_type,
@@ -214,10 +228,15 @@ def generate_slides(payload: GenerateSlidesRequest, request: Request):
         replace_all_placeholders(slide, placeholders_dict)
 
     # Replace map on the second slide
-    replace_master_map(prs.slides[1], map_html_path.removesuffix(".html") + ".png")
+    if map_bytes:
+        replace_image(prs.slides[1], map_bytes)
+        delete_map_slide = False
+    else:
+        logging.log(logging.WARNING, "Map screenshot not available, skipping map replacement on the slide.")
+        delete_map_slide = True
 
     # Replace population distribution plot on the third slide
-    replace_master_map(prs.slides[2], population_distribution_plot_path)
+    replace_image(prs.slides[2], population_distribution_bytes)
 
     # Remove rows with 0 CPT counts from the fourth slide
     remove_specific_text_row(
@@ -233,14 +252,22 @@ def generate_slides(payload: GenerateSlidesRequest, request: Request):
         match_text_list=tuple(f"{{sr_{_}}}" for _ in range(nearest_hospitals_count + 1, 11)),
     )
 
+    if delete_map_slide:
+        # If map screenshot is not available, remove the entire slide to avoid empty placeholder
+        slide_id_for_deletion = prs.slides[1].slide_id
+        slides = prs.slides._sldIdLst
+        for sld in slides:
+            if sld.id == slide_id_for_deletion:
+                slides.remove(sld)
+                break
     try:
-        prs.save(map_html_path.removesuffix(".html") + ".pptx")
+        prs.save(filename_prefix + ".pptx")
     except Exception:
         traceback.print_exc()
         raise
 
     hospitals_within_range_df.rename(columns={"distance_from_source_miles": "Distance (miles)"}).to_excel(
-        f"{filename_prefix}_hospitals_within_{payload.miles_radius}_miles".replace(".", "_") + ".xlsx",
+        filename_prefix + ".xlsx",
         index=False,
     )
 

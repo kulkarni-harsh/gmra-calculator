@@ -23,12 +23,13 @@ def get_driver(width=1920, height=1080, scale=2):
 def capture_screen(
     driver,
     html_filepath: str,
-    output_filename: str,
-) -> str:
+) -> bytes:
     abs_path = os.path.abspath(html_filepath)
     driver.get(f"file://{abs_path}")
 
     # Wait for tiles
     time.sleep(2)
-    driver.save_screenshot(output_filename)
-    return output_filename
+
+    # Return screenshot as PNG binary instead of saving to file
+    screenshot_bytes = driver.get_screenshot_as_png()
+    return screenshot_bytes

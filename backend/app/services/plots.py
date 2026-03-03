@@ -1,9 +1,7 @@
-import os
-
 import matplotlib
 import pandas as pd
 import seaborn as sns
-
+from io import BytesIO
 from app.core.types import SexAgeCounts
 
 matplotlib.use("Agg")
@@ -28,8 +26,8 @@ def create_population_df(data):
     return pop_df
 
 
-def plot_population_distribution(combined_demographics_dict: SexAgeCounts, png_path: str) -> str:
-    """Plot the population distribution by age and gender and save it as a PNG file."""
+def get_population_distribution_bytes(combined_demographics_dict: SexAgeCounts) -> bytes:
+    """Plot the population distribution by age and gender and return it as PNG binary."""
     demographic_population_df = create_population_df(combined_demographics_dict)
 
     sns.set_theme(style="whitegrid")
@@ -41,7 +39,7 @@ def plot_population_distribution(combined_demographics_dict: SexAgeCounts, png_p
         x="Age Group",
         y="Population",
         hue="Gender",
-        palette=["#3498db", "#e74c3c"],  # Professional Blue and Red/Coral
+        palette=["#3498db", "#e74c3c"],
     )
 
     # Customization for PPT
@@ -56,12 +54,11 @@ def plot_population_distribution(combined_demographics_dict: SexAgeCounts, png_p
     plt.xticks(rotation=45)
     plt.legend(title="Gender", title_fontsize="13", fontsize="11")
 
-    # Add value labels on top of each bar, offsetting to avoid overlap
+    # Add value labels on top of each bar
     patches = plot.patches
     for i, p in enumerate(patches):
         height = p.get_height()
         if height > 0:
-            # Alternate offset for each gender in the group
             offset = 6 if i % 2 == 0 else 12
             plot.annotate(
                 format(int(height), ","),
@@ -75,6 +72,11 @@ def plot_population_distribution(combined_demographics_dict: SexAgeCounts, png_p
             )
 
     plt.tight_layout()
-    plt.savefig(png_path, dpi=300)
+
+    # Save to binary buffer instead of file
+    buffer = BytesIO()
+    plt.savefig(buffer, format="png", dpi=300)
     plt.close(fig)
-    return os.path.abspath(png_path)
+
+    buffer.seek(0)
+    return buffer.getvalue()

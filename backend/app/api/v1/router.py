@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import health
-from app.api.v1.endpoints import slides
+from app.api.v1.endpoints import health, slides
 
 router = APIRouter()
 router.include_router(health.router, tags=["health"])

@@ -1,3 +1,5 @@
+from io import BytesIO
+
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 
 
@@ -49,10 +51,13 @@ def _replace_text_in_frame(text_frame, data_map):
                 paragraph.text = updated_text
 
 
-def replace_master_map(slide, image_path):
+def replace_image(slide, image_bytes):
     """
-    Identifies the existing placeholder image and replaces it.
+    Identifies the existing placeholder image and replaces it
+    using binary image data (bytes).
     """
+    image_stream = BytesIO(image_bytes)
+
     for shape in slide.shapes:
         # Usually, your map will be the largest picture shape or named 'Picture'
         if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
@@ -63,8 +68,11 @@ def replace_master_map(slide, image_path):
             old_img = shape._element
             old_img.getparent().remove(old_img)
 
-            # Add the new analysis map
-            slide.shapes.add_picture(image_path, left, top, width, height)
+            # Reset stream position before adding
+            image_stream.seek(0)
+
+            # Add the new image from binary
+            slide.shapes.add_picture(image_stream, left, top, width, height)
             break
 
 

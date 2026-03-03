@@ -1,9 +1,8 @@
 import math
-import os
 
 import folium
 import pandas as pd
-from geopy.distance import geodesic  # Added for accurate geodesic calculations
+from geopy.distance import geodesic  # Added for accurate distance calculations
 from geopy.point import Point  # Added for point handling
 
 
@@ -17,7 +16,7 @@ def generate_map(
     pointer_zip_code: str,
     circle_radius_miles: float = 0.5,
     html_filepath: str = "map.html",
-) -> str:
+) -> None:
     """Generate an interactive map with a circle and markers for hospitals within a specified radius.
 
     Args
@@ -130,7 +129,4 @@ def generate_map(
     ne = [pointer_latitude + lat_offset, pointer_longitude + lon_offset]
     m.fit_bounds([sw, ne], padding=(1, 1))
 
-    # Save the map to an HTML file and return its absolute path
     m.save(html_filepath)
-
-    return os.path.abspath(html_filepath)

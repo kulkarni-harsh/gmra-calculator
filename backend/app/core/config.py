@@ -1,19 +1,19 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "FastAPI Professional Template"
-    VERSION: str = "0.1.0"
-    API_V1_PREFIX: str = "/api/v1"
-    DEBUG: bool = False
+    PROJECT_NAME: str
+    VERSION: str
+    API_V1_PREFIX: str
+    DEBUG: bool
+    DATABASE_URL: str
+    OPENCAGE_API_KEY: SecretStr
 
-    DATABASE_URL: str = Field(
-        default="postgresql+asyncpg://postgres:postgres@localhost:5432/app"
-    )
+    # Settings for file paths
     LOOKUP_DIR: Path = Path("resources/lookups")
     TEMPLATES_DIR: Path = Path("resources/templates")
 

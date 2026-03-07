@@ -1,0 +1,952 @@
+{
+    "01": {
+        "description": "General Practice",
+        "taxonomy_codes": [
+            "208D00000X"
+        ]
+    },
+    "02": {
+        "description": "General Surgery",
+        "taxonomy_codes": [
+            "204E00000X",
+            "207X00000X",
+            "208G00000X",
+            "208200000X",
+            "2082S0099X",
+            "207XP3100X",
+            "2086S0102X",
+            "207XS0114X",
+            "2086S0120X",
+            "208C00000X",
+            "207XX0801X",
+            "2086H0002X",
+            "207XS0117X",
+            "2086S0122X",
+            "204F00000X",
+            "207XX0005X",
+            "207XS0106X",
+            "207T00000X",
+            "208600000X",
+            "2086S0105X",
+            "2086X0206X",
+            "2086S0127X",
+            "2082S0105X",
+            "207XX0004X",
+            "2086S0129X"
+        ]
+    },
+    "03": {
+        "description": "Allergy Immunology",
+        "taxonomy_codes": [
+            "207K00000X",
+            "207KA0200X",
+            "207KI0005X"
+        ]
+    },
+    "04": {
+        "description": "Otolaryngology",
+        "taxonomy_codes": [
+            "207YX0602X",
+            "207Y00000X",
+            "207YX0901X",
+            "207YS0123X",
+            "207YS0012X",
+            "207YP0228X",
+            "207YX0905X",
+            "207YX0007X"
+        ]
+    },
+    "05": {
+        "description": "Anesthesiology",
+        "taxonomy_codes": [
+            "207LC0200X",
+            "207LA0401X",
+            "207LP3000X",
+            "207L00000X",
+            "207LP2900X",
+            "207LH0002X"
+        ]
+    },
+    "06": {
+        "description": "Cardiology",
+        "taxonomy_codes": [
+            "207RC0000X"
+        ]
+    },
+    "07": {
+        "description": "Dermatology",
+        "taxonomy_codes": [
+            "207NI0002X",
+            "207ND0101X",
+            "207N00000X",
+            "207ND0900X",
+            "207NS0135X",
+            "207NP0225X"
+        ]
+    },
+    "08": {
+        "description": "Family Practice",
+        "taxonomy_codes": [
+            "207QA0505X",
+            "207QB0002X",
+            "207Q00000X",
+            "207QH0002X",
+            "207QD0401X",
+            "207QG0300X",
+            "207QA0000X",
+            "207QA0401X",
+            "207QS1201X",
+            "207QS0010X"
+        ]
+    },
+    "09": {
+        "description": "Interventional Pain Management",
+        "taxonomy_codes": [
+            "208VP0014X"
+        ]
+    },
+    "10": {
+        "description": "Gastroenterology",
+        "taxonomy_codes": [
+            "207RG0100X"
+        ]
+    },
+    "11": {
+        "description": "Internal Medicine",
+        "taxonomy_codes": [
+            "207RC0200X",
+            "207RA0000X",
+            "207RG0300X",
+            "207QB0505X",
+            "207RB0002X",
+            "207RH0000X",
+            "207RH0002X",
+            "207RP1001X",
+            "207RR0500X",
+            "207RX0202X",
+            "207R00000X",
+            "207RE0101X",
+            "207RG0100X",
+            "207RA0201X",
+            "207RM1200X",
+            "207RC0000X",
+            "207RT0003X",
+            "207RI0008X",
+            "207RA0001X",
+            "207RS0012X",
+            "207RN0300X",
+            "207RH0003X",
+            "207RI0001X",
+            "207RS0010X",
+            "207RA0401X",
+            "207RI0200X"
+        ]
+    },
+    "12": {
+        "description": "Osteopathic Manipulative Therapy (OMM)",
+        "taxonomy_codes": [
+            "204D00000X",
+            "204C00000X"
+        ]
+    },
+    "13": {
+        "description": "Neurology",
+        "taxonomy_codes": [
+            "2084N0400X",
+            "2084E0001X",
+            "2085N0700X",
+            "2084A2900X",
+            "2084N0402X"
+        ]
+    },
+    "14": {
+        "description": "Neurosurgery",
+        "taxonomy_codes": [
+            "207T00000X"
+        ]
+    },
+    "15": {
+        "description": "Speech Language Pathologist",
+        "taxonomy_codes": [
+            "235Z00000X"
+        ]
+    },
+    "16": {
+        "description": "Obstetrics Gynecology",
+        "taxonomy_codes": [
+            "207V00000X",
+            "207VM0101X",
+            "207VB0002X",
+            "207VC0200X",
+            "207VG0400X",
+            "207VF0040X",
+            "207VH0002X",
+            "207VX0000X",
+            "207VC0300X",
+            "207VE0102X",
+            "207VX0201X"
+        ]
+    },
+    "17": {
+        "description": "Physician/Hospice and Palliative Care",
+        "taxonomy_codes": [
+            "2084H0002X",
+            "207QH0002X",
+            "207PH0002X",
+            "2086H0002X",
+            "207VH0002X",
+            "207RH0002X",
+            "207LH0002X"
+        ]
+    },
+    "18": {
+        "description": "Ophthalmology",
+        "taxonomy_codes": [
+            "207W00000X",
+            "207WX0120X",
+            "207WX0200X",
+            "207WX0107X",
+            "207WX0109X",
+            "207WX0009X",
+            "207WX0110X"
+        ]
+    },
+    "19": {
+        "description": "Oral Surgery (dental only)",
+        "taxonomy_codes": [
+            "1223S0112X",
+            "207WX0108X"
+        ]
+    },
+    "20": {
+        "description": "Orthopedic Surgery",
+        "taxonomy_codes": [
+            "207X00000X",
+            "207XX0005X",
+            "207XS0106X",
+            "207XX0801X",
+            "207XS0114X",
+            "207XS0117X",
+            "207XX0004X",
+            "207XP3100X"
+        ]
+    },
+    "21": {
+        "description": "Clinical Cardiac Electrophysiology",
+        "taxonomy_codes": [
+            "207RC0001X"
+        ]
+    },
+    "22": {
+        "description": "Pathology",
+        "taxonomy_codes": [
+            "207ZP0101X",
+            "207ZP0213X",
+            "207ZH0000X",
+            "207ZF0201X",
+            "207ZC0008X",
+            "207ZD0900X",
+            "207ZP0007X",
+            "207ZI0100X",
+            "207ZC0500X",
+            "207ZP0102X",
+            "207ZC0006X",
+            "207ZP0104X",
+            "207ZB0001X",
+            "207ZN0500X",
+            "207ZP0105X",
+            "207ZM0300X"
+        ]
+    },
+    "23": {
+        "description": "Physician/Sports Medicine",
+        "taxonomy_codes": [
+            "207XX0005X",
+            "207PS0010X",
+            "207RS0010X",
+            "2084S0010X",
+            "2083S0010X",
+            "2081S0010X",
+            "2081P0301X",
+            "207QS0010X",
+            "2080S0010X",
+            "204C00000X"
+        ]
+    },
+    "24": {
+        "description": "Plastic and Reconstructive Surgery",
+        "taxonomy_codes": [
+            "2082S0105X",
+            "2082S0099X",
+            "208200000X"
+        ]
+    },
+    "25": {
+        "description": "Physical Medicine and Rehabilitation",
+        "taxonomy_codes": [
+            "2081P0010X",
+            "2081P0004X",
+            "2081S0010X",
+            "2081P2900X",
+            "2081N0008X",
+            "2081H0002X",
+            "208100000X"
+        ]
+    },
+    "26": {
+        "description": "Psychiatry",
+        "taxonomy_codes": [
+            "2084P0800X",
+            "2084P0301X"
+        ]
+    },
+    "27": {
+        "description": "Physician/Geriatric Psychiatry",
+        "taxonomy_codes": [
+            "207QG0300X"
+        ]
+    },
+    "28": {
+        "description": "Colorectal Surgery (formerly Proctology)",
+        "taxonomy_codes": [
+            "208C00000X"
+        ]
+    },
+    "29": {
+        "description": "Pulmonary Disease",
+        "taxonomy_codes": [
+            "207RP1001X"
+        ]
+    },
+    "30": {
+        "description": "Diagnostic Radiology",
+        "taxonomy_codes": [
+            "2085R0202X",
+            "2085R0205X",
+            "2085D0003X",
+            "2085P0229X",
+            "2085U0001X"
+        ]
+    },
+    "31": {
+        "description": "Intensive Cardiac Rehabilitation",
+        "taxonomy_codes": [
+            "163WC3500X",
+            "261QR0404X"
+        ]
+    },
+    "32": {
+        "description": "Anesthesiologist Assistant",
+        "taxonomy_codes": [
+            "367H00000X"
+        ]
+    },
+    "33": {
+        "description": "Thoracic Surgery",
+        "taxonomy_codes": [
+            "208G00000X"
+        ]
+    },
+    "34": {
+        "description": "Urology",
+        "taxonomy_codes": [
+            "2088P0231X",
+            "208800000X",
+            "2088F0040X"
+        ]
+    },
+    "35": {
+        "description": "Chiropractic",
+        "taxonomy_codes": [
+            "111N00000X",
+            "111NI0900X",
+            "111NX0800X",
+            "111NX0100X",
+            "111NN0400X",
+            "111NS0005X",
+            "111NN1001X",
+            "111NP0017X",
+            "111NT0100X",
+            "111NI0013X",
+            "111NR0200X",
+            "111NR0400X"
+        ]
+    },
+    "36": {
+        "description": "Nuclear Medicine",
+        "taxonomy_codes": [
+            "207U00000X",
+            "207UN0902X",
+            "207UN0901X",
+            "207UN0903X",
+            "2085N0904X"
+        ]
+    },
+    "37": {
+        "description": "Pediatric Medicine",
+        "taxonomy_codes": [
+            "2080A0000X",
+            "2080I0007X",
+            "2080C0008X",
+            "2080P0202X",
+            "2080S0010X",
+            "2080P0205X",
+            "2080P0210X",
+            "2080P0206X",
+            "2080P0006X",
+            "208000000X",
+            "2080P0201X",
+            "2080S0012X",
+            "2080T0002X",
+            "2080P0216X",
+            "2080N0001X",
+            "2080P0008X",
+            "2080P0203X",
+            "2080P0208X",
+            "2080P0214X",
+            "2080B0002X",
+            "2080H0002X",
+            "2080P0207X",
+            "2080P0204X",
+            "2080T0004X"
+        ]
+    },
+    "38": {
+        "description": "Geriatric Medicine",
+        "taxonomy_codes": [
+            "207RG0300X",
+            "207QG0300X"
+        ]
+    },
+    "39": {
+        "description": "Nephrology",
+        "taxonomy_codes": [
+            "207RN0300X"
+        ]
+    },
+    "40": {
+        "description": "Hand Surgery",
+        "taxonomy_codes": [
+            "2082S0105X",
+            "2086S0105X",
+            "207XS0106X"
+        ]
+    },
+    "41": {
+        "description": "Optometry",
+        "taxonomy_codes": [
+            "152WX0102X",
+            "152WP0200X",
+            "152WV0400X",
+            "152W00000X",
+            "152WS0006X",
+            "152WL0500X",
+            "152WC0802X"
+        ]
+    },
+    "42": {
+        "description": "Certified Nurse Midwife",
+        "taxonomy_codes": [
+            "367A00000X"
+        ]
+    },
+    "43": {
+        "description": "Certified Registered Nurse Assistant (CRNA)",
+        "taxonomy_codes": [
+            "367500000X"
+        ]
+    },
+    "44": {
+        "description": "Infectious Disease",
+        "taxonomy_codes": [
+            "207RI0200X"
+        ]
+    },
+    "45": {
+        "description": "Mammography Screening Center",
+        "taxonomy_codes": [
+            "261QR0207X",
+            "261QR0208X"
+        ]
+    },
+    "46": {
+        "description": "Endocrinology",
+        "taxonomy_codes": [
+            "207RE0101X"
+        ]
+    },
+    "47": {
+        "description": "Independent Diagnostic Testing Facility",
+        "taxonomy_codes": [
+            "293D00000X"
+        ]
+    },
+    "48": {
+        "description": "Podiatry",
+        "taxonomy_codes": [
+            "213EP1101X",
+            "213EP0504X",
+            "213ES0103X",
+            "213EG0000X",
+            "213ER0200X",
+            "213ES0131X",
+            "213E00000X",
+            "213ES0000X"
+        ]
+    },
+    "49": {
+        "description": "Ambulatory Surgical Center",
+        "taxonomy_codes": [
+            "261QA1903X"
+        ]
+    },
+    "50": {
+        "description": "Nurse Practitioner",
+        "taxonomy_codes": [
+            "363LP0808X",
+            "363LP0200X",
+            "363LA2100X",
+            "363LF0000X",
+            "363LP1700X",
+            "363LW0102X",
+            "363LG0600X",
+            "363LS0200X",
+            "363LX0106X",
+            "363LP2300X",
+            "363LN0000X",
+            "363LA2200X",
+            "363LN0005X",
+            "363LP0222X",
+            "363LC0200X",
+            "363LC1500X",
+            "363LX0001X",
+            "363L00000X"
+        ]
+    },
+    "51": {
+        "description": "Medical Supply Company with Orthotist",
+        "taxonomy_codes": [
+            "335E00000X"
+        ]
+    },
+    "52": {
+        "description": "Medical Supply Company with Prosthetist",
+        "taxonomy_codes": [
+            "335E00000X"
+        ]
+    },
+    "53": {
+        "description": "Medical Supply Company with Orthotist-Prosthetist",
+        "taxonomy_codes": [
+            "335E00000X"
+        ]
+    },
+    "54": {
+        "description": "Other Medical Supply Company",
+        "taxonomy_codes": [
+            "332B00000X"
+        ]
+    },
+    "55": {
+        "description": "Individual Certified Orthotist",
+        "taxonomy_codes": [
+            "222Z00000X"
+        ]
+    },
+    "56": {
+        "description": "Individual Certified Prosthetist",
+        "taxonomy_codes": [
+            "229N00000X",
+            "224P00000X"
+        ]
+    },
+    "57": {
+        "description": "Individual Certified Prosthetist-Orthotist",
+        "taxonomy_codes": [
+            "229N00000X",
+            "222Z00000X",
+            "224P00000X"
+        ]
+    },
+    "58": {
+        "description": "Medical Supply Company with Pharmacist",
+        "taxonomy_codes": [
+            "3336I0012X",
+            "3336N0007X",
+            "3336M0003X",
+            "333600000X",
+            "3336L0003X",
+            "3336S0011X",
+            "3336M0002X",
+            "3336H0001X",
+            "3336C0003X",
+            "332B00000X",
+            "3336C0004X",
+            "3336C0002X"
+        ]
+    },
+    "59": {
+        "description": "Ambulance Service Provider",
+        "taxonomy_codes": [
+            "3416L0300X",
+            "341600000X",
+            "3416S0300X",
+            "3416A0800X"
+        ]
+    },
+    "60": {
+        "description": "Public Health or Welfare Agency",
+        "taxonomy_codes": [
+            "251K00000X"
+        ]
+    },
+    "61": {
+        "description": "Voluntary Health or Charitable Agency",
+        "taxonomy_codes": [
+            "251V00000X"
+        ]
+    },
+    "62": {
+        "description": "Psychologist",
+        "taxonomy_codes": [
+            "103TM1700X",
+            "103TS0200X",
+            "103TM1800X",
+            "103TA0400X",
+            "103TP2700X",
+            "103T00000X",
+            "103TC0700X",
+            "106S00000X",
+            "103TE1000X",
+            "103TF0200X",
+            "103TP2701X",
+            "103TW0100X",
+            "103TF0000X",
+            "103TH0100X",
+            "103TP0016X",
+            "103TB0200X",
+            "103TR0400X",
+            "103TA0700X",
+            "103TE1100X",
+            "103TH0004X",
+            "106E00000X",
+            "103TC1900X",
+            "103TC2200X",
+            "103TP0814X"
+        ]
+    },
+    "63": {
+        "description": "Portable X-Ray Supplier",
+        "taxonomy_codes": [
+            "335V00000X"
+        ]
+    },
+    "64": {
+        "description": "Audiologist",
+        "taxonomy_codes": [
+            "231HA2500X",
+            "231H00000X",
+            "231HA2400X"
+        ]
+    },
+    "65": {
+        "description": "Physical Therapist",
+        "taxonomy_codes": [
+            "2251N0400X",
+            "2251X0800X",
+            "2251E1300X",
+            "2251H1200X",
+            "2251H1300X",
+            "2251P0200X",
+            "2251G0304X",
+            "2251C2600X",
+            "2251S0007X",
+            "2251E1200X",
+            "225100000X"
+        ]
+    },
+    "66": {
+        "description": "Rheumatology",
+        "taxonomy_codes": [
+            "207RR0500X"
+        ]
+    },
+    "67": {
+        "description": "Occupational Therapist",
+        "taxonomy_codes": [
+            "225XH1300X",
+            "225XM0800X",
+            "225XL0004X",
+            "225XF0002X",
+            "225XP0019X",
+            "225XH1200X",
+            "225XG0600X",
+            "225X00000X",
+            "225XP0200X",
+            "225XE1200X",
+            "225XN1300X",
+            "225XR0403X",
+            "225XE0001X"
+        ]
+    },
+    "68": {
+        "description": "Clinical Psychologist",
+        "taxonomy_codes": [
+            "103TC0700X"
+        ]
+    },
+    "69": {
+        "description": "Clinical Laboratory",
+        "taxonomy_codes": [
+            "291U00000X"
+        ]
+    },
+    "70": {
+        "description": "Multi-specialty Clinic or Group Practice/single specialty",
+        "taxonomy_codes": [
+            "261Q00000X",
+            "193400000X",
+            "193200000X",
+            "261QP2000X",
+            "261QM1300X"
+        ]
+    },
+    "71": {
+        "description": "Registered Dietitian/Nutrition Professional",
+        "taxonomy_codes": [
+            "133VN1301X",
+            "133VN1005X",
+            "133VN1004X",
+            "133VN1006X",
+            "133VN1401X",
+            "133VN1101X",
+            "133V00000X",
+            "133VN1501X",
+            "133VN1201X"
+        ]
+    },
+    "72": {
+        "description": "Pain Management",
+        "taxonomy_codes": [
+            "208VP0000X"
+        ]
+    },
+    "74": {
+        "description": "Radiation Therapy Center",
+        "taxonomy_codes": [
+            "261QR0200X"
+        ]
+    },
+    "75": {
+        "description": "Slide Preparation Facilities",
+        "taxonomy_codes": [
+            "247200000X"
+        ]
+    },
+    "76": {
+        "description": "Peripheral Vascular Disease",
+        "taxonomy_codes": [
+            "2086S0129X"
+        ]
+    },
+    "77": {
+        "description": "Vascular Surgery",
+        "taxonomy_codes": [
+            "2086S0129X"
+        ]
+    },
+    "78": {
+        "description": "Cardiac Surgery",
+        "taxonomy_codes": [
+            "208G00000X"
+        ]
+    },
+    "79": {
+        "description": "Addiction Medicine",
+        "taxonomy_codes": [
+            "2084A0401X",
+            "207QA0401X",
+            "207RA0401X",
+            "207L00000X"
+        ]
+    },
+    "80": {
+        "description": "Licensed Clinical Social Worker",
+        "taxonomy_codes": [
+            "1041C0700X"
+        ]
+    },
+    "81": {
+        "description": "Critical Care (Intensivists)",
+        "taxonomy_codes": [
+            "207RC0200X"
+        ]
+    },
+    "82": {
+        "description": "Hematology",
+        "taxonomy_codes": [
+            "207RH0000X"
+        ]
+    },
+    "83": {
+        "description": "Hematology/Oncology",
+        "taxonomy_codes": [
+            "207RH0003X"
+        ]
+    },
+    "84": {
+        "description": "Preventive Medicine",
+        "taxonomy_codes": [
+            "2083P0901X",
+            "2083P0011X",
+            "2083T0002X",
+            "2083X0100X",
+            "2083S0010X",
+            "2083A0300X",
+            "2083A0100X",
+            "2083C0008X",
+            "2083B0002X",
+            "2083P0500X"
+        ]
+    },
+    "85": {
+        "description": "Maxillofacial Surgery",
+        "taxonomy_codes": [
+            "204E00000X"
+        ]
+    },
+    "86": {
+        "description": "Neuropsychiatry",
+        "taxonomy_codes": [
+            "2084A0401X",
+            "2084N0400X",
+            "2084N0008X",
+            "2084F0202X",
+            "2084B0040X",
+            "2084P0805X",
+            "2084P2900X",
+            "2084S0010X",
+            "2084P0802X",
+            "2084N0402X",
+            "2084B0002X",
+            "2084H0002X",
+            "2084D0003X",
+            "2084P0015X",
+            "2084P0804X",
+            "2084V0102X",
+            "2084S0012X",
+            "2084N0600X",
+            "2084P0005X",
+            "2084P0800X"
+        ]
+    },
+    "87": {
+        "description": "All Other Suppliers",
+        "taxonomy_codes": [
+            "332B00000X"
+        ]
+    },
+    "89": {
+        "description": "Certified Clinical Nurse Specialist",
+        "taxonomy_codes": [
+            "364SC2300X",
+            "364S00000X",
+            "364SW0102X",
+            "364SX0200X",
+            "364SS0200X",
+            "364SP0813X",
+            "364SP0200X",
+            "364SN0800X",
+            "364SP1700X",
+            "364SE0003X",
+            "364SG0600X",
+            "364SR0400X",
+            "364ST0500X",
+            "364SC1501X",
+            "364SH0200X",
+            "364SL0600X",
+            "364SI0800X",
+            "364SX0106X",
+            "364SP0809X",
+            "364SA2200X",
+            "364SM0705X",
+            "364SC0200X",
+            "364SA2100X",
+            "364SP0808X",
+            "364SP0812X",
+            "364SP0810X",
+            "364SP2800X",
+            "364SN0000X",
+            "364SF0001X",
+            "364SE1400X",
+            "364SH1100X",
+            "364SP0807X",
+            "364SX0204X",
+            "364SP0811X"
+        ]
+    },
+    "90": {
+        "description": "Medical Oncology",
+        "taxonomy_codes": [
+            "207RX0202X"
+        ]
+    },
+    "91": {
+        "description": "Surgical Oncology",
+        "taxonomy_codes": [
+            "2086X0206X"
+        ]
+    },
+    "92": {
+        "description": "Radiation Oncology",
+        "taxonomy_codes": [
+            "2085R0001X"
+        ]
+    },
+    "93": {
+        "description": "Emergency Medicine",
+        "taxonomy_codes": [
+            "207PS0010X",
+            "207PP0204X",
+            "207PE0004X",
+            "207PE0005X",
+            "207PH0002X",
+            "207P00000X",
+            "146E00000X",
+            "207PT0002X"
+        ]
+    },
+    "94": {
+        "description": "Interventional Radiology",
+        "taxonomy_codes": [
+            "2085R0204X",
+            "2085H0002X"
+        ]
+    },
+    "96": {
+        "description": "Optician",
+        "taxonomy_codes": [
+            "156FX1800X"
+        ]
+    },
+    "97": {
+        "description": "Physician Assistant",
+        "taxonomy_codes": [
+            "363AS0400X",
+            "363AM0700X",
+            "363A00000X"
+        ]
+    },
+    "98": {
+        "description": "Gynecological/Oncology",
+        "taxonomy_codes": [
+            "207VX0201X"
+        ]
+    },
+    "99": {
+        "description": "Unknown Physician Specialty",
+        "taxonomy_codes": [
+            "208D00000X"
+        ]
+    }
+}

@@ -10,6 +10,10 @@ _HCP_SEARCH_TIMEOUT = httpx.Timeout(connect=10, read=60, write=10, pool=10)
 _NPI_TIMEOUT = httpx.Timeout(connect=10, read=30, write=10, pool=10)
 _PROCEDURE_TIMEOUT = httpx.Timeout(connect=10, read=60, write=10, pool=10)
 
+# Shared clients — reused across calls to avoid per-request connection setup/teardown noise.
+_alphasophia_client = httpx.AsyncClient(base_url="https://api.alphasophia.com", limits=httpx.Limits(max_connections=20))
+_npi_client = httpx.AsyncClient(base_url="https://npiregistry.cms.hhs.gov", limits=httpx.Limits(max_connections=10))
+
 
 @retry(
     retry=retry_if_exception_type(httpx.TimeoutException),
@@ -24,7 +28,7 @@ async def _fetch_hcp_data(
     npi_list: list[str],
     page_size: int,
 ) -> list[Provider]:
-    url = "https://api.alphasophia.com/v1/search/hcp"
+    url = "/v1/search/hcp"
     params: dict[str, str | int] = {"order-by": "ap-volume", "time": "last-year", "view": "table", "target": "hcps"}
     if len(zip_codes_list) > 0:
         params["zip5"] = ", ".join([f"+{code}" for code in zip_codes_list])
@@ -42,11 +46,9 @@ async def _fetch_hcp_data(
         "Accept": "application/json",
     }
 
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url, params=params, headers=headers, timeout=_HCP_SEARCH_TIMEOUT)
-        response.raise_for_status()
-        response_dict = response.json()
-
+    response = await _alphasophia_client.get(url, params=params, headers=headers, timeout=_HCP_SEARCH_TIMEOUT)
+    response.raise_for_status()
+    response_dict = response.json()
     return [Provider(**item) for item in response_dict.get("data", [])]
 
 
@@ -94,14 +96,13 @@ async def get_hcp_data(
     reraise=True,
 )
 async def _fetch_npi_address(npi: str) -> tuple[str | None, str | None, str | None]:
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            "https://npiregistry.cms.hhs.gov/api/",
-            params={"number": npi, "version": "2.1"},
-            timeout=_NPI_TIMEOUT,
-        )
-        response.raise_for_status()
-        data = response.json()
+    response = await _npi_client.get(
+        "/api/",
+        params={"number": npi, "version": "2.1"},
+        timeout=_NPI_TIMEOUT,
+    )
+    response.raise_for_status()
+    data = response.json()
 
     address_list = data["results"][0]["addresses"]
     location_address_list = [address for address in address_list if address["address_purpose"] == "LOCATION"]
@@ -153,7 +154,7 @@ async def get_npi_address(npi: str | None) -> tuple[str | None, str | None, str 
     reraise=True,
 )
 async def _fetch_hcp_procedure(hcp_id: int, page: int, code: str | None) -> list[CPT]:
-    url = "https://api.alphasophia.com/v1/profile/hcp/procedure/"
+    url = "/v1/profile/hcp/procedure/"
     params: dict[str, str | int | bool] = {"id": hcp_id, "all-payor": "true", "page": page, "pageSize": 15}
     if code:
         params["code"] = code
@@ -161,10 +162,9 @@ async def _fetch_hcp_procedure(hcp_id: int, page: int, code: str | None) -> list
         "x-api-key": settings.ALPHASOPHIA_API_KEY,
         "Accept": "application/json",
     }
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url, params=params, headers=headers, timeout=_PROCEDURE_TIMEOUT)
-        response.raise_for_status()
-        response_dict = response.json()
+    response = await _alphasophia_client.get(url, params=params, headers=headers, timeout=_PROCEDURE_TIMEOUT)
+    response.raise_for_status()
+    response_dict = response.json()
     return [CPT(**cpt) for cpt in response_dict["data"]["procedures"]]
 
 

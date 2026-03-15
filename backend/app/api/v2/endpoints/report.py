@@ -14,6 +14,7 @@ from app.core.types import SexAgeCounts
 from app.schemas.provider_request import ProviderRequest
 from app.services.alphasophia import get_hcp_data
 from app.services.census import combine_demographics, get_zip_demographics
+from app.services.fee_schedule import get_medicare_rate
 from app.services.html_imputers.baseline_imputer import replace_data_block
 from app.types.alphasophia import CPT, Provider
 from app.types.baseline_report_template import CptRow, ProviderProfile, ReportTemplateData, Upgrade
@@ -118,6 +119,11 @@ async def generate_report(
             cpt_codes_list=relevant_cpt_codes_list,
             page_size=200,
         )
+        # Exclude client provider from competitor list
+        expanded_providers_list = [
+            p for p in expanded_providers_list if isinstance(p, Provider) and p.id != payload.client_provider.id
+        ]
+        logging.info(f"Fetched {len(expanded_providers_list)} providers from AlphaSophia on 2x radius")
     except Exception as exc:
         logging.error("Failed to fetch providers from AlphaSophia: %s", exc)
         expanded_providers_list = []
@@ -143,6 +149,8 @@ async def generate_report(
         ).miles
         if dist <= payload.miles_radius:
             providers_in_radius.append(result)
+    
+    logging.info(f"Fetched {len(providers_in_radius)} providers within actual radius")
 
     # 9. Add CPT list to each provider
 
@@ -188,6 +196,7 @@ async def generate_report(
                 totalCharges=0.0,
             )
 
+        medicare_rate = get_medicare_rate(str(_cpt.code), payload.client_provider.location.state or "")
         cpt_rows.append(
             CptRow(
                 code=str(_cpt.code),
@@ -199,6 +208,7 @@ async def generate_report(
                 clientRevenue=f"${client_cpt.totalCharges:,.0f}" if client_cpt and client_cpt.totalCharges else None,
                 peerAvgVolume=f"{int(_cpt.totalServices / n_providers):,}" if _cpt.totalServices else None,
                 peerAvgRevenue=f"${_cpt.totalCharges / n_providers:,.0f}" if _cpt.totalCharges else None,
+                medicareRate=f"${medicare_rate:,.2f}" if medicare_rate is not None else None,
             )
         )
 
@@ -272,7 +282,7 @@ async def generate_report(
         totalPopulation=f"{total_population:,}" if total_population > 0 else "N/A",
         relevantPopulation=f"{relevant_pop:,}" if relevant_pop > 0 else "N/A",
         populationLabel=population_label,
-        currentProviders=len(providers_in_radius),
+        currentProviders=len(providers_in_radius)+1,
         targetDensity=0.0,  # TODO: load benchmark density from specialty_master_df
         providerGap=0.0,  # TODO: targetDensity - currentProviders once benchmark is available
         cptRows=cpt_rows,

@@ -19,6 +19,7 @@ class CptRow:
     clientRevenue: str | int | float | None = None
     peerAvgVolume: str | int | float | None = None
     peerAvgRevenue: str | int | float | None = None
+    medicareRate: str | None = None  # Medicare allowed amount per service (state-adjusted, non-facility)
 
 
 @dataclass(slots=True)

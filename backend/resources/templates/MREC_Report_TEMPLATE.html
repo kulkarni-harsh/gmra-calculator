@@ -553,7 +553,8 @@ body {
 .comparison-table td:nth-child(5),
 .comparison-table td:nth-child(6),
 .comparison-table td:nth-child(7),
-.comparison-table td:nth-child(8) {
+.comparison-table td:nth-child(8),
+.comparison-table td:nth-child(9) {
   text-align: right;
 }
 
@@ -570,6 +571,11 @@ body {
 .comparison-table td.delta-neg {
   color: var(--red);
   font-weight: 700;
+}
+
+.comparison-table td.medicare-rate-col {
+  color: var(--muted);
+  font-style: italic;
 }
 
 .comparison-footnote {
@@ -977,8 +983,8 @@ const DATA = {
   // ── Section 2: CPT Table ──────────────────────────────────
   cptRows: [
     // Optional per-row fields for true client-vs-peer comparison:
-    // clientVolume, clientRevenue, peerAvgVolume, peerAvgRevenue
-    { code: "99202", desc: "New patient — straightforward",       type: "New",         volume: "14,220",  reimb: "$93",   revenue: "$1,322,460", clientVolume: "1,120", clientRevenue: "$104,160"  },
+    // clientVolume, clientRevenue, peerAvgVolume, peerAvgRevenue, medicareRate (CMS 2026 PFS, non-facility, state-adjusted)
+    { code: "99202", desc: "New patient — straightforward",       type: "New",         volume: "14,220",  reimb: "$93",   revenue: "$1,322,460", clientVolume: "1,120", clientRevenue: "$104,160",  medicareRate: "$93.41"  },
     { code: "99203", desc: "New patient — low complexity",        type: "New",         volume: "18,840",  reimb: "$134",  revenue: "$2,524,560", clientVolume: "1,540", clientRevenue: "$206,360"  },
     { code: "99204", desc: "New patient — moderate complexity",   type: "New",         volume: "11,650",  reimb: "$193",  revenue: "$2,248,450", clientVolume: "920",   clientRevenue: "$177,560"  },
     { code: "99205", desc: "New patient — high complexity",       type: "New",         volume: "4,210",   reimb: "$261",  revenue: "$1,098,810", clientVolume: "280",   clientRevenue: "$73,080"   },
@@ -1202,6 +1208,7 @@ const DATA = {
       <td class="client-col">${fmtMoney(r.clientRevenue)}</td>
       <td>${fmtMoney(r.peerAvgRevenue)}</td>
       <td class="${Number.isFinite(r.deltaPct) ? (r.deltaPct >= 0 ? 'delta-pos' : 'delta-neg') : ''}">${fmtDelta(r.deltaPct)}</td>
+      <td class="medicare-rate-col" title="CMS 2026 Medicare allowed amount per service (non-facility, state-adjusted)">${r.medicareRate || '—'}</td>
     </tr>`
   ).join('');
 
@@ -1362,6 +1369,7 @@ const DATA = {
           <th>CPT</th><th>Description</th>
           <th>Your Volume / Yr</th><th>Peer Avg Volume</th><th>Market Volume</th>
           <th>Your Revenue</th><th>Peer Avg Revenue</th><th>vs Peer</th>
+          <th title="CMS 2026 Medicare Physician Fee Schedule rate — state-adjusted, non-facility setting">Medicare Rate</th>
         </tr>
       </thead>
       <tbody>${cptScoreRowsHtml}</tbody>
@@ -1374,11 +1382,13 @@ const DATA = {
           <td class="client-col">${Number.isFinite(clientRevenue) ? fmtMoney(clientRevenue) : '—'}</td>
           <td>${fmtMoney(peerAvgRevenueFromRows)}</td>
           <td class="${Number.isFinite(clientVsPeerPct) ? (clientVsPeerPct >= 0 ? 'delta-pos' : 'delta-neg') : ''}">${fmtDelta(clientVsPeerPct)}</td>
+          <td>—</td>
         </tr>
       </tfoot>
     </table>
     <div class="comparison-footnote">
       If your CPT data is missing, your columns show "N/A" while market and peer benchmarks remain visible.
+      <em>Medicare Rate</em> = CMS 2026 Physician Fee Schedule allowed amount per service (non-facility, state-adjusted).
     </div>
 
     <!-- SECTION 03 -->

@@ -81,7 +81,9 @@ async def get_hcp_data(
         else:
             logging.warning("AlphaSophia HCP search hit page cap (%d pages)", _MAX_HCP_PAGES)
     except httpx.TimeoutException as e:
-        logging.critical("Timed out requesting AlphaSophia HCP search API after 3 attempts. %s: %s", type(e).__name__, e)
+        logging.critical(
+            "Timed out requesting AlphaSophia HCP search API after 3 attempts. %s: %s", type(e).__name__, e
+        )
         raise
     except httpx.RequestError as exc:
         logging.critical("An error occurred while requesting %r.", exc.request.url, exc_info=True)

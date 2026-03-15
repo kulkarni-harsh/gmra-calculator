@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 import pandas as pd
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from opencage.geocoder import OpenCageGeocode
 
 from app.api.router import api_router
@@ -40,6 +41,19 @@ def create_app() -> FastAPI:
         version=settings.VERSION,
         debug=settings.DEBUG,
         lifespan=lifespan,
+    )
+
+    # Allow requests from the Vite dev server and any future hosted frontend origin.
+    # Update CORS origins when the frontend is deployed to a cloud domain.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:5173",  # Vite dev server
+            "http://localhost:4173",  # Vite preview
+        ],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     app.include_router(api_router, prefix=settings.API_PREFIX)

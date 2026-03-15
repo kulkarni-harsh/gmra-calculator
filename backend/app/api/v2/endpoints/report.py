@@ -45,11 +45,17 @@ def _cpt_revenue(services: int, medicare_rate: float | None, charges: float) -> 
 @router.get("/specialties")
 async def list_specialties(request: Request):
     """
-    Return all specialties that have provider density data (non-empty states map).
+    Return all specialties that have provider density data.
+    Includes taxonomy_codes and national_density (US providers per 100k).
     """
     specialty_lookup: dict = request.app.state.specialty_lookup
     return [
-        {"id": specialty_id, "description": data["description"]}
+        {
+            "id": specialty_id,
+            "description": data["description"],
+            "taxonomy_codes": data.get("taxonomy_codes", []),
+            "national_density": data.get("states", {}).get("US"),
+        }
         for specialty_id, data in specialty_lookup.items()
         if data.get("states")
     ]

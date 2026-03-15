@@ -4,9 +4,9 @@ import pandas as pd
 
 from app.core.config import settings
 
-_RVU_QPP_FILE    = settings.LOOKUP_DIR / "PPRRvu2026_Jan_QPP.csv"
+_RVU_QPP_FILE = settings.LOOKUP_DIR / "PPRRvu2026_Jan_QPP.csv"
 _RVU_NONQPP_FILE = settings.LOOKUP_DIR / "PPRRvu2026_Jan_nonQPP.csv"
-_GPCI_FILE       = settings.LOOKUP_DIR / "GPCI2026.csv"
+_GPCI_FILE = settings.LOOKUP_DIR / "GPCI2026.csv"
 _CONVERSION_FACTOR = 33.5675  # CY 2026 national conversion factor (fallback)
 
 
@@ -143,7 +143,7 @@ def _build_rvu_table() -> dict[str, dict]:
     99381-99396 which are non-covered by traditional Medicare but carry valid
     RVU values used by commercial payers) fill in any gaps.
     """
-    qpp_df    = _parse_rvu_csv(_RVU_QPP_FILE)
+    qpp_df = _parse_rvu_csv(_RVU_QPP_FILE)
     nonqpp_df = _parse_rvu_csv(_RVU_NONQPP_FILE)
 
     if qpp_df.empty and nonqpp_df.empty:
@@ -153,7 +153,7 @@ def _build_rvu_table() -> dict[str, dict]:
     combined = pd.concat([qpp_df, nonqpp_df], ignore_index=True)
     combined = combined.drop_duplicates(subset="code", keep="first")
 
-    qpp_count    = len(qpp_df)
+    qpp_count = len(qpp_df)
     nonqpp_extra = len(combined) - qpp_count
     logging.debug("RVU table: %d QPP codes + %d nonQPP-only codes", qpp_count, nonqpp_extra)
 

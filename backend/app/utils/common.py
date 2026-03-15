@@ -1,3 +1,6 @@
+import logging
+
+
 def get_population_severity_scoring(
     current_avg_provider_per_100k: float, target_avg_provider_per_100k: float
 ) -> tuple[str, str]:
@@ -55,3 +58,12 @@ def get_anchor_cpt_severity_scoring(
             f"""Market at {capacity_percent}% capacity with {visits_diff:,} visits exceeding benchmarks. """
             + "This overflow creates a clear entry point for a new office.",
         )
+
+
+def get_taxonomy_codes(specialty_lookup: dict, specialty_name: str) -> list[str]:
+    """Return taxonomy codes for the given specialty name (case-insensitive match)."""
+    for val in specialty_lookup.values():
+        if val["description"].strip().lower() == specialty_name.strip().lower():
+            return val["taxonomy_codes"]
+    logging.warning("Specialty '%s' not found in specialty_map; proceeding with empty taxonomy codes.", specialty_name)
+    return []

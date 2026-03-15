@@ -1,7 +1,9 @@
+from io import BytesIO
+
 import matplotlib
 import pandas as pd
 import seaborn as sns
-from io import BytesIO
+
 from app.core.types import SexAgeCounts
 
 matplotlib.use("Agg")

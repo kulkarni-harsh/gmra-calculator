@@ -208,3 +208,10 @@ __marimo__/
 
 # Vscode
 .vscode/*
+
+# Reports
+backend/tableau_report/*
+
+# Mac specific file
+*.DS_Store
+backend/test.ipynb

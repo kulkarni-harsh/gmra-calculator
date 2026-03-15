@@ -85,7 +85,7 @@ def generate_slides(payload: GenerateSlidesRequest, request: Request):
     hospitals_within_range_df = nearby_providers_df[
         nearby_providers_df["distance_from_source_miles"] <= payload.miles_radius
     ].sort_values(by="distance_from_source_miles", ascending=True)
-    
+
     # Log the number of providers found within the radius
     logging.log(
         logging.INFO, f"Found {hospitals_within_range_df.shape[0]} providers within {payload.miles_radius} miles."

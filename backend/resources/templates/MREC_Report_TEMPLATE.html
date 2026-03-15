@@ -474,6 +474,111 @@ body {
   padding-left: 16px;
 }
 
+/* CPT comparison */
+.section-note {
+  background: var(--light);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.section-note strong {
+  color: var(--navy);
+}
+
+.know-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 2px;
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+
+.know-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.know-card {
+  background: var(--light);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--navy);
+  padding: 10px 12px;
+}
+
+.know-card-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+
+.know-card-value {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  letter-spacing: 1px;
+  line-height: 1;
+  color: var(--navy);
+}
+
+.know-card-value.up { color: var(--green); }
+.know-card-value.down { color: var(--red); }
+.know-card-value.neutral { color: var(--blue); }
+
+.know-card-sub {
+  margin-top: 4px;
+  font-size: 9px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.comparison-table {
+  font-size: 10px;
+}
+
+.comparison-table thead th {
+  font-size: 7px;
+}
+
+.comparison-table td:nth-child(3),
+.comparison-table td:nth-child(4),
+.comparison-table td:nth-child(5),
+.comparison-table td:nth-child(6),
+.comparison-table td:nth-child(7),
+.comparison-table td:nth-child(8),
+.comparison-table td:nth-child(9) {
+  text-align: right;
+}
+
+.comparison-table td.client-col {
+  color: var(--blue);
+  font-weight: 700;
+}
+
+.comparison-table td.delta-pos {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.comparison-table td.delta-neg {
+  color: var(--red);
+  font-weight: 700;
+}
+
+.comparison-footnote {
+  font-size: 9px;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
 /* Bar chart */
 .bar-section {
   margin-bottom: 20px;
@@ -841,6 +946,13 @@ const DATA = {
   // ── Client / Location ─────────────────────────────────────
   address:     "5757 Warren Pkwy Suite 240, Frisco TX 75034",
   clientName:  "Dr. [Client Name]",
+  // Optional: used for client position summary cards
+  providerProfile: {
+    annualVisits:  "13,960",
+    annualRevenue: "$1,559,580",
+  },
+  // Optional: count of peer providers used for normalized peer averages
+  competitorCount: 10,
 
   // ── Tags (color: "green" | "amber" | "red" | "" for default blue) ──
   tags: [
@@ -858,22 +970,24 @@ const DATA = {
   // ── Section 1: Population & Provider Density ──────────────
   totalPopulation:    "503,447",
   relevantPopulation: "503,447",
-  populationLabel:    "zages (Family Med)",   // e.g. "Ages 65+ (Cardiology)"
+  populationLabel:    "All ages (Family Med)",   // e.g. "Ages 65+ (Cardiology)"
   currentProviders:   38,
   targetDensity:      55.2,
   providerGap:        17.2,
 
   // ── Section 2: CPT Table ──────────────────────────────────
   cptRows: [
-    { code: "99202", desc: "New patient — straightforward",       type: "New",         volume: "14,220",  reimb: "$93",   revenue: "$1,322,460"  },
-    { code: "99203", desc: "New patient — low complexity",        type: "New",         volume: "18,840",  reimb: "$134",  revenue: "$2,524,560"  },
-    { code: "99204", desc: "New patient — moderate complexity",   type: "New",         volume: "11,650",  reimb: "$193",  revenue: "$2,248,450"  },
-    { code: "99205", desc: "New patient — high complexity",       type: "New",         volume: "4,210",   reimb: "$261",  revenue: "$1,098,810"  },
-    { code: "99211", desc: "Established — nurse visit",           type: "Established", volume: "9,330",   reimb: "$25",   revenue: "$233,250"    },
-    { code: "99212", desc: "Established — straightforward",       type: "Established", volume: "22,140",  reimb: "$57",   revenue: "$1,261,980"  },
-    { code: "99213", desc: "Established — low complexity",        type: "Established", volume: "48,920",  reimb: "$92",   revenue: "$4,500,640"  },
-    { code: "99214", desc: "Established — moderate complexity",   type: "Established", volume: "36,780",  reimb: "$130",  revenue: "$4,781,400"  },
-    { code: "99215", desc: "Established — high complexity",       type: "Established", volume: "12,440",  reimb: "$172",  revenue: "$2,139,680"  },
+    // Optional per-row fields for true client-vs-peer comparison:
+    // clientVolume, clientRevenue, peerAvgVolume, peerAvgRevenue
+    { code: "99202", desc: "New patient — straightforward",       type: "New",         volume: "14,220",  reimb: "$93",   revenue: "$1,322,460", clientVolume: "1,120", clientRevenue: "$104,160"  },
+    { code: "99203", desc: "New patient — low complexity",        type: "New",         volume: "18,840",  reimb: "$134",  revenue: "$2,524,560", clientVolume: "1,540", clientRevenue: "$206,360"  },
+    { code: "99204", desc: "New patient — moderate complexity",   type: "New",         volume: "11,650",  reimb: "$193",  revenue: "$2,248,450", clientVolume: "920",   clientRevenue: "$177,560"  },
+    { code: "99205", desc: "New patient — high complexity",       type: "New",         volume: "4,210",   reimb: "$261",  revenue: "$1,098,810", clientVolume: "280",   clientRevenue: "$73,080"   },
+    { code: "99211", desc: "Established — nurse visit",           type: "Established", volume: "9,330",   reimb: "$25",   revenue: "$233,250",   clientVolume: "680",   clientRevenue: "$17,000"   },
+    { code: "99212", desc: "Established — straightforward",       type: "Established", volume: "22,140",  reimb: "$57",   revenue: "$1,261,980", clientVolume: "1,760", clientRevenue: "$100,320"  },
+    { code: "99213", desc: "Established — low complexity",        type: "Established", volume: "48,920",  reimb: "$92",   revenue: "$4,500,640", clientVolume: "3,980", clientRevenue: "$366,160"  },
+    { code: "99214", desc: "Established — moderate complexity",   type: "Established", volume: "36,780",  reimb: "$130",  revenue: "$4,781,400", clientVolume: "2,810", clientRevenue: "$365,300"  },
+    { code: "99215", desc: "Established — high complexity",       type: "Established", volume: "12,440",  reimb: "$172",  revenue: "$2,139,680", clientVolume: "870",   clientRevenue: "$149,640"  },
   ],
   cptTotalVisits:  "178,530 visits/yr",
   cptTotalRevenue: "$20,111,230",
@@ -890,14 +1004,14 @@ const DATA = {
   analysisText: `
     The Frisco, TX market presents a <strong>clear opportunity for an independent Family Medicine practice.</strong>
     With 503,447 residents and only 38 active providers against a benchmark target of 55.2, this market is operating
-    at <strong>69% of optimal provider density</strong> — meaning 17+ provider slots remain unfilled.<br><br>
+    at <strong>69% of benchmark provider capacity</strong> — indicating meaningful growth headroom for the existing practice.<br><br>
     The "through the door" CPT baseline confirms demand is real: <strong>178,530 annual patient visits</strong> are
     being processed by existing providers, yet market capacity supports 262,500 — leaving an <strong>83,970-visit
     gap</strong> generating approximately $9.4M in addressable annual revenue. This baseline analysis uses universal
     E&amp;M codes (99202–99215) common to all office-based practices, confirming fundamental market demand
     <strong>before</strong> accounting for specialty-specific procedures.<br><br>
-    <strong>Recommendation: This market warrants further analysis.</strong> Upgrade to the $599 Strategic Code Report
-    to model your specific procedure mix and revenue potential at this location.
+    <strong>Recommended next step:</strong> move to a code-level strategic model to decide whether to defend share,
+    expand provider capacity, or adjust service mix in this location.
   `,
 
   // ── Section 5: Upgrade Options ────────────────────────────
@@ -905,12 +1019,12 @@ const DATA = {
     {
       price: "$599",
       name:  "5-Code Strategic Report",
-      desc:  "Your 5 highest-revenue CPT codes analyzed against this specific market. Revenue forecast and procedure-specific demand.",
+      desc:  "Top 5 highest-revenue CPT codes analyzed against this specific market. Revenue forecast and procedure-specific demand.",
     },
     {
       price: "$799",
       name:  "10-Code Full Analysis + Add-On",
-      desc:  "Complete procedure mix, NP/PA competitive presence, payer mix, infrastructure sizing, and lease term optimization.",
+      desc:  "Complete procedure mix, NP/PA peer presence, payer mix, infrastructure sizing, and lease term optimization.",
     },
   ],
 };
@@ -926,12 +1040,25 @@ const DATA = {
   const D = DATA;
 
   // ── Helpers ──
-  const pct = (n, total) => Math.round((n / total) * 100);
-  const gap = (total, n) => Math.round(((total - n) / total) * 100);
+  const pct = (n, total) => (total ? Math.round((n / total) * 100) : 0);
+  const toNum = (v) => {
+    if (typeof v === 'number') return Number.isFinite(v) ? v : NaN;
+    if (v === null || v === undefined) return NaN;
+    const cleaned = String(v).replace(/[^0-9.-]/g, '');
+    if (!cleaned || cleaned === '-' || cleaned === '.' || cleaned === '-.') return NaN;
+    const parsed = Number(cleaned);
+    return Number.isFinite(parsed) ? parsed : NaN;
+  };
+  const fmtInt = (n) => Number.isFinite(n) ? Math.round(n).toLocaleString('en-US') : '—';
+  const fmtMoney = (n) => Number.isFinite(n) ? `$${Math.round(n).toLocaleString('en-US')}` : '—';
+  const fmtDelta = (n) => Number.isFinite(n) ? `${n > 0 ? '+' : ''}${n.toFixed(1)}%` : '—';
+  const fmtShare = (n) => Number.isFinite(n) ? `${n.toFixed(1)}%` : '—';
+  const classForDelta = (n) => !Number.isFinite(n) ? 'neutral' : (n >= 0 ? 'up' : 'down');
+  const sumNums = (arr) => arr.reduce((acc, n) => acc + (Number.isFinite(n) ? n : 0), 0);
 
   const currentPct   = pct(D.currentProviders, D.targetDensity);
   const gapPct       = pct(D.providerGap,      D.targetDensity);
-  const capacityGap  = 100 - D.utilizationPct;
+  const competitorCount = Math.max(1, Math.round(toNum(D.competitorCount)) || Math.max((toNum(D.currentProviders) || 2) - 1, 1));
 
   // Gauge: arc length ~157 (π × r50), dashoffset maps pct → fill
   const gaugeArc     = 157;
@@ -942,15 +1069,140 @@ const DATA = {
     `<span class="tag${t.color ? ' ' + t.color : ''}">${t.text}</span>`
   ).join(' ');
 
-  // CPT table rows
-  const cptRowsHtml = D.cptRows.map(r => `
+  // CPT rows: market baseline + normalized client-vs-peer comparisons
+  const cptNormalizedRows = D.cptRows.map(r => {
+    const marketVolume = toNum(r.volume);
+    const marketRevenue = toNum(r.revenue);
+
+    const clientVolumeRaw = toNum(r.clientVolume);
+    const clientRevenueRaw = toNum(r.clientRevenue);
+    const hasClientVolume = Number.isFinite(clientVolumeRaw);
+    const hasClientRevenue = Number.isFinite(clientRevenueRaw);
+
+    const peerAvgVolume = Number.isFinite(toNum(r.peerAvgVolume))
+      ? toNum(r.peerAvgVolume)
+      : (Number.isFinite(marketVolume)
+          ? (hasClientVolume
+              ? Math.max(marketVolume - clientVolumeRaw, 0) / competitorCount
+              : marketVolume / Math.max(competitorCount + 1, 1))
+          : NaN);
+
+    const peerAvgRevenue = Number.isFinite(toNum(r.peerAvgRevenue))
+      ? toNum(r.peerAvgRevenue)
+      : (Number.isFinite(marketRevenue)
+          ? (hasClientRevenue
+              ? Math.max(marketRevenue - clientRevenueRaw, 0) / competitorCount
+              : marketRevenue / Math.max(competitorCount + 1, 1))
+          : NaN);
+
+    const deltaPct = (hasClientRevenue && Number.isFinite(peerAvgRevenue) && peerAvgRevenue > 0)
+      ? ((clientRevenueRaw / peerAvgRevenue) - 1) * 100
+      : NaN;
+    const sharePct = (hasClientRevenue && Number.isFinite(marketRevenue) && marketRevenue > 0)
+      ? (clientRevenueRaw / marketRevenue) * 100
+      : NaN;
+
+    return {
+      ...r,
+      marketVolume,
+      marketRevenue,
+      clientVolume: hasClientVolume ? clientVolumeRaw : NaN,
+      clientRevenue: hasClientRevenue ? clientRevenueRaw : NaN,
+      peerAvgVolume,
+      peerAvgRevenue,
+      deltaPct,
+      sharePct,
+    };
+  });
+
+  const marketRevenueFromRows = sumNums(cptNormalizedRows.map(r => r.marketRevenue));
+  const clientVisitsFromRows = sumNums(cptNormalizedRows.map(r => r.clientVolume));
+  const clientRevenueFromRows = sumNums(cptNormalizedRows.map(r => r.clientRevenue));
+  const peerAvgRevenueFromRows = sumNums(cptNormalizedRows.map(r => r.peerAvgRevenue));
+
+  const profileVisits = toNum(D.providerProfile?.annualVisits);
+  const profileRevenue = toNum(D.providerProfile?.annualRevenue);
+  const cleanClientName = (typeof D.clientName === 'string' ? D.clientName : '').trim();
+  const subjectLabel = (cleanClientName && !/\[client name\]/i.test(cleanClientName))
+    ? cleanClientName
+    : 'Your Practice';
+  const hasClientData = cptNormalizedRows.some(r => Number.isFinite(r.clientVolume) || Number.isFinite(r.clientRevenue))
+    || Number.isFinite(profileVisits)
+    || Number.isFinite(profileRevenue);
+
+  const marketVisitsInput = toNum(D.cptTotalVisits);
+  const marketRevenueInput = toNum(D.cptTotalRevenue);
+  const marketVisitsTotal = Number.isFinite(marketVisitsInput) ? marketVisitsInput : sumNums(cptNormalizedRows.map(r => r.marketVolume));
+  const marketRevenueTotal = Number.isFinite(marketRevenueInput) ? marketRevenueInput : marketRevenueFromRows;
+  const clientVisits = Number.isFinite(profileVisits) ? profileVisits : (clientVisitsFromRows > 0 ? clientVisitsFromRows : NaN);
+  const clientRevenue = Number.isFinite(profileRevenue) ? profileRevenue : (clientRevenueFromRows > 0 ? clientRevenueFromRows : NaN);
+  const clientSharePct = (Number.isFinite(clientRevenue) && marketRevenueFromRows > 0) ? (clientRevenue / marketRevenueFromRows) * 100 : NaN;
+  const clientVsPeerPct = (Number.isFinite(clientRevenue) && peerAvgRevenueFromRows > 0)
+    ? ((clientRevenue / peerAvgRevenueFromRows) - 1) * 100
+    : NaN;
+  const sharePointValue = Number.isFinite(marketRevenueTotal) ? marketRevenueTotal * 0.01 : NaN;
+  const plus1ppRevenue = (Number.isFinite(clientRevenue) && Number.isFinite(sharePointValue))
+    ? clientRevenue + sharePointValue
+    : NaN;
+  const mixGapToPeer = sumNums(
+    cptNormalizedRows.map(r =>
+      (Number.isFinite(r.clientRevenue) && Number.isFinite(r.peerAvgRevenue))
+        ? Math.max(r.peerAvgRevenue - r.clientRevenue, 0)
+        : 0
+    )
+  );
+  const topUnderIndexedCodes = cptNormalizedRows
+    .map(r => ({
+      code: r.code,
+      gapToPeer: (Number.isFinite(r.clientRevenue) && Number.isFinite(r.peerAvgRevenue))
+        ? (r.peerAvgRevenue - r.clientRevenue)
+        : NaN,
+    }))
+    .filter(r => Number.isFinite(r.gapToPeer) && r.gapToPeer > 0)
+    .sort((a, b) => b.gapToPeer - a.gapToPeer)
+    .slice(0, 3)
+    .map(r => r.code)
+    .join(', ');
+  const positionLabel = !hasClientData
+    ? 'Awaiting your claims data'
+    : (Number.isFinite(clientVsPeerPct)
+        ? (clientVsPeerPct >= 15 ? 'Above avg peer provider' : (clientVsPeerPct <= -15 ? 'Below avg peer provider' : 'Near avg peer provider'))
+        : 'Partial data available');
+
+  const knowCardsHtml = `
+    <div class="know-card">
+      <div class="know-card-label">${subjectLabel} Annual Visits</div>
+      <div class="know-card-value neutral">${Number.isFinite(clientVisits) ? fmtInt(clientVisits) : 'Not Supplied'}</div>
+      <div class="know-card-sub">${Number.isFinite(clientVisits) ? 'Across listed CPT basket' : 'Add providerProfile.annualVisits or CPT-level clientVolume'}</div>
+    </div>
+    <div class="know-card">
+      <div class="know-card-label">${subjectLabel} Annual Revenue</div>
+      <div class="know-card-value neutral">${Number.isFinite(clientRevenue) ? fmtMoney(clientRevenue) : 'Not Supplied'}</div>
+      <div class="know-card-sub">${Number.isFinite(clientRevenue) ? 'Across listed CPT basket' : 'Add providerProfile.annualRevenue or CPT-level clientRevenue'}</div>
+    </div>
+    <div class="know-card">
+      <div class="know-card-label">${subjectLabel} Market Share</div>
+      <div class="know-card-value ${classForDelta(clientSharePct)}">${fmtShare(clientSharePct)}</div>
+      <div class="know-card-sub">Share of CPT revenue in this section</div>
+    </div>
+    <div class="know-card">
+      <div class="know-card-label">${subjectLabel} vs Avg Peer</div>
+      <div class="know-card-value ${classForDelta(clientVsPeerPct)}">${fmtDelta(clientVsPeerPct)}</div>
+      <div class="know-card-sub">${positionLabel}</div>
+    </div>
+  `;
+
+  const cptScoreRowsHtml = cptNormalizedRows.map(r => `
     <tr>
       <td>${r.code}</td>
       <td>${r.desc}</td>
-      <td>${r.type}</td>
-      <td>${r.volume}</td>
-      <td>${r.reimb}</td>
-      <td>${r.revenue}</td>
+      <td>${fmtInt(r.marketVolume)}</td>
+      <td>${r.reimb || '—'}</td>
+      <td>${fmtMoney(r.marketRevenue)}</td>
+      <td class="client-col">${fmtMoney(r.clientRevenue)}</td>
+      <td>${fmtMoney(r.peerAvgRevenue)}</td>
+      <td class="${Number.isFinite(r.deltaPct) ? (r.deltaPct >= 0 ? 'delta-pos' : 'delta-neg') : ''}">${fmtDelta(r.deltaPct)}</td>
+      <td class="client-col">${fmtShare(r.sharePct)}</td>
     </tr>`
   ).join('');
 
@@ -1021,14 +1273,14 @@ const DATA = {
     <div class="title-left">
       <div class="tier-pill">
         <div class="tier-pill-dot"></div>
-        <div class="tier-pill-text">Tier 1 — Through the Door Baseline Report</div>
+        <div class="tier-pill-text">Tier 1 — Practice Growth Baseline Report</div>
       </div>
-      <div class="report-main-title">Clinical Demand &amp;<br>Market Capacity Analysis</div>
+      <div class="report-main-title">Clinical Demand &amp;<br>Practice Growth Outlook</div>
       <div class="report-subtitle">${D.address} &nbsp;·&nbsp; Prepared for: ${D.clientName}</div>
       <div style="margin-top:10px;">${tagsHtml}</div>
     </div>
     <div class="verdict-box ${D.verdictType}">
-      <div class="verdict-label">Market Verdict</div>
+      <div class="verdict-label">Decision Signal</div>
       <div class="verdict-value">${D.verdictValue}</div>
       <div class="verdict-sub">${D.verdictSub}</div>
     </div>
@@ -1040,7 +1292,7 @@ const DATA = {
     <!-- SECTION 01 -->
     <div class="section-header">
       <div class="section-num">01</div>
-      <div class="section-title">Population &amp; <em>Provider Density Gap</em></div>
+      <div class="section-title">Demand Base &amp; <em>Growth Headroom</em></div>
     </div>
 
     <div class="metric-row">
@@ -1055,69 +1307,92 @@ const DATA = {
         <div class="metric-sub">${D.populationLabel}</div>
       </div>
       <div class="metric-card strong">
-        <div class="metric-label">Current Providers</div>
+        <div class="metric-label">Existing Provider Base</div>
         <div class="metric-value">${D.currentProviders}</div>
-        <div class="metric-sub">Active in market</div>
+        <div class="metric-sub">Serving this market</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">Target Density</div>
+        <div class="metric-label">Benchmark Capacity</div>
         <div class="metric-value green">${D.targetDensity}</div>
-        <div class="metric-sub">Providers needed</div>
+        <div class="metric-sub">Estimated provider threshold</div>
       </div>
     </div>
 
     <div class="bar-section">
       <div class="bar-row">
-        <div class="bar-label">Current Providers</div>
+        <div class="bar-label">Existing Provider Base</div>
         <div class="bar-track">
-          <div class="bar-fill primary" style="width:${currentPct}%"><span>${D.currentProviders} Active</span></div>
+          <div class="bar-fill primary" style="width:${currentPct}%"><span>${D.currentProviders} In Market</span></div>
         </div>
-        <div class="bar-count">${currentPct}% of target</div>
+        <div class="bar-count">${currentPct}% of benchmark</div>
       </div>
       <div class="bar-row">
-        <div class="bar-label">Target (Benchmark)</div>
+        <div class="bar-label">Benchmark Capacity</div>
         <div class="bar-track">
-          <div class="bar-fill secondary" style="width:100%"><span>${D.targetDensity} Needed</span></div>
+          <div class="bar-fill secondary" style="width:100%"><span>${D.targetDensity} Capacity</span></div>
         </div>
-        <div class="bar-count">100% baseline</div>
+        <div class="bar-count">Reference level</div>
       </div>
       <div class="bar-row">
-        <div class="bar-label">Provider Gap</div>
+        <div class="bar-label">Growth Headroom</div>
         <div class="bar-track">
-          <div class="bar-fill tertiary" style="width:${gapPct}%"><span>${D.providerGap} Open</span></div>
+          <div class="bar-fill tertiary" style="width:${gapPct}%"><span>${D.providerGap} Equivalent</span></div>
         </div>
-        <div class="bar-count">+${Math.floor(D.providerGap)} slots</div>
+        <div class="bar-count">~${Math.floor(D.providerGap)} provider-eq.</div>
       </div>
     </div>
 
     <!-- SECTION 02 -->
     <div class="section-header">
       <div class="section-num">02</div>
-      <div class="section-title">"Through the Door" <em>CPT Baseline Volume</em></div>
+      <div class="section-title">"Through the Door" <em>Practice Positioning vs Peers</em></div>
     </div>
 
-    <table class="data-table">
+    <div class="section-note">
+      <strong>Comparison logic:</strong> your practice is benchmarked against the
+      <strong>average single peer provider</strong>, not against the sum of all peer providers.
+      Peer averages are normalized using ${competitorCount} peer provider${competitorCount === 1 ? '' : 's'} inside ${D.radius}.
+    </div>
+
+    <div class="know-title">Practice Position Snapshot</div>
+    <div class="know-grid">${knowCardsHtml}</div>
+
+    <table class="data-table comparison-table">
       <thead>
         <tr>
-          <th>CPT Code</th><th>Description</th><th>Patient Type</th>
-          <th>Market Volume / Yr</th><th>Avg Reimbursement</th><th>Market Revenue</th>
+          <th>CPT</th><th>Description</th>
+          <th>Market Volume / Yr</th><th>Avg Reimbursement</th>
+          <th>Market Revenue</th><th>Your Revenue</th>
+          <th>Avg Peer Provider Revenue</th><th>Your vs Peer Avg</th><th>Your Share</th>
         </tr>
       </thead>
-      <tbody>${cptRowsHtml}</tbody>
+      <tbody>${cptScoreRowsHtml}</tbody>
       <tfoot>
         <tr>
-          <td colspan="3">Total "Through the Door" Baseline</td>
-          <td>${D.cptTotalVisits}</td>
+          <td colspan="2">Total (Per CPT Basket)</td>
+          <td>${fmtInt(marketVisitsTotal)}</td>
           <td>—</td>
-          <td>${D.cptTotalRevenue}</td>
+          <td>${fmtMoney(marketRevenueTotal)}</td>
+          <td>${Number.isFinite(clientRevenue) ? fmtMoney(clientRevenue) : '—'}</td>
+          <td>${fmtMoney(peerAvgRevenueFromRows)}</td>
+          <td class="${Number.isFinite(clientVsPeerPct) ? (clientVsPeerPct >= 0 ? 'delta-pos' : 'delta-neg') : ''}">${fmtDelta(clientVsPeerPct)}</td>
+          <td>${fmtShare(clientSharePct)}</td>
         </tr>
       </tfoot>
     </table>
+    <div class="comparison-footnote">
+      If your CPT fields are missing, your columns show "Not Supplied" while market and peer benchmarks remain visible.
+    </div>
 
     <!-- SECTION 03 -->
     <div class="section-header">
       <div class="section-num">03</div>
-      <div class="section-title">Market <em>Capacity Utilization</em></div>
+      <div class="section-title">Revenue Growth <em>Levers &amp; Scenarios</em></div>
+    </div>
+
+    <div class="section-note">
+      <strong>Interpretation:</strong> this section is <strong>revenue-first</strong>. It does <strong>not</strong> assume new illness or automatic patient creation.
+      Upside comes from share capture (patients choosing your practice), coding/mix optimization, and adding higher-value procedures.
     </div>
 
     <div class="capacity-section">
@@ -1139,31 +1414,31 @@ const DATA = {
         </div>
       </div>
       <div class="capacity-detail">
-        <div class="capacity-title">${capacityGap}% Capacity Gap — Market Can Support New Provider</div>
+        <div class="capacity-title">Scenario View: Revenue Impact from Share Capture + CPT Mix Improvement</div>
         <div class="capacity-grid">
           <div class="cap-item">
-            <div class="cap-item-label">Expected Capacity</div>
-            <div class="cap-item-val blue">${D.expectedCapacity}</div>
+            <div class="cap-item-label">Market Revenue Pool (CPT Basket)</div>
+            <div class="cap-item-val blue">${fmtMoney(marketRevenueTotal)}</div>
           </div>
           <div class="cap-item">
-            <div class="cap-item-label">Actual Visits/Yr</div>
-            <div class="cap-item-val">${D.actualVisits}</div>
+            <div class="cap-item-label">Your Current Revenue Baseline</div>
+            <div class="cap-item-val">${Number.isFinite(clientRevenue) ? fmtMoney(clientRevenue) : '—'}</div>
           </div>
           <div class="cap-item">
-            <div class="cap-item-label">Visit Gap</div>
-            <div class="cap-item-val sky">${D.visitGap}</div>
+            <div class="cap-item-label">Upside to Peer-Level CPT Mix</div>
+            <div class="cap-item-val sky">${mixGapToPeer > 0 ? fmtMoney(mixGapToPeer) : '—'}</div>
           </div>
           <div class="cap-item">
-            <div class="cap-item-label">Providers Needed</div>
-            <div class="cap-item-val blue">${D.providersNeeded}</div>
+            <div class="cap-item-label">Incremental Revenue @ +1pp Share</div>
+            <div class="cap-item-val blue">${Number.isFinite(sharePointValue) ? fmtMoney(sharePointValue) : '—'}</div>
           </div>
           <div class="cap-item">
-            <div class="cap-item-label">Revenue Opportunity</div>
-            <div class="cap-item-val sky">${D.revenueOpportunity}</div>
+            <div class="cap-item-label">Projected Revenue @ +1pp Share</div>
+            <div class="cap-item-val sky">${Number.isFinite(plus1ppRevenue) ? fmtMoney(plus1ppRevenue) : '—'}</div>
           </div>
           <div class="cap-item">
-            <div class="cap-item-label">Utilization Score</div>
-            <div class="cap-item-val blue">${D.utilizationPct} / 100</div>
+            <div class="cap-item-label">Top Under-Indexed CPT Codes</div>
+            <div class="cap-item-val blue">${topUnderIndexedCodes || '—'}</div>
           </div>
         </div>
       </div>
@@ -1172,17 +1447,17 @@ const DATA = {
     <!-- SECTION 04 -->
     <div class="section-header">
       <div class="section-num">04</div>
-      <div class="section-title">Clinical <em>Analysis Summary</em></div>
+      <div class="section-title">Action <em>Summary</em></div>
     </div>
 
     <div class="analysis-box">
-      <div class="analysis-label">Analyst Interpretation — Baseline Report</div>
+      <div class="analysis-label">What This Means for Your Practice</div>
       <div class="analysis-text">${D.analysisText}</div>
     </div>
 
     <!-- SECTION 05: UPGRADES -->
     <div class="upgrade-section">
-      <div class="upgrade-title">Deepen Your Analysis — Available Report Upgrades</div>
+      <div class="upgrade-title">Recommended Next-Step Reports</div>
       <div class="upgrade-grid">${upgradesHtml}</div>
     </div>
 

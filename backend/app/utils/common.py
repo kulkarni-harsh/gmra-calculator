@@ -1,5 +1,14 @@
 import logging
 
+import pandas as pd
+
+from app.core.config import settings
+
+_RVU_QPP_FILE    = settings.LOOKUP_DIR / "PPRRvu2026_Jan_QPP.csv"
+_RVU_NONQPP_FILE = settings.LOOKUP_DIR / "PPRRvu2026_Jan_nonQPP.csv"
+_GPCI_FILE       = settings.LOOKUP_DIR / "GPCI2026.csv"
+_CONVERSION_FACTOR = 33.5675  # CY 2026 national conversion factor (fallback)
+
 
 def get_population_severity_scoring(
     current_avg_provider_per_100k: float, target_avg_provider_per_100k: float
@@ -60,6 +69,15 @@ def get_anchor_cpt_severity_scoring(
         )
 
 
+def get_provider_density(specialty_lookup: dict, specialty_name: str, state: str) -> float | None:
+    """Return providers per 100k population for the given specialty and state, or None if not found."""
+    for val in specialty_lookup.values():
+        if val["description"].strip().lower() == specialty_name.strip().lower():
+            states: dict = val.get("states", {})
+            return states.get(state.strip().upper())
+    return None
+
+
 def get_taxonomy_codes(specialty_lookup: dict, specialty_name: str) -> list[str]:
     """Return taxonomy codes for the given specialty name (case-insensitive match)."""
     for val in specialty_lookup.values():
@@ -82,3 +100,96 @@ def get_anchor_cpt_codes(anchor_cpt_lookup: dict, specialty_name: str) -> list[s
             i["code"] for i in anchor_cpt_lookup["through_the_door_cpt_codes"]["obgyn_specific"]["codes"]
         ]
     return anchor_cpt_codes
+
+
+# ---------------------------------------------------------------------------
+# Fee schedule loaders — called once at startup, stored on app.state
+# ---------------------------------------------------------------------------
+
+
+def _parse_rvu_csv(path) -> pd.DataFrame:
+    """Parse a CMS RVU CSV (QPP or nonQPP) into a normalised DataFrame."""
+    try:
+        df = pd.read_csv(path, skiprows=9, header=0, low_memory=False)
+    except FileNotFoundError:
+        logging.error("RVU file not found: %s", path)
+        return pd.DataFrame()
+
+    df = df.rename(
+        columns={
+            "HCPCS": "code",
+            "RVU": "work",
+            "PE RVU": "pe_nonfac",
+            "PE RVU.1": "pe_fac",
+            "RVU.1": "mp",
+            "FACTOR": "cf",
+        }
+    )
+    # Prefer base-code rows (no modifier) over modifier-specific rows
+    df["_no_mod"] = df["MOD"].isna() | (df["MOD"].astype(str).str.strip() == "")
+    df = df.sort_values("_no_mod", ascending=False)
+    df = df[["code", "work", "pe_nonfac", "pe_fac", "mp", "cf"]].copy()
+    df["code"] = df["code"].astype(str).str.strip()
+    for col in ["work", "pe_nonfac", "pe_fac", "mp", "cf"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0)
+    df.loc[df["cf"] == 0.0, "cf"] = _CONVERSION_FACTOR
+    return df.drop_duplicates(subset="code", keep="first")
+
+
+def _build_rvu_table() -> dict[str, dict]:
+    """Return {hcpcs_code: {work, pe_nonfac, pe_fac, mp, cf}} mapping.
+
+    QPP codes are loaded first. nonQPP codes (e.g. preventive medicine codes
+    99381-99396 which are non-covered by traditional Medicare but carry valid
+    RVU values used by commercial payers) fill in any gaps.
+    """
+    qpp_df    = _parse_rvu_csv(_RVU_QPP_FILE)
+    nonqpp_df = _parse_rvu_csv(_RVU_NONQPP_FILE)
+
+    if qpp_df.empty and nonqpp_df.empty:
+        return {}
+
+    # QPP rows take priority; nonQPP fills in codes absent from QPP
+    combined = pd.concat([qpp_df, nonqpp_df], ignore_index=True)
+    combined = combined.drop_duplicates(subset="code", keep="first")
+
+    qpp_count    = len(qpp_df)
+    nonqpp_extra = len(combined) - qpp_count
+    logging.debug("RVU table: %d QPP codes + %d nonQPP-only codes", qpp_count, nonqpp_extra)
+
+    return combined.set_index("code")[["work", "pe_nonfac", "pe_fac", "mp", "cf"]].to_dict("index")
+
+
+def _build_gpci_table() -> dict[str, dict]:
+    """Return {state_abbr: {pw, pe, mp}} mapping (averaged across localities)."""
+    try:
+        df = pd.read_csv(_GPCI_FILE, skiprows=2, header=0)
+    except FileNotFoundError:
+        logging.error("GPCI file not found: %s", _GPCI_FILE)
+        return {}
+
+    df = df.rename(
+        columns={
+            "State": "state",
+            "2026 PW GPCI (with 1.0 Floor)": "pw",
+            "2026 PE GPCI": "pe",
+            "2026 MP GPCI": "mp",
+        }
+    )
+    df = df[["state", "pw", "pe", "mp"]].copy()
+    df["state"] = df["state"].astype(str).str.strip().str.upper()
+    for col in ["pw", "pe", "mp"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    agg = df.groupby("state")[["pw", "pe", "mp"]].mean()
+    return agg.to_dict("index")
+
+
+def load_fee_schedule_tables() -> tuple[dict[str, dict], dict[str, dict]]:
+    """Parse CSVs and return (rvu_table, gpci_table) for storage on app.state.
+
+    Call once from the FastAPI lifespan.
+    """
+    rvu_table = _build_rvu_table()
+    gpci_table = _build_gpci_table()
+    logging.info("Fee schedule loaded: %d CPT codes, %d states", len(rvu_table), len(gpci_table))
+    return rvu_table, gpci_table

@@ -18,9 +18,28 @@ from app.services.fee_schedule import get_medicare_rate
 from app.services.html_imputers.baseline_imputer import replace_data_block
 from app.types.alphasophia import CPT, Provider
 from app.types.baseline_report_template import CptRow, ProviderProfile, ReportTemplateData, Upgrade
-from app.utils.common import get_anchor_cpt_codes, get_taxonomy_codes
+from app.utils.common import get_anchor_cpt_codes, get_provider_density, get_taxonomy_codes
 
 router = APIRouter()
+
+# ---------------------------------------------------------------------------
+# Revenue source toggle
+# True  → use Medicare RVU rate × totalServices  (preferred: totalCharges is
+#         often blank in AlphaSophia data)
+# False → use raw totalCharges from AlphaSophia  (switch back when data improves)
+# ---------------------------------------------------------------------------
+USE_RVU_REVENUE = True
+
+
+def _cpt_revenue(services: int, medicare_rate: float | None, charges: float) -> float:
+    """Return the best available revenue figure for a CPT code.
+
+    When USE_RVU_REVENUE is True and a Medicare rate exists, revenue is
+    estimated as  rate × services.  Otherwise falls back to raw charges.
+    """
+    if USE_RVU_REVENUE and medicare_rate is not None and services > 0:
+        return medicare_rate * services
+    return charges
 
 
 @router.get("/specialties")
@@ -117,7 +136,7 @@ async def generate_report(
             taxonomy_codes_list=taxonomy_codes,
             npi_list=[],
             cpt_codes_list=relevant_cpt_codes_list,
-            page_size=200,
+            page_size=100,
         )
         # Exclude client provider from competitor list
         expanded_providers_list = [
@@ -149,7 +168,7 @@ async def generate_report(
         ).miles
         if dist <= payload.miles_radius:
             providers_in_radius.append(result)
-    
+
     logging.info(f"Fetched {len(providers_in_radius)} providers within actual radius")
 
     # 9. Add CPT list to each provider
@@ -158,62 +177,79 @@ async def generate_report(
 
     await asyncio.gather(*[p.fetch_cpt_profiles(relevant_cpt_codes_list) for p in providers_in_radius])
 
-    # 10. Now aggregate the CPT data for each provider
-    # TODO: CPT_CODES list should be specialty-specific once a mapping is available
+    # 10. Aggregate competitor CPT data and resolve per-CPT Medicare rates
+
+    provider_state = payload.client_provider.location.state or ""
 
     agg_cpt_list: list[CPT] = []
     for cpt in relevant_cpt_codes_list:
-        agg_cpt = CPT(
-            code=cpt,
-            totalServices=0,
-            totalCharges=0.0,
-        )
-        for i in range(len(providers_in_radius)):
-            p_cpt = providers_in_radius[i].get_cpt_profile(cpt)
+        agg_cpt = CPT(code=cpt, totalServices=0, totalCharges=0.0)
+        for p in providers_in_radius:
+            p_cpt = p.get_cpt_profile(cpt)
             if p_cpt:
                 agg_cpt.totalServices += p_cpt.totalServices if p_cpt.totalServices > 0 else 0
                 agg_cpt.totalCharges += p_cpt.totalCharges if p_cpt.totalCharges > 0 else 0
                 agg_cpt.description = p_cpt.description
                 agg_cpt.codeType = p_cpt.codeType
-
         agg_cpt_list.append(agg_cpt)
 
-    # 10. Create CPTRow for each CPT
+    # 11. Build CPT rows — sorted by client provider's totalServices descending
     n_providers = max(len(providers_in_radius), 1)
+
+    # Collect (agg_cpt, client_cpt, medicare_rate) and sort before rendering
+    cpt_triples = []
+    for agg_cpt in agg_cpt_list:
+        client_cpt = payload.client_provider.get_cpt_profile(str(agg_cpt.code)) or CPT(
+            code=agg_cpt.code, totalServices=0, totalCharges=0.0
+        )
+        medicare_rate = get_medicare_rate(
+            str(agg_cpt.code),
+            provider_state,
+            request.app.state.rvu_table,
+            request.app.state.gpci_table,
+        )
+        cpt_triples.append((agg_cpt, client_cpt, medicare_rate))
+
+    cpt_triples.sort(key=lambda t: t[1].totalServices, reverse=True)
+
     cpt_rows: list[CptRow] = []
     total_market_services = 0.0
-    total_market_charges = 0.0
+    total_market_revenue = 0.0
+    total_client_services = 0
+    total_client_revenue = 0.0
 
-    for _cpt in agg_cpt_list:
-        total_market_services += _cpt.totalServices if _cpt.totalServices > 0 else 0
-        total_market_charges += _cpt.totalCharges if _cpt.totalCharges > 0 else 0
+    for agg_cpt, client_cpt, medicare_rate in cpt_triples:
+        mkt_services = agg_cpt.totalServices if agg_cpt.totalServices > 0 else 0
+        mkt_revenue = _cpt_revenue(mkt_services, medicare_rate, agg_cpt.totalCharges)
 
-        client_cpt = payload.client_provider.get_cpt_profile(str(_cpt.code))
-        if client_cpt is None:
-            client_cpt = CPT(
-                code=_cpt.code,
-                totalServices=0,
-                totalCharges=0.0,
-            )
+        cli_services = client_cpt.totalServices if client_cpt.totalServices > 0 else 0
+        cli_revenue = _cpt_revenue(cli_services, medicare_rate, client_cpt.totalCharges)
 
-        medicare_rate = get_medicare_rate(str(_cpt.code), payload.client_provider.location.state or "")
+        peer_avg_services = mkt_services / n_providers
+        peer_avg_revenue = mkt_revenue / n_providers
+
+        total_market_services += mkt_services
+        total_market_revenue += mkt_revenue
+        total_client_services += cli_services
+        total_client_revenue += cli_revenue
+
         cpt_rows.append(
             CptRow(
-                code=str(_cpt.code),
-                desc=_cpt.description,
-                type=_cpt.codeType,
-                volume=f"{int(_cpt.totalServices):,}",
-                revenue=f"${_cpt.totalCharges:,.0f}",
-                clientVolume=f"{int(client_cpt.totalServices):,}" if client_cpt and client_cpt.totalServices else None,
-                clientRevenue=f"${client_cpt.totalCharges:,.0f}" if client_cpt and client_cpt.totalCharges else None,
-                peerAvgVolume=f"{int(_cpt.totalServices / n_providers):,}" if _cpt.totalServices else None,
-                peerAvgRevenue=f"${_cpt.totalCharges / n_providers:,.0f}" if _cpt.totalCharges else None,
+                code=str(agg_cpt.code),
+                desc=agg_cpt.description,
+                type=agg_cpt.codeType,
+                volume=f"{int(mkt_services):,}",
+                revenue=f"${mkt_revenue:,.0f}",
+                clientVolume=f"{cli_services:,}" if cli_services else None,
+                clientRevenue=f"${cli_revenue:,.0f}" if cli_services else None,
+                peerAvgVolume=f"{int(peer_avg_services):,}" if mkt_services else None,
+                peerAvgRevenue=f"${peer_avg_revenue:,.0f}" if mkt_services else None,
                 medicareRate=f"${medicare_rate:,.2f}" if medicare_rate is not None else None,
             )
         )
 
     cpt_total_visits = f"{int(total_market_services):,} visits/yr"
-    cpt_total_revenue = f"${total_market_charges:,.0f}"
+    cpt_total_revenue = f"${total_market_revenue:,.0f}"
 
     # 11. Get Demographics for zip codes within radius
     actual_zips_df = zip_centroids_df[zip_centroids_df["distance_from_source_miles"] <= payload.miles_radius]
@@ -252,17 +288,23 @@ async def generate_report(
         f"{payload.client_provider.location.zip_code}"
     ).strip()
 
-    # TODO: Full narrative analysis requires target density benchmarks.
+    density_line = (
+        f"The national benchmark for <strong>{payload.specialty_name}</strong> in "
+        f"<strong>{provider_state}</strong> is "
+        f"<strong>{target_density:.1f} providers per 100k residents</strong>, "
+        f"implying <strong>{expected_providers:.1f} expected providers</strong> in this market. "
+        f"There are currently <strong>{current_providers} active providers</strong> "
+        f"(including your practice) within {payload.miles_radius} miles, "
+        f"leaving a gap of <strong>{provider_gap:+.1f} providers</strong>."
+        if target_density is not None
+        else f"No density benchmark is available for <strong>{payload.specialty_name}</strong> in <strong>{provider_state}</strong>."
+    )
     analysis_text = (
         f"The {payload.client_provider.location.city}, {payload.client_provider.location.state} market has "
-        f"<strong>{total_population:,} total residents</strong> and "
-        f"<strong>{relevant_pop:,} in the relevant demographic</strong> "
-        f"for {payload.specialty_name}."
+        f"<strong>{total_population:,} total residents</strong>."
         "<br><br>"
-        f"There are currently <strong>{len(providers_in_radius)} active providers</strong> "
-        f"within {payload.miles_radius} miles of your location."
+        f"{density_line}"
         "<br><br>"
-        "<strong>#TODO: Full narrative analysis requires target density benchmarks.</strong> "
         "Upgrade to the Strategic Code Report for complete market opportunity analysis."
     )
 
@@ -275,16 +317,16 @@ async def generate_report(
         reportTier="Baseline",
         address=str(address_str),
         clientName=str(payload.client_provider.name),
-        tags=[],  # TODO: derive from verdict (e.g. green/red market tags)
-        verdictType="caution",  # TODO: derive by comparing currentProviders vs targetDensity
-        verdictValue="#TODO",
-        verdictSub="#TODO",
+        tags=[],
+        verdictType=verdict_type,
+        verdictValue=verdict_value,
+        verdictSub=verdict_sub,
         totalPopulation=f"{total_population:,}" if total_population > 0 else "N/A",
         relevantPopulation=f"{relevant_pop:,}" if relevant_pop > 0 else "N/A",
         populationLabel=population_label,
-        currentProviders=len(providers_in_radius)+1,
-        targetDensity=0.0,  # TODO: load benchmark density from specialty_master_df
-        providerGap=0.0,  # TODO: targetDensity - currentProviders once benchmark is available
+        currentProviders=current_providers,
+        targetDensity=round(expected_providers, 1),  # absolute expected providers in radius area
+        providerGap=round(provider_gap, 1),
         cptRows=cpt_rows,
         cptTotalVisits=cpt_total_visits,
         cptTotalRevenue=cpt_total_revenue,
@@ -309,8 +351,8 @@ async def generate_report(
             ),
         ],
         providerProfile=ProviderProfile(
-            annualVisits=f"{sum(c.totalServices for c in payload.client_provider.cpt_list):,}",
-            annualRevenue=f"${sum(c.totalCharges for c in payload.client_provider.cpt_list):,.0f}",
+            annualVisits=f"{total_client_services:,}",
+            annualRevenue=f"${total_client_revenue:,.0f}",
         ),
         competitorCount=len(providers_in_radius),
     )

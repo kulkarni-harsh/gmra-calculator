@@ -8,6 +8,7 @@ from opencage.geocoder import OpenCageGeocode
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.logging import configure_logging
+from app.utils.common import load_fee_schedule_tables
 from app.utils.validator import validate_speciality_master_df
 
 
@@ -23,6 +24,8 @@ async def lifespan(app: FastAPI):
     # Load Specialty Master Sheet
     app.state.specialty_master_df = pd.read_excel(settings.LOOKUP_DIR / "Specialty Master Sheet.xlsx")
     validate_speciality_master_df(app.state.specialty_master_df)
+    # Load fee schedule tables (RVU + GPCI)
+    app.state.rvu_table, app.state.gpci_table = load_fee_schedule_tables()
     print("Lookup data loaded successfully.")
 
     yield

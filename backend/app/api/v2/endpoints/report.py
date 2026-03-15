@@ -275,9 +275,43 @@ async def generate_report(
         combined_demo = {"M": {}, "F": {}, "Total": 0}
         total_population = 0
 
-    # 12. Get relevant population count
-    # TODO: Yet to be implemented
-    relevant_pop, population_label = 0, "All ages"
+    # 12. Get relevant population count (for now equals total population)
+    relevant_pop, population_label = total_population, "All ages"
+
+    # 13. Provider density benchmark
+    target_density = get_provider_density(request.app.state.specialty_lookup, payload.specialty_name, provider_state)
+    current_providers = len(providers_in_radius) + 1  # include client
+    logging.info(
+        f"Provider density benchmark for {payload.specialty_name} in {provider_state}: "
+        f"{target_density} provider-equivalent per 100,000 {population_label} people."
+        f" Current {current_providers} providers for {relevant_pop:,} people."
+        f"Target ratio: {target_density} providers per 100k."
+        f"Current ratio: {current_providers * 100_000 / relevant_pop} providers per 100k."
+    )
+    if target_density is not None and relevant_pop > 0:
+        expected_providers = (relevant_pop / 100_000) * target_density
+        provider_gap = expected_providers - current_providers
+    else:
+        expected_providers = 0.0
+        provider_gap = 0.0
+
+    # Derive verdict from gap
+    if target_density is None:
+        verdict_type = "caution"
+        verdict_value = "N/A"
+        verdict_sub = "No density benchmark available for this specialty/state."
+    elif provider_gap > 1:
+        verdict_type = "green"
+        verdict_value = "GO"
+        verdict_sub = f"Underserved — {provider_gap:.1f} provider-equivalent gap vs. benchmark."
+    elif provider_gap < -1:
+        verdict_type = "red"
+        verdict_value = "AVOID"
+        verdict_sub = f"Saturated — {abs(provider_gap):.1f} providers above benchmark density."
+    else:
+        verdict_type = "caution"
+        verdict_value = "CAUTION"
+        verdict_sub = "Market is near benchmark density — limited opportunity."
 
     # --- 9. Assemble ReportTemplateData ---
     report_id = f"MERC-{pd.Timestamp.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"

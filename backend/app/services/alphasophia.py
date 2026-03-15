@@ -6,13 +6,15 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 from app.core.config import settings
 from app.types.alphasophia import CPT, Provider
 
-_HCP_SEARCH_TIMEOUT = httpx.Timeout(connect=10, read=60, write=10, pool=10)
-_NPI_TIMEOUT = httpx.Timeout(connect=10, read=30, write=10, pool=10)
-_PROCEDURE_TIMEOUT = httpx.Timeout(connect=10, read=60, write=10, pool=10)
+_HCP_SEARCH_TIMEOUT = httpx.Timeout(connect=10, read=120, write=10, pool=60)
+_NPI_TIMEOUT = httpx.Timeout(connect=10, read=60, write=10, pool=60)
+_PROCEDURE_TIMEOUT = httpx.Timeout(connect=10, read=120, write=10, pool=60)
 
 # Shared clients — reused across calls to avoid per-request connection setup/teardown noise.
-_alphasophia_client = httpx.AsyncClient(base_url="https://api.alphasophia.com", limits=httpx.Limits(max_connections=20))
-_npi_client = httpx.AsyncClient(base_url="https://npiregistry.cms.hhs.gov", limits=httpx.Limits(max_connections=10))
+_alphasophia_client = httpx.AsyncClient(base_url="https://api.alphasophia.com", limits=httpx.Limits(max_connections=50))
+_npi_client = httpx.AsyncClient(base_url="https://npiregistry.cms.hhs.gov", limits=httpx.Limits(max_connections=20))
+
+_MAX_HCP_PAGES = 20  # Safety cap to avoid runaway pagination
 
 
 @retry(
@@ -21,25 +23,24 @@ _npi_client = httpx.AsyncClient(base_url="https://npiregistry.cms.hhs.gov", limi
     wait=wait_exponential(multiplier=1, min=2, max=10),
     reraise=True,
 )
-async def _fetch_hcp_data(
+async def _fetch_hcp_page(
     zip_codes_list: list[str],
     taxonomy_codes_list: list[str],
     cpt_codes_list: list[str],
     npi_list: list[str],
     page_size: int,
+    page: int,
 ) -> list[Provider]:
     url = "/v1/search/hcp"
-    params: dict[str, str | int] = {"order-by": "ap-volume", "time": "last-year", "view": "table", "target": "hcps"}
-    if len(zip_codes_list) > 0:
+    params: dict[str, str | int] = {"order-by": "ap-volume", "time": "last-year", "page": page, "pageSize": page_size}
+    if zip_codes_list:
         params["zip5"] = ", ".join([f"+{code}" for code in zip_codes_list])
-    if len(taxonomy_codes_list) > 0:
+    if taxonomy_codes_list:
         params["taxonomy"] = ", ".join([f"+{code}" for code in taxonomy_codes_list])
-    if len(cpt_codes_list) > 0:
+    if cpt_codes_list:
         params["procedure-all-payor"] = ", ".join([f"+{code}" for code in cpt_codes_list])
-    if len(npi_list) > 0:
+    if npi_list:
         params["npi"] = ", ".join([f"+{code}" for code in npi_list])
-    if page_size:
-        params["pageSize"] = page_size
 
     headers = {
         "x-api-key": settings.ALPHASOPHIA_API_KEY,
@@ -48,8 +49,7 @@ async def _fetch_hcp_data(
 
     response = await _alphasophia_client.get(url, params=params, headers=headers, timeout=_HCP_SEARCH_TIMEOUT)
     response.raise_for_status()
-    response_dict = response.json()
-    return [Provider(**item) for item in response_dict.get("data", [])]
+    return [Provider(**item) for item in response.json().get("data", [])]
 
 
 async def get_hcp_data(
@@ -59,34 +59,40 @@ async def get_hcp_data(
     npi_list: list[str],
     page_size: int,
 ) -> list[Provider]:
-    """ "Fetch healthcare provider data from the AlphaSophia API based on specified filters.
+    """Fetch all pages of healthcare provider data from the AlphaSophia API.
 
-    Args
-    ----
-        zip_codes_list (list[str]): A list of ZIP codes to filter providers by location.
-        taxonomy_codes_list (list[str]): A list of taxonomy codes to filter providers by specialty.
-        cpt_codes_list (list[str]): A list of CPT codes to filter providers by procedures performed.
-        npi_list (list[str]): A list of NPI numbers to filter providers by.
-        page_size (int): The number of results to return per page.
+    Paginates automatically until a page returns fewer results than ``page_size``
+    (indicating the last page) or ``_MAX_HCP_PAGES`` is reached.
 
     Returns
     -------
-        list[Provider]: A list of Provider objects matching the specified filters.
+        list[Provider]: Concatenated providers across all pages.
     """
+    all_providers: list[Provider] = []
     try:
-        return await _fetch_hcp_data(zip_codes_list, taxonomy_codes_list, cpt_codes_list, npi_list, page_size)
+        for page in range(1, _MAX_HCP_PAGES + 1):
+            page_data = await _fetch_hcp_page(
+                zip_codes_list, taxonomy_codes_list, cpt_codes_list, npi_list, page_size, page
+            )
+            all_providers.extend(page_data)
+            logging.info("AlphaSophia HCP search page %d: %d results", page, len(page_data))
+            if len(page_data) < page_size:
+                break  # Last page — fewer results than requested
+        else:
+            logging.warning("AlphaSophia HCP search hit page cap (%d pages)", _MAX_HCP_PAGES)
     except httpx.TimeoutException as e:
-        logging.critical(f"Timed out requesting AlphaSophia HCP search API after 3 attempts. {type(e).__name__}: {e}")
+        logging.critical("Timed out requesting AlphaSophia HCP search API after 3 attempts. %s: %s", type(e).__name__, e)
         raise
     except httpx.RequestError as exc:
-        logging.critical(f"An error occurred while requesting {exc.request.url!r}.", exc_info=True)
+        logging.critical("An error occurred while requesting %r.", exc.request.url, exc_info=True)
         raise
     except httpx.HTTPStatusError as exc:
-        logging.critical(f"Error response {exc.response.status_code} while requesting {exc.request.url!r}.")
+        logging.critical("Error response %d while requesting %r.", exc.response.status_code, exc.request.url)
         raise
     except Exception as exc:
-        logging.critical(f"An unexpected error occurred. {type(exc).__name__}: {exc}", exc_info=True)
+        logging.critical("An unexpected error occurred. %s: %s", type(exc).__name__, exc, exc_info=True)
         raise
+    return all_providers
 
 
 @retry(

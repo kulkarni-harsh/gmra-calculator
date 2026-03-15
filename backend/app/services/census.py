@@ -2,8 +2,11 @@ from functools import lru_cache
 
 import pandas as pd
 import requests
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.core.types import SexAgeCounts, ZipPopulationMap
+
+_CENSUS_TIMEOUT = (10, 30)  # (connect, read)
 
 
 def get_age_mapping(start_idx: int) -> dict[str, str]:
@@ -45,6 +48,27 @@ def get_age_mapping(start_idx: int) -> dict[str, str]:
     }
 
 
+@retry(
+    retry=retry_if_exception_type(requests.exceptions.Timeout),
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    reraise=True,
+)
+def _fetch_zip_demographics(zip_codes_list: tuple[str, ...], api_key: str) -> list[list[str]]:
+    male_vars = get_age_mapping(2)
+    female_vars = get_age_mapping(26)
+    vars_to_get = list(male_vars.keys()) + list(female_vars.keys()) + ["B01003_001E"]  # Total population
+
+    params = {
+        "get": ",".join(vars_to_get),
+        "for": f"zip code tabulation area:{','.join(zip_codes_list)}",
+        "key": api_key,
+    }
+    r = requests.get("https://api.census.gov/data/2022/acs/acs5", params=params, timeout=_CENSUS_TIMEOUT)
+    r.raise_for_status()
+    return r.json()
+
+
 @lru_cache(maxsize=1000)
 def get_zip_demographics(zip_codes_list: tuple[str], api_key: str) -> ZipPopulationMap:
     """
@@ -65,24 +89,10 @@ def get_zip_demographics(zip_codes_list: tuple[str], api_key: str) -> ZipPopulat
     dict[str, dict[str, dict[str, int]]]
         A dictionary where each key is a zip code and the value is another dictionary containing demographic data.
     """
-    # Select variables: total male/female + male/female age groups
-    male_start_idx = 2
-    female_start_idx = 26
+    male_vars = get_age_mapping(2)
+    female_vars = get_age_mapping(26)
 
-    male_vars = get_age_mapping(male_start_idx)
-    female_vars = get_age_mapping(female_start_idx)
-    vars_to_get = list(male_vars.keys()) + list(female_vars.keys()) + ["B01003_001E"]  # Total population
-
-    url = "https://api.census.gov/data/2022/acs/acs5"
-    params = {
-        "get": ",".join(vars_to_get),
-        "for": f"zip code tabulation area:{','.join(zip_codes_list)}",
-        "key": api_key,
-    }
-
-    r = requests.get(url, params=params)
-    r.raise_for_status()
-    data = r.json()
+    data = _fetch_zip_demographics(zip_codes_list, api_key)
 
     pop_df = pd.DataFrame(data[1:], columns=data[0])
     dict_data: ZipPopulationMap = (

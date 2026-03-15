@@ -17,12 +17,9 @@ from app.services.census import combine_demographics, get_zip_demographics
 from app.services.html_imputers.baseline_imputer import replace_data_block
 from app.types.alphasophia import CPT, Provider
 from app.types.baseline_report_template import CptRow, ProviderProfile, ReportTemplateData, Upgrade
-from app.utils.common import get_taxonomy_codes
+from app.utils.common import get_anchor_cpt_codes, get_taxonomy_codes
 
 router = APIRouter()
-
-# TODO: make specialty-configurable once a per-specialty CPT mapping is available
-CPT_CODES = ["99214", "99203", "81002", "96372", "S9083", "J1885", "87800", "J1100", "94640", "99393"]
 
 
 @router.get("/specialties")
@@ -76,6 +73,9 @@ async def generate_report(
     Generate a market analysis report for the given provider location and specialty.
     Returns a PDF document.
     """
+    # 0. Get all CPT codes for the given specialty name
+    relevant_cpt_codes_list = get_anchor_cpt_codes(request.app.state.anchor_cpt_lookup, payload.specialty_name)
+
     # 1. Find all taxonomy codes for the given specialty name
     taxonomy_codes = get_taxonomy_codes(request.app.state.specialty_lookup, payload.specialty_name)
 
@@ -86,7 +86,7 @@ async def generate_report(
     await payload.client_provider.update_lat_long()
 
     # 4. Fetch client CPT codes profile
-    await payload.client_provider.fetch_cpt_profiles(CPT_CODES)
+    await payload.client_provider.fetch_cpt_profiles(relevant_cpt_codes_list)
 
     # 5. Find ZIPs within 2× radius (expanded search to ensure no provider is left out)
     zip_centroids_df = request.app.state.zip_centroids_df.copy()
@@ -115,7 +115,7 @@ async def generate_report(
             zip_codes_list=expanded_zips_df["zip"].dropna().astype(str).tolist(),
             taxonomy_codes_list=taxonomy_codes,
             npi_list=[],
-            cpt_codes_list=CPT_CODES,
+            cpt_codes_list=relevant_cpt_codes_list,
             page_size=200,
         )
     except Exception as exc:
@@ -145,15 +145,16 @@ async def generate_report(
             providers_in_radius.append(result)
 
     # 9. Add CPT list to each provider
+
     # TODO: CPT_CODES list should be specialty-specific once a mapping is available
 
-    await asyncio.gather(*[p.fetch_cpt_profiles(CPT_CODES) for p in providers_in_radius])
+    await asyncio.gather(*[p.fetch_cpt_profiles(relevant_cpt_codes_list) for p in providers_in_radius])
 
     # 10. Now aggregate the CPT data for each provider
     # TODO: CPT_CODES list should be specialty-specific once a mapping is available
 
     agg_cpt_list: list[CPT] = []
-    for cpt in CPT_CODES:
+    for cpt in relevant_cpt_codes_list:
         agg_cpt = CPT(
             code=cpt,
             totalServices=0,
@@ -193,12 +194,11 @@ async def generate_report(
                 desc=_cpt.description,
                 type=_cpt.codeType,
                 volume=f"{int(_cpt.totalServices):,}",
-                reimb=f"${_cpt.totalCharges:,.0f}",
                 revenue=f"${_cpt.totalCharges:,.0f}",
                 clientVolume=f"{int(client_cpt.totalServices):,}" if client_cpt and client_cpt.totalServices else None,
                 clientRevenue=f"${client_cpt.totalCharges:,.0f}" if client_cpt and client_cpt.totalCharges else None,
-                peerAvgVolume=f"{int(_cpt.totalServices / n_providers):,}" if _cpt.totalServices else "None",
-                peerAvgRevenue=f"${_cpt.totalCharges / n_providers:,.0f}" if _cpt.totalCharges else "None",
+                peerAvgVolume=f"{int(_cpt.totalServices / n_providers):,}" if _cpt.totalServices else None,
+                peerAvgRevenue=f"${_cpt.totalCharges / n_providers:,.0f}" if _cpt.totalCharges else None,
             )
         )
 

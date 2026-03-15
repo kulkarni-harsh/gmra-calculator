@@ -13,7 +13,6 @@ class CptRow:
     desc: str | None
     type: str | None
     volume: str
-    reimb: str
     revenue: str
     # Optional: client/peer comparison inputs for Section 02 in HTML.
     clientVolume: str | int | float | None = None

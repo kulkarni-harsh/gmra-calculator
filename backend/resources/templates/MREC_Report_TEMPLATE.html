@@ -553,8 +553,7 @@ body {
 .comparison-table td:nth-child(5),
 .comparison-table td:nth-child(6),
 .comparison-table td:nth-child(7),
-.comparison-table td:nth-child(8),
-.comparison-table td:nth-child(9) {
+.comparison-table td:nth-child(8) {
   text-align: right;
 }
 
@@ -1119,6 +1118,7 @@ const DATA = {
   const clientVisitsFromRows = sumNums(cptNormalizedRows.map(r => r.clientVolume));
   const clientRevenueFromRows = sumNums(cptNormalizedRows.map(r => r.clientRevenue));
   const peerAvgRevenueFromRows = sumNums(cptNormalizedRows.map(r => r.peerAvgRevenue));
+  const peerAvgVisitsFromRows  = sumNums(cptNormalizedRows.map(r => r.peerAvgVolume));
 
   const profileVisits = toNum(D.providerProfile?.annualVisits);
   const profileRevenue = toNum(D.providerProfile?.annualRevenue);
@@ -1195,14 +1195,13 @@ const DATA = {
   const cptScoreRowsHtml = cptNormalizedRows.map(r => `
     <tr>
       <td>${r.code}</td>
-      <td>${r.desc}</td>
+      <td>${r.desc || '—'}</td>
+      <td class="client-col">${Number.isFinite(r.clientVolume) ? fmtInt(r.clientVolume) : 'N/A'}</td>
+      <td>${Number.isFinite(r.peerAvgVolume) ? fmtInt(r.peerAvgVolume) : '—'}</td>
       <td>${fmtInt(r.marketVolume)}</td>
-      <td>${r.reimb || '—'}</td>
-      <td>${fmtMoney(r.marketRevenue)}</td>
       <td class="client-col">${fmtMoney(r.clientRevenue)}</td>
       <td>${fmtMoney(r.peerAvgRevenue)}</td>
       <td class="${Number.isFinite(r.deltaPct) ? (r.deltaPct >= 0 ? 'delta-pos' : 'delta-neg') : ''}">${fmtDelta(r.deltaPct)}</td>
-      <td class="client-col">${fmtShare(r.sharePct)}</td>
     </tr>`
   ).join('');
 
@@ -1361,27 +1360,25 @@ const DATA = {
       <thead>
         <tr>
           <th>CPT</th><th>Description</th>
-          <th>Market Volume / Yr</th><th>Avg Reimbursement</th>
-          <th>Market Revenue</th><th>Your Revenue</th>
-          <th>Avg Peer Provider Revenue</th><th>Your vs Peer Avg</th><th>Your Share</th>
+          <th>Your Volume / Yr</th><th>Peer Avg Volume</th><th>Market Volume</th>
+          <th>Your Revenue</th><th>Peer Avg Revenue</th><th>vs Peer</th>
         </tr>
       </thead>
       <tbody>${cptScoreRowsHtml}</tbody>
       <tfoot>
         <tr>
           <td colspan="2">Total (Per CPT Basket)</td>
+          <td class="client-col">${Number.isFinite(clientVisits) ? fmtInt(clientVisits) : '—'}</td>
+          <td>${fmtInt(peerAvgVisitsFromRows)}</td>
           <td>${fmtInt(marketVisitsTotal)}</td>
-          <td>—</td>
-          <td>${fmtMoney(marketRevenueTotal)}</td>
-          <td>${Number.isFinite(clientRevenue) ? fmtMoney(clientRevenue) : '—'}</td>
+          <td class="client-col">${Number.isFinite(clientRevenue) ? fmtMoney(clientRevenue) : '—'}</td>
           <td>${fmtMoney(peerAvgRevenueFromRows)}</td>
           <td class="${Number.isFinite(clientVsPeerPct) ? (clientVsPeerPct >= 0 ? 'delta-pos' : 'delta-neg') : ''}">${fmtDelta(clientVsPeerPct)}</td>
-          <td>${fmtShare(clientSharePct)}</td>
         </tr>
       </tfoot>
     </table>
     <div class="comparison-footnote">
-      If your CPT fields are missing, your columns show "Not Supplied" while market and peer benchmarks remain visible.
+      If your CPT data is missing, your columns show "N/A" while market and peer benchmarks remain visible.
     </div>
 
     <!-- SECTION 03 -->

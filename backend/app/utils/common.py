@@ -67,3 +67,18 @@ def get_taxonomy_codes(specialty_lookup: dict, specialty_name: str) -> list[str]
             return val["taxonomy_codes"]
     logging.warning("Specialty '%s' not found in specialty_map; proceeding with empty taxonomy codes.", specialty_name)
     return []
+
+
+def get_anchor_cpt_codes(anchor_cpt_lookup: dict, specialty_name: str) -> list[str]:
+    """Return anchor CPT codes for the given specialty name (case-insensitive match)."""
+    anchor_cpt_codes = (
+        [i["code"] for i in anchor_cpt_lookup["through_the_door_cpt_codes"]["em_office_visits"]["codes"]]
+        + [i["code"] for i in anchor_cpt_lookup["through_the_door_cpt_codes"]["preventive_visits"]["codes"]]
+        + [i["code"] for i in anchor_cpt_lookup["through_the_door_cpt_codes"]["medicare_wellness"]["codes"]]
+    )
+    if "Gynecolog" in specialty_name:
+        logging.debug(f"Adding obgyn-specific anchor CPT codes: {specialty_name}")
+        anchor_cpt_codes += [
+            i["code"] for i in anchor_cpt_lookup["through_the_door_cpt_codes"]["obgyn_specific"]["codes"]
+        ]
+    return anchor_cpt_codes

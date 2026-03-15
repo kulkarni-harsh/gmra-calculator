@@ -15,8 +15,8 @@ from app.utils.validator import validate_speciality_master_df
 async def lifespan(app: FastAPI):
     configure_logging()
     # Load lookup data
-    app.state.specialty_map = json.load(open(settings.LOOKUP_DIR / "specialty_map.json"))
     app.state.specialty_lookup = json.load(open(settings.LOOKUP_DIR / "specialty_lookup.json"))
+    app.state.anchor_cpt_lookup = json.load(open(settings.LOOKUP_DIR / "anchor_cpt_lookup.json"))
     app.state.zip_centroids_df = pd.read_csv(settings.LOOKUP_DIR / "zip_centroids.csv")
     app.state.cpt_lookup_df = pd.read_csv(settings.LOOKUP_DIR / "cpt_lookup.csv")
     app.state.geocoder_client = OpenCageGeocode(settings.OPENCAGE_API_KEY)

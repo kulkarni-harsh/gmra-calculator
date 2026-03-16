@@ -215,3 +215,9 @@ backend/tableau_report/*
 # Mac specific file
 *.DS_Store
 backend/test.ipynb
+
+*.agents/*
+*claude/*
+
+# Git worktrees
+.worktrees/

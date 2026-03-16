@@ -11,8 +11,8 @@ _NPI_TIMEOUT = httpx.Timeout(connect=10, read=60, write=10, pool=60)
 _PROCEDURE_TIMEOUT = httpx.Timeout(connect=10, read=120, write=10, pool=60)
 
 # Shared clients — reused across calls to avoid per-request connection setup/teardown noise.
-_alphasophia_client = httpx.AsyncClient(base_url="https://api.alphasophia.com", limits=httpx.Limits(max_connections=50))
-_npi_client = httpx.AsyncClient(base_url="https://npiregistry.cms.hhs.gov", limits=httpx.Limits(max_connections=20))
+_alphasophia_client = httpx.AsyncClient(base_url="https://api.alphasophia.com", limits=httpx.Limits(max_connections=200))
+_npi_client = httpx.AsyncClient(base_url="https://npiregistry.cms.hhs.gov", limits=httpx.Limits(max_connections=200))
 
 _MAX_HCP_PAGES = 20  # Safety cap to avoid runaway pagination
 

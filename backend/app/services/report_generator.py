@@ -74,13 +74,21 @@ def _cpt_revenue(services: int, medicare_rate: float | None, charges: float) -> 
 async def run_report(payload: ProviderRequest, state: ReportState) -> str:
     """Generate the HTML report and return it as a string."""
 
+    log = logging.getLogger(__name__)
+
+    log.info("[1/10] Resolving CPT codes and taxonomy for specialty '%s'", payload.specialty_name)
     relevant_cpt_codes_list = get_anchor_cpt_codes(state.anchor_cpt_lookup, payload.specialty_name)
     taxonomy_codes = get_taxonomy_codes(state.specialty_lookup, payload.specialty_name)
+    log.info("[1/10] Done — %d CPT codes, %d taxonomy codes", len(relevant_cpt_codes_list), len(taxonomy_codes))
 
+    log.info("[2/10] Resolving client provider address, lat/long, and CPT profiles (NPI=%s)", payload.client_provider.id)
     await payload.client_provider.update_address_and_zip()
     await payload.client_provider.update_lat_long()
+    log.info("[2/10] Client provider geocoded — lat=%.4f, lon=%.4f", payload.client_provider.latitude or 0, payload.client_provider.longitude or 0)
     await payload.client_provider.fetch_cpt_profiles(relevant_cpt_codes_list)
+    log.info("[2/10] Done — client CPT profiles fetched")
 
+    log.info("[3/10] Computing ZIP distances from client provider location")
     zip_centroids_df = state.zip_centroids_df.copy()
     zip_centroids_df["distance_from_source_miles"] = zip_centroids_df.apply(
         lambda row: geodesic(
@@ -91,7 +99,7 @@ async def run_report(payload: ProviderRequest, state: ReportState) -> str:
     )
     expanded_zips_df = zip_centroids_df[zip_centroids_df["distance_from_source_miles"] <= 2 * payload.miles_radius]
     if expanded_zips_df.empty:
-        logging.warning("No ZIP codes found within 2× radius. Falling back to input ZIP only.")
+        log.warning("[3/10] No ZIP codes found within 2× radius (%d mi). Falling back to input ZIP only.", 2 * payload.miles_radius)
         expanded_zips_df = pd.DataFrame(
             {
                 "zip": [payload.client_provider.zip_code],
@@ -100,7 +108,9 @@ async def run_report(payload: ProviderRequest, state: ReportState) -> str:
                 "distance_from_source_miles": [0.0],
             }
         )
+    log.info("[3/10] Done — %d ZIP codes in 2× search radius (%d mi)", len(expanded_zips_df), 2 * payload.miles_radius)
 
+    log.info("[4/10] Fetching providers from AlphaSophia across %d ZIP codes (next step: enrich addresses)", len(expanded_zips_df))
     expanded_providers_list: list[Provider]
     try:
         expanded_providers_list = await get_hcp_data(
@@ -113,20 +123,26 @@ async def run_report(payload: ProviderRequest, state: ReportState) -> str:
         expanded_providers_list = [
             p for p in expanded_providers_list if isinstance(p, Provider) and p.id != payload.client_provider.id
         ]
-        logging.info("Fetched %d providers from AlphaSophia on 2x radius", len(expanded_providers_list))
+        log.info("[4/10] Done — fetched %d providers from AlphaSophia (2× radius)", len(expanded_providers_list))
     except Exception as exc:
-        logging.error("Failed to fetch providers from AlphaSophia: %s", exc)
+        log.error("[4/10] Failed to fetch providers from AlphaSophia: %s", exc)
         expanded_providers_list = []
+
+    log.info("[5/10] Enriching %d provider addresses and coordinates in parallel", len(expanded_providers_list))
 
     async def _enrich_provider(p: Provider) -> None:
         await p.update_address_and_zip()
         await p.update_lat_long()
 
     await asyncio.gather(*[_enrich_provider(p) for p in expanded_providers_list])
+    log.info("[5/10] Done — all provider addresses resolved")
 
+    log.info("[6/10] Filtering providers to actual radius of %d mi", payload.miles_radius)
     providers_in_radius: list[Provider] = []
+    skipped_no_coords = 0
     for result in expanded_providers_list:
         if result.latitude is None or result.longitude is None:
+            skipped_no_coords += 1
             continue
         dist = geodesic(
             (result.latitude, result.longitude),
@@ -135,12 +151,18 @@ async def run_report(payload: ProviderRequest, state: ReportState) -> str:
         if dist <= payload.miles_radius:
             providers_in_radius.append(result)
 
-    logging.info("Fetched %d providers within actual radius", len(providers_in_radius))
+    log.info(
+        "[6/10] Done — %d providers within %d mi radius (skipped %d with no coords)",
+        len(providers_in_radius), payload.miles_radius, skipped_no_coords,
+    )
 
+    log.info("[7/10] Fetching CPT profiles for %d in-radius competitors", len(providers_in_radius))
     await asyncio.gather(*[p.fetch_cpt_profiles(relevant_cpt_codes_list) for p in providers_in_radius])
+    log.info("[7/10] Done — competitor CPT profiles fetched")
 
     provider_state = payload.client_provider.location.state or ""
 
+    log.info("[8/10] Aggregating CPT data across %d providers", len(providers_in_radius))
     agg_cpt_list: list[CPT] = []
     for cpt in relevant_cpt_codes_list:
         agg_cpt = CPT(code=cpt, totalServices=0, totalCharges=0.0)
@@ -204,11 +226,18 @@ async def run_report(payload: ProviderRequest, state: ReportState) -> str:
             )
         )
 
+    log.info(
+        "[8/10] Done — %d CPT rows built, market total: %d services / $%.0f revenue",
+        len(cpt_rows), total_market_services, total_market_revenue,
+    )
+
     cpt_total_visits = f"{int(total_market_services):,} visits/yr"
     cpt_total_revenue = f"${total_market_revenue:,.0f}"
 
+    log.info("[9/10] Fetching census demographics for %d ZIP codes in exact radius", len(zip_centroids_df[zip_centroids_df["distance_from_source_miles"] <= payload.miles_radius]))
     actual_zips_df = zip_centroids_df[zip_centroids_df["distance_from_source_miles"] <= payload.miles_radius]
     if actual_zips_df.empty:
+        log.warning("[9/10] No ZIPs in exact radius — falling back to client ZIP only")
         actual_zips_df = pd.DataFrame(
             {
                 "zip": [str(payload.client_provider.location.zip_code)],
@@ -225,8 +254,9 @@ async def run_report(payload: ProviderRequest, state: ReportState) -> str:
         )
         combined_demo: SexAgeCounts = reduce(combine_demographics, zip_demographic_dict.values())
         total_population: int = combined_demo["Total"]
+        log.info("[9/10] Done — total population across %d ZIPs: %d", len(actual_zips_df), total_population)
     except Exception as exc:
-        logging.error("Failed to get demographics: %s", exc)
+        log.error("[9/10] Failed to get demographics: %s", exc)
         combined_demo = {"M": {}, "F": {}, "Total": 0}
         total_population = 0
 
@@ -258,6 +288,12 @@ async def run_report(payload: ProviderRequest, state: ReportState) -> str:
         verdict_value = "CAUTION"
         verdict_sub = "Market is near benchmark density — limited opportunity."
 
+    log.info(
+        "[9/10] Verdict: %s — density=%.2f/100k, expected=%.1f, current=%d, gap=%.1f",
+        verdict_value, target_density or 0, expected_providers, current_providers, provider_gap,
+    )
+
+    log.info("[10/10] Rendering HTML report template")
     report_id = f"MERC-{pd.Timestamp.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
     address_str = (
         f"{payload.client_provider.location.address_line_1} {payload.client_provider.location.address_line_2}, "
@@ -335,4 +371,6 @@ async def run_report(payload: ProviderRequest, state: ReportState) -> str:
     )
 
     template_html = (settings.TEMPLATES_DIR / "MREC_Report_TEMPLATE.html").read_text(encoding="utf-8")
-    return replace_data_block(template_html, report_template_data)
+    html = replace_data_block(template_html, report_template_data)
+    log.info("[10/10] Done — report '%s' rendered (%d bytes)", report_id, len(html))
+    return html

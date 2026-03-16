@@ -1,11 +1,8 @@
 aws_region          = "us-east-1"
 domain_name         = "yourdomain.com"
-opencage_api_key    = "your-opencage-key"
 census_api_key      = "your-census-key"
 mapbox_api_key      = "your-mapbox-key"
 alphasophia_api_key = "your-alphasophia-key"
 
-# Mailgun — copy from Mailgun → Sending → Domains → your domain → DNS records
-mailgun_dkim_selector = "mailo"
-mailgun_dkim_key      = "k=rsa; p=MIGfMA0GCSqGS..."  # full value from Mailgun
-mailgun_api_key       = "key-..."                      # private API key from Mailgun dashboard
+# Resend — API key from resend.com dashboard (starts with re_…)
+resend_api_key = "re_..."

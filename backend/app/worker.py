@@ -23,8 +23,9 @@ from app.services.report_generator import ReportState, load_state
 
 
 async def process_job(job_id: str, state: ReportState) -> None:
+    from app.services.pdf import html_to_pdf
     from app.services.report_generator import run_report
-    from app.services.s3 import upload_report
+    from app.services.s3 import upload_report, upload_report_pdf
 
     job = get_job(job_id)
     if not job:
@@ -38,24 +39,39 @@ async def process_job(job_id: str, state: ReportState) -> None:
         payload = ProviderRequest.model_validate_json(job["payload"])
         html = await run_report(payload, state)
 
-        # Upload report to S3; returns pre-signed URL or "" on failure
-        report_url = upload_report(job_id, html)
+        # Upload HTML to S3 (internal archive)
+        html_url = upload_report(job_id, html)
 
-        update_job(job_id, status="done", result_html=html, report_s3_url=report_url)
-        logging.info("Job %s: status → done  s3_url=%s", job_id, report_url or "<none>")
+        # Convert to PDF and upload
+        pdf_bytes = html_to_pdf(html)
+        pdf_url = upload_report_pdf(job_id, pdf_bytes)
+
+        update_job(
+            job_id,
+            status="done",
+            result_html=html,
+            report_s3_url=html_url,
+            report_pdf_s3_url=pdf_url,
+        )
+        logging.info(
+            "Job %s: status → done  html_url=%s  pdf_url=%s",
+            job_id, html_url or "<none>", pdf_url or "<none>",
+        )
 
         if payload.customer_email:
             send_report_ready(
                 to=payload.customer_email,
                 job_id=job_id,
                 provider_name=payload.client_provider.name,
-                html_report=html,
-                report_url=report_url,
+                html_content=html,
+                report_url=html_url,
+                attachment_format="html",
             )
 
     except Exception as exc:
         logging.error("Job %s: status → failed  error=%s", job_id, exc, exc_info=True)
         update_job(job_id, status="failed", error=str(exc))
+        raise  # re-raise so main() withholds deletion and SQS can retry → DLQ
 
 
 async def main() -> None:
@@ -72,8 +88,14 @@ async def main() -> None:
             logging.info("Received job %s from SQS", job_id)
             try:
                 await process_job(job_id, state)
-            finally:
-                delete_message(msg["ReceiptHandle"])
+                delete_message(msg["ReceiptHandle"])  # only on success
+            except Exception as exc:
+                logging.error(
+                    "Job %s: leaving message in queue — SQS will retry then route to DLQ: %s",
+                    job_id, exc,
+                )
+                # Do NOT delete — visibility timeout expires, SQS retries up to
+                # maxReceiveCount, then moves the message to the DLQ automatically.
 
 
 if __name__ == "__main__":

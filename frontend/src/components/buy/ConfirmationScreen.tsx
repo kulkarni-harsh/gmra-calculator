@@ -120,7 +120,7 @@ export default function ConfirmationScreen({
           <p className="mt-2 text-xs text-white/40">
             Use this ID to check your report status anytime at{' '}
             <a href="/status" className="text-[hsl(204_66%_52%)] underline hover:text-[hsl(204_66%_65%)]">
-              /status
+              using this link
             </a>
           </p>
         </div>

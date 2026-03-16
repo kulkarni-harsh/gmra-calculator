@@ -99,8 +99,7 @@ async def get_report_status(job_id: str):
     }
 
     if job["status"] == "done":
-        resp["result_html"] = job.get("result_html", "")
-        resp["report_s3_url"] = job.get("report_s3_url", "")
+        resp["report_pdf_s3_url"] = job.get("report_pdf_s3_url", "")
     elif job["status"] == "failed":
         resp["error"] = job.get("error", "Unknown error")
 

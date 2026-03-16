@@ -100,12 +100,12 @@ export default function GeneratingScreen({ providerName, email, jobId, onReset }
           </div>
           {copied && <p className="mt-1 text-xs text-[hsl(149_64%_45%)]">Copied!</p>}
           <p className="mt-2 text-xs text-white/40">
-            Check your report status anytime at{' '}
+            Check your report status anytime {' '}
             <a
               href="/status"
               className="text-[hsl(204_66%_52%)] underline hover:text-[hsl(204_66%_65%)]"
             >
-              /status
+              using this link
             </a>
           </p>
         </div>

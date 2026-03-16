@@ -65,4 +65,4 @@ export interface GenerateReportRequest {
   customer_email: string
 }
 
-export type RadiusOption = 2 | 5 | 7 | 10
+export type RadiusOption = 1 | 2 | 4 | 5

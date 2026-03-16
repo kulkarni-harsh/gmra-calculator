@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Search, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { checkJobStatus, openHtmlInNewTab } from '@/lib/api'
+import { checkJobStatus } from '@/lib/api'
 import type { JobStatus } from '@/lib/api'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -111,26 +111,16 @@ export default function Status() {
               </p>
             </div>
 
-            {result.status === 'done' && (
+            {result.status === 'done' && result.report_pdf_s3_url && (
               <div className="flex flex-wrap gap-3 border-t border-white/8 pt-4">
-                {result.result_html && (
-                  <Button
-                    onClick={() => openHtmlInNewTab(result.result_html!)}
-                    className="bg-[hsl(204_66%_52%)] font-bold text-white hover:bg-[hsl(204_66%_45%)]"
-                  >
-                    View Report
-                  </Button>
-                )}
-                {result.report_s3_url && (
-                  <a
-                    href={result.report_s3_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center rounded-md border border-white/20 px-4 py-2 text-sm font-medium text-white/80 hover:bg-white/8 hover:text-white"
-                  >
-                    Download (7-day link)
-                  </a>
-                )}
+                <a
+                  href={result.report_pdf_s3_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center rounded-md bg-[hsl(204_66%_52%)] px-4 py-2 text-sm font-bold text-white hover:bg-[hsl(204_66%_45%)]"
+                >
+                  Download PDF (7-day link)
+                </a>
               </div>
             )}
 

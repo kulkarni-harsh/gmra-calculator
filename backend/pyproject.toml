@@ -23,6 +23,15 @@ dependencies = [
   "seaborn>=0.13.2",
   "selenium>=4.41.0",
   "webdriver-manager>=4.0.2",
+  "ipykernel>=7.2.0",
+  "boto3>=1.39.9",
+  "weasyprint>=62.0",
+  "langchain>=0.3.26",
+  "langchain-aws>=0.2.28",
+  "botocore[crt]>=1.42.63",
+  "tenacity>=9.1.4",
+  "vulture>=2.15",
+  "resend>=2.23.0",
 ]
 
 [tool.uv]
@@ -31,10 +40,11 @@ package = false
 [tool.ruff]
 line-length = 120
 target-version = "py311"
+exclude = ["*.ipynb"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "N"]
-ignore = ["B008"]
+select = ["E", "F", "I", "UP", "B", "N", "ARG"]
+ignore = ["B008", "N815"]
 
 [tool.mypy]
 python_version = "3.11"

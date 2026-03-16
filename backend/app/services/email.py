@@ -76,13 +76,16 @@ def send_report_ready(
     to: str,
     job_id: str,
     provider_name: str,
-    html_report: str,
+    pdf_bytes: bytes | None = None,
+    html_content: str | None = None,
     report_url: str = "",
+    attachment_format: str = "html",
 ) -> bool:
     """
-    Email the completed report to the customer.
+    Email the completed report to the customer as an attachment.
 
-    - HTML report is attached as 'MERC_Report_{job_id}.html'
+    - attachment_format: "html" (default) attaches the report as 'MERC_Report_{job_id}.html'
+                         "pdf" attaches the report as 'MERC_Report_{job_id}.pdf' (requires pdf_bytes)
     - If report_url is provided, it is included as a download link in the body
     - Returns True on success, False on failure
     - Never raises — logs error instead so a failed email never crashes the worker
@@ -93,20 +96,26 @@ def send_report_ready(
 
     resend.api_key = settings.RESEND_API_KEY
 
+    if attachment_format == "pdf":
+        attachment_desc = "a PDF file"
+        filename = f"MERC_Report_{job_id}.pdf"
+        encoded_content = base64.b64encode(pdf_bytes or b"").decode("ascii")
+    else:
+        attachment_desc = "an HTML file you can open in any browser"
+        filename = f"MERC_Report_{job_id}.html"
+        encoded_content = base64.b64encode((html_content or "").encode("utf-8")).decode("ascii")
+
     body_paragraphs = [
         f"<p>Your MERC market analysis report for <strong>{provider_name}</strong> is ready.</p>",
-        "<p>The full report is attached to this email as an HTML file. "
-        "Open it in any browser to view your competitive analysis.</p>",
+        f"<p>The full report is attached to this email as {attachment_desc}.</p>",
     ]
     if report_url:
         body_paragraphs.append(
-            f'<p><a href="{report_url}" style="font-weight:bold;">Click here to download the report</a> '
+            f'<p><a href="{report_url}" style="font-weight:bold;">Alternatively, Click here to download the report</a> '
             "(link valid for 7 days)</p>"
         )
     body_paragraphs.append(f"<p style='color:#888;font-size:12px;'>Job reference: {job_id}</p>")
     html_body = "\n".join(body_paragraphs)
-
-    encoded_content = base64.b64encode(html_report.encode("utf-8")).decode("ascii")
 
     params: resend.Emails.SendParams = {
         "from": _FROM,
@@ -115,7 +124,7 @@ def send_report_ready(
         "html": html_body,
         "attachments": [
             {
-                "filename": f"MERC_Report_{job_id}.html",
+                "filename": filename,
                 "content": encoded_content,
             }
         ],
@@ -123,7 +132,7 @@ def send_report_ready(
 
     try:
         r = resend.Emails.send(params)
-        logging.info("Resend email sent to %s — id=%s", to, r.get("id"))
+        logging.info("Resend email sent to %s — id=%s  format=%s", to, r.get("id"), attachment_format)
         return True
     except Exception as exc:
         logging.error("Failed to send Resend email to %s: %s", to, exc)

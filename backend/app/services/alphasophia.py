@@ -6,12 +6,12 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 from app.core.config import settings
 from app.types.alphasophia import CPT, Provider
 
-_HCP_SEARCH_TIMEOUT = httpx.Timeout(connect=10, read=120, write=10, pool=60)
-_NPI_TIMEOUT = httpx.Timeout(connect=10, read=60, write=10, pool=60)
-_PROCEDURE_TIMEOUT = httpx.Timeout(connect=10, read=120, write=10, pool=60)
+_HCP_SEARCH_TIMEOUT = httpx.Timeout(connect=20, read=120, write=20, pool=60*10)
+_NPI_TIMEOUT = httpx.Timeout(connect=20, read=60, write=20, pool=60*10)
+_PROCEDURE_TIMEOUT = httpx.Timeout(connect=20, read=120, write=20, pool=60*10)
 
 # Shared clients — reused across calls to avoid per-request connection setup/teardown noise.
-_alphasophia_client = httpx.AsyncClient(base_url="https://api.alphasophia.com", limits=httpx.Limits(max_connections=200))
+_alphasophia_client = httpx.AsyncClient(base_url="https://api.alphasophia.com", limits=httpx.Limits(max_connections=1000))
 _npi_client = httpx.AsyncClient(base_url="https://npiregistry.cms.hhs.gov", limits=httpx.Limits(max_connections=200))
 
 _MAX_HCP_PAGES = 20  # Safety cap to avoid runaway pagination
@@ -162,18 +162,25 @@ async def get_npi_address(npi: str | None) -> tuple[str | None, str | None, str 
     reraise=True,
 )
 async def _fetch_hcp_procedure(hcp_id: int, page: int, code: str | None) -> list[CPT]:
-    url = "/v1/profile/hcp/procedure/"
-    params: dict[str, str | int | bool] = {"id": hcp_id, "all-payor": "true", "page": page, "pageSize": 15}
-    if code:
-        params["code"] = code
-    headers = {
-        "x-api-key": settings.ALPHASOPHIA_API_KEY,
-        "Accept": "application/json",
-    }
-    response = await _alphasophia_client.get(url, params=params, headers=headers, timeout=_PROCEDURE_TIMEOUT)
-    response.raise_for_status()
-    response_dict = response.json()
-    return [CPT(**cpt) for cpt in response_dict["data"]["procedures"]]
+    try:
+        url = "/v1/profile/hcp/procedure/"
+        params: dict[str, str | int | bool] = {"id": hcp_id, "all-payor": "true", "page": page, "pageSize": 15}
+        if code:
+            params["code"] = code
+        headers = {
+            "x-api-key": settings.ALPHASOPHIA_API_KEY,
+            "Accept": "application/json",
+        }
+        response = await _alphasophia_client.get(url, params=params, headers=headers, timeout=_PROCEDURE_TIMEOUT)
+        response.raise_for_status()
+        response_dict = response.json()
+        return [CPT(**cpt) for cpt in response_dict["data"]["procedures"]]
+    except Exception as e:
+        logging.critical(
+            f"An error occurred while requesting HCP Procedure API for HCP {hcp_id}: {code}."
+            f" {type(e).__name__}: {e}"
+        )
+        return []
 
 
 async def get_hcp_procedure(

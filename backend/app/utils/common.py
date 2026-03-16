@@ -89,10 +89,17 @@ def get_taxonomy_codes(specialty_lookup: dict, specialty_name: str) -> list[str]
 
 def get_anchor_cpt_codes(anchor_cpt_lookup: dict, specialty_name: str) -> list[str]:
     """Return anchor CPT codes for the given specialty name (case-insensitive match)."""
+    # "medicare_wellness": {
+    #   "label": "Medicare Annual Wellness Visits",
+    #   "codes": [
+    #     { "code": "G0438", "description": "Annual wellness visit, initial" },
+    #     { "code": "G0439", "description": "Annual wellness visit, subsequent" }
+    #   ]
+    # },
     anchor_cpt_codes = (
         [i["code"] for i in anchor_cpt_lookup["through_the_door_cpt_codes"]["em_office_visits"]["codes"]]
         + [i["code"] for i in anchor_cpt_lookup["through_the_door_cpt_codes"]["preventive_visits"]["codes"]]
-        + [i["code"] for i in anchor_cpt_lookup["through_the_door_cpt_codes"]["medicare_wellness"]["codes"]]
+        # + [i["code"] for i in anchor_cpt_lookup["through_the_door_cpt_codes"]["medicare_wellness"]["codes"]]
     )
     if "Gynecolog" in specialty_name:
         logging.debug(f"Adding obgyn-specific anchor CPT codes: {specialty_name}")

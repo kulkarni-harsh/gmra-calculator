@@ -9,11 +9,19 @@ class Settings(BaseSettings):
     VERSION: str
     API_PREFIX: str
     DEBUG: bool
-    DATABASE_URL: str
     OPENCAGE_API_KEY: str
     CENSUS_API_KEY: str
     MAPBOX_API_KEY: str
     ALPHASOPHIA_API_KEY: str
+    ALLOWED_ORIGINS: str = ""  # comma-separated extra origins; empty = no extras
+
+    # Async job infrastructure
+    DYNAMODB_TABLE_NAME: str = "merc-jobs"
+    SQS_QUEUE_URL: str = ""
+
+    # Email (Mailgun)
+    MAILGUN_API_KEY: str = ""
+    MAILGUN_DOMAIN: str = ""  # e.g. yourdomain.com — set by ECS env var
 
     # Settings for file paths, use cwd as base
     LOOKUP_DIR: Path = Path("resources/lookups")

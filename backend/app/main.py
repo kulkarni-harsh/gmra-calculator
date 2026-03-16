@@ -43,14 +43,12 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Allow requests from the Vite dev server and any future hosted frontend origin.
-    # Update CORS origins when the frontend is deployed to a cloud domain.
+    origins = ["http://localhost:5173", "http://localhost:4173"]
+    if settings.ALLOWED_ORIGINS:
+        origins += [o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://localhost:5173",  # Vite dev server
-            "http://localhost:4173",  # Vite preview
-        ],
+        allow_origins=origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

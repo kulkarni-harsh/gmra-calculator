@@ -1,0 +1,54 @@
+variable "aws_region" {
+  description = "AWS region to deploy into"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "app_name" {
+  description = "Short name used to prefix all resources"
+  type        = string
+  default     = "gmra-calculator"
+}
+
+variable "backend_image_tag" {
+  description = "Docker image tag for the backend"
+  type        = string
+  default     = "latest"
+}
+
+variable "frontend_image_tag" {
+  description = "Docker image tag for the frontend"
+  type        = string
+  default     = "latest"
+}
+
+variable "domain_name" {
+  description = "Root domain purchased from Namecheap (e.g. getmerc.com)"
+  type        = string
+}
+
+# --- Secrets (set in terraform.tfvars, never commit that file) ---
+
+variable "opencage_api_key" {
+  description = "OpenCage geocoding API key"
+  type        = string
+  sensitive   = true
+}
+
+variable "census_api_key" {
+  description = "US Census API key"
+  type        = string
+  sensitive   = true
+}
+
+variable "mapbox_api_key" {
+  description = "Mapbox API key"
+  type        = string
+  sensitive   = true
+}
+
+variable "alphasophia_api_key" {
+  description = "AlphaSophia API key"
+  type        = string
+  sensitive   = true
+}

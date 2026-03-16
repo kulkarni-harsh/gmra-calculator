@@ -1,0 +1,6 @@
+# Copy this file to backend.hcl and fill in the bucket name from bootstrap output.
+# backend.hcl is gitignored.
+
+bucket = "gmra-calculator-tfstate-<your-aws-account-id>"
+key    = "terraform.tfstate"
+region = "us-east-1"

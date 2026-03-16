@@ -12,10 +12,9 @@ resource "aws_secretsmanager_secret" "api_keys" {
 resource "aws_secretsmanager_secret_version" "api_keys" {
   secret_id = aws_secretsmanager_secret.api_keys.id
   secret_string = jsonencode({
-    OPENCAGE_API_KEY    = var.opencage_api_key
     CENSUS_API_KEY      = var.census_api_key
     MAPBOX_API_KEY      = var.mapbox_api_key
     ALPHASOPHIA_API_KEY = var.alphasophia_api_key
-    MAILGUN_API_KEY     = var.mailgun_api_key
+    RESEND_API_KEY      = var.resend_api_key
   })
 }

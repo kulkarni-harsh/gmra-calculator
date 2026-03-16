@@ -7,9 +7,12 @@ import boto3
 from app.core.config import settings
 
 
+def _sqs():
+    return boto3.client("sqs", endpoint_url=settings.AWS_ENDPOINT_URL or None)
+
+
 def send_job(job_id: str) -> None:
-    sqs = boto3.client("sqs")
-    sqs.send_message(
+    _sqs().send_message(
         QueueUrl=settings.SQS_QUEUE_URL,
         MessageBody=json.dumps({"job_id": job_id}),
     )
@@ -17,8 +20,7 @@ def send_job(job_id: str) -> None:
 
 def receive_jobs(max_messages: int = 1, wait_seconds: int = 20) -> list[dict]:
     """Long-poll the queue. Blocks up to wait_seconds if the queue is empty."""
-    sqs = boto3.client("sqs")
-    resp = sqs.receive_message(
+    resp = _sqs().receive_message(
         QueueUrl=settings.SQS_QUEUE_URL,
         MaxNumberOfMessages=max_messages,
         WaitTimeSeconds=wait_seconds,
@@ -31,5 +33,4 @@ def receive_jobs(max_messages: int = 1, wait_seconds: int = 20) -> list[dict]:
 
 def delete_message(receipt_handle: str) -> None:
     """Remove a message after successful processing."""
-    sqs = boto3.client("sqs")
-    sqs.delete_message(QueueUrl=settings.SQS_QUEUE_URL, ReceiptHandle=receipt_handle)
+    _sqs().delete_message(QueueUrl=settings.SQS_QUEUE_URL, ReceiptHandle=receipt_handle)

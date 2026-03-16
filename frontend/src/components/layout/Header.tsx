@@ -10,6 +10,7 @@ export default function Header() {
   const navLinks = [
     { to: '/', label: 'Home' },
     { to: '/buy', label: 'Buy / Book Consultation' },
+    { to: '/status', label: 'Check Status' },
   ]
 
   return (

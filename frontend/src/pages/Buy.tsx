@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react'
-import { openHtmlInNewTab } from '@/lib/api'
+import { useState } from 'react'
 import { useSpecialties } from '@/hooks/useSpecialties'
 import { useProviderSearch } from '@/hooks/useProviderSearch'
 import { useReportGeneration } from '@/hooks/useReportGeneration'
@@ -44,14 +43,7 @@ export default function Buy() {
 
   const { specialties, isLoading: loadingSpecialties, error: specialtiesError, retry: retrySpecialties } = useSpecialties()
   const { providers, isSearching, error: searchError, hasSearched, search, reset: resetSearch } = useProviderSearch()
-  const { isGenerating, isComplete, error: genError, htmlContent, generate, reset: resetGen } = useReportGeneration()
-
-  // Auto-open report in new tab when generation completes
-  useEffect(() => {
-    if (isComplete && htmlContent) {
-      openHtmlInNewTab(htmlContent)
-    }
-  }, [isComplete, htmlContent])
+  const { isGenerating, isComplete, error: genError, jobId, generate, reset: resetGen } = useReportGeneration()
 
   const advance = () =>
     setState((prev) => ({ ...prev, currentStep: Math.min(prev.currentStep + 1, 4) as 1 | 2 | 3 | 4 }))
@@ -71,6 +63,7 @@ export default function Buy() {
       specialty_name: state.specialtyName,
       client_provider: state.selectedProvider,
       miles_radius: state.milesRadius,
+      customer_email: state.email,
     })
   }
 
@@ -80,24 +73,30 @@ export default function Buy() {
   }
 
   // Show generating / confirmation screens
-  if (isGenerating) {
+  if (isGenerating || isComplete) {
     return (
       <div className="min-h-screen bg-[hsl(215_63%_14%)]">
         <div className="mx-auto max-w-[1280px] px-6 py-12">
-          <GeneratingScreen providerName={state.selectedProvider?.name ?? null} />
+          <GeneratingScreen
+            providerName={state.selectedProvider?.name ?? null}
+            email={state.email}
+            jobId={jobId}
+            onReset={resetForm}
+          />
         </div>
       </div>
     )
   }
 
-  if (isComplete || genError) {
+  if (genError) {
     return (
       <div className="min-h-screen bg-[hsl(215_63%_14%)]">
         <div className="mx-auto max-w-[1280px] px-6 py-12">
           <ConfirmationScreen
             providerName={state.selectedProvider?.name ?? null}
             email={state.email}
-            htmlContent={htmlContent}
+            htmlContent={null}
+            jobId={null}
             error={genError}
             onRetry={handleRetry}
             onReset={resetForm}

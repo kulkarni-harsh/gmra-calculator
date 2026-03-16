@@ -41,15 +41,14 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "AWS_DEFAULT_REGION", value = var.aws_region },
         { name = "DYNAMODB_TABLE_NAME", value = aws_dynamodb_table.jobs.name },
         { name = "SQS_QUEUE_URL", value = aws_sqs_queue.jobs.url },
-        { name = "MAILGUN_DOMAIN", value = var.domain_name },
+        { name = "FRONTEND_URL", value = "https://${var.domain_name}" },
       ]
 
       secrets = [
-        { name = "OPENCAGE_API_KEY",    valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:OPENCAGE_API_KEY::" },
         { name = "CENSUS_API_KEY",      valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:CENSUS_API_KEY::" },
         { name = "MAPBOX_API_KEY",      valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:MAPBOX_API_KEY::" },
         { name = "ALPHASOPHIA_API_KEY", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:ALPHASOPHIA_API_KEY::" },
-        { name = "MAILGUN_API_KEY",     valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:MAILGUN_API_KEY::" },
+        { name = "RESEND_API_KEY",      valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:RESEND_API_KEY::" },
       ]
 
       logConfiguration = {
@@ -150,15 +149,14 @@ resource "aws_ecs_task_definition" "worker" {
         { name = "AWS_DEFAULT_REGION", value = var.aws_region },
         { name = "DYNAMODB_TABLE_NAME", value = aws_dynamodb_table.jobs.name },
         { name = "SQS_QUEUE_URL", value = aws_sqs_queue.jobs.url },
-        { name = "MAILGUN_DOMAIN", value = var.domain_name },
+        { name = "S3_BUCKET_NAME", value = aws_s3_bucket.reports.bucket },
       ]
 
       secrets = [
-        { name = "OPENCAGE_API_KEY",    valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:OPENCAGE_API_KEY::" },
         { name = "CENSUS_API_KEY",      valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:CENSUS_API_KEY::" },
         { name = "MAPBOX_API_KEY",      valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:MAPBOX_API_KEY::" },
         { name = "ALPHASOPHIA_API_KEY", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:ALPHASOPHIA_API_KEY::" },
-        { name = "MAILGUN_API_KEY",     valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:MAILGUN_API_KEY::" },
+        { name = "RESEND_API_KEY",      valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:RESEND_API_KEY::" },
       ]
 
       logConfiguration = {

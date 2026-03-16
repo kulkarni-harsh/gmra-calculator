@@ -3,8 +3,10 @@ import uuid
 
 from fastapi import APIRouter, HTTPException, Request
 
+from app.core.config import settings
 from app.schemas.provider_request import ProviderRequest
 from app.services.alphasophia import get_hcp_data
+from app.services.email import send_request_confirmation
 from app.services.job_store import create_job, get_job
 from app.services.queue import send_job
 from app.types.alphasophia import Provider
@@ -64,6 +66,16 @@ async def submit_report_job(payload: ProviderRequest):
         provider_name=payload.client_provider.name,
     )
     send_job(job_id)
+
+    if payload.customer_email:
+        status_url = f"{settings.FRONTEND_URL}/status" if settings.FRONTEND_URL else ""
+        send_request_confirmation(
+            to=payload.customer_email,
+            job_id=job_id,
+            provider_name=payload.client_provider.name,
+            status_url=status_url,
+        )
+
     return {"job_id": job_id, "status": "pending"}
 
 
@@ -88,6 +100,7 @@ async def get_report_status(job_id: str):
 
     if job["status"] == "done":
         resp["result_html"] = job.get("result_html", "")
+        resp["report_s3_url"] = job.get("report_s3_url", "")
     elif job["status"] == "failed":
         resp["error"] = job.get("error", "Unknown error")
 

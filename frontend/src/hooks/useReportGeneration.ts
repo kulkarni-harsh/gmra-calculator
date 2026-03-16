@@ -7,16 +7,19 @@ export function useReportGeneration() {
   const [isComplete, setIsComplete] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [htmlContent, setHtmlContent] = useState<string | null>(null)
+  const [jobId, setJobId] = useState<string | null>(null)
 
   const generate = (payload: GenerateReportRequest) => {
     setIsGenerating(true)
     setIsComplete(false)
     setError(null)
     setHtmlContent(null)
+    setJobId(null)
 
     generateReport(payload)
-      .then(({ htmlContent: html }) => {
+      .then(({ htmlContent: html, jobId: id }) => {
         setHtmlContent(html)
+        setJobId(id)
         setIsComplete(true)
       })
       .catch((err: unknown) => {
@@ -31,7 +34,8 @@ export function useReportGeneration() {
     setIsComplete(false)
     setError(null)
     setHtmlContent(null)
+    setJobId(null)
   }
 
-  return { isGenerating, isComplete, error, htmlContent, generate, reset }
+  return { isGenerating, isComplete, error, htmlContent, jobId, generate, reset }
 }

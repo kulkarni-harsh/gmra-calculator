@@ -29,12 +29,6 @@ variable "domain_name" {
 
 # --- Secrets (set in terraform.tfvars, never commit that file) ---
 
-variable "opencage_api_key" {
-  description = "OpenCage geocoding API key"
-  type        = string
-  sensitive   = true
-}
-
 variable "census_api_key" {
   description = "US Census API key"
   type        = string
@@ -49,6 +43,12 @@ variable "mapbox_api_key" {
 
 variable "alphasophia_api_key" {
   description = "AlphaSophia API key"
+  type        = string
+  sensitive   = true
+}
+
+variable "resend_api_key" {
+  description = "Resend API key for transactional email (starts with re_…)"
   type        = string
   sensitive   = true
 }

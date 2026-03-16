@@ -9,7 +9,7 @@ from app.core.config import settings
 
 
 def _table():
-    return boto3.resource("dynamodb").Table(settings.DYNAMODB_TABLE_NAME)
+    return boto3.resource("dynamodb", endpoint_url=settings.AWS_ENDPOINT_URL or None).Table(settings.DYNAMODB_TABLE_NAME)
 
 
 def create_job(

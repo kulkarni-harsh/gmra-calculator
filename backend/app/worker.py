@@ -4,8 +4,8 @@ SQS worker — runs as a separate ECS service (same Docker image, different CMD)
 Lifecycle:
   1. Load all lookup data from disk (once at startup)
   2. Long-poll SQS in a loop
-  3. For each message: mark job running → generate report → store in DynamoDB
-                       → email report to customer → mark done
+  3. For each message: mark job running → generate report → upload to S3
+                       → store in DynamoDB → email report to customer → mark done
   4. Delete SQS message (success or failure — DLQ catches repeated crashes)
 """
 
@@ -24,6 +24,7 @@ from app.services.report_generator import ReportState, load_state
 
 async def process_job(job_id: str, state: ReportState) -> None:
     from app.services.report_generator import run_report
+    from app.services.s3 import upload_report
 
     job = get_job(job_id)
     if not job:
@@ -37,17 +38,19 @@ async def process_job(job_id: str, state: ReportState) -> None:
         payload = ProviderRequest.model_validate_json(job["payload"])
         html = await run_report(payload, state)
 
-        # Store HTML in DynamoDB (~95 KB, well within the 400 KB item limit)
-        update_job(job_id, status="done", result_html=html)
-        logging.info("Job %s: status → done", job_id)
+        # Upload report to S3; returns pre-signed URL or "" on failure
+        report_url = upload_report(job_id, html)
 
-        # Email the report if the customer provided an address
+        update_job(job_id, status="done", result_html=html, report_s3_url=report_url)
+        logging.info("Job %s: status → done  s3_url=%s", job_id, report_url or "<none>")
+
         if payload.customer_email:
             send_report_ready(
                 to=payload.customer_email,
                 job_id=job_id,
                 provider_name=payload.client_provider.name,
                 html_report=html,
+                report_url=report_url,
             )
 
     except Exception as exc:

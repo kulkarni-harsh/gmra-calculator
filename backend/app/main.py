@@ -21,7 +21,6 @@ async def lifespan(app: FastAPI):
     app.state.anchor_cpt_lookup = json.load(open(settings.LOOKUP_DIR / "anchor_cpt_lookup.json"))
     app.state.zip_centroids_df = pd.read_csv(settings.LOOKUP_DIR / "zip_centroids.csv")
     app.state.cpt_lookup_df = pd.read_csv(settings.LOOKUP_DIR / "cpt_lookup.csv")
-    app.state.geocoder_client = OpenCageGeocode(settings.OPENCAGE_API_KEY)
     # Load Specialty Master Sheet
     app.state.specialty_master_df = pd.read_excel(settings.LOOKUP_DIR / "Specialty Master Sheet.xlsx")
     validate_speciality_master_df(app.state.specialty_master_df)
@@ -43,9 +42,9 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    origins = ["http://localhost:5173", "http://localhost:4173"]
+    origins = []
     if settings.ALLOWED_ORIGINS:
-        origins += [o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()]
+        origins = [o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()]
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,

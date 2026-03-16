@@ -1,0 +1,70 @@
+# Local development only — starts LocalStack (SQS + DynamoDB emulation).
+# Backend and worker run on the host for hot reload.
+#
+# Quick start:
+#   docker compose up localstack          # just the AWS emulator
+#   cd backend && uv run uvicorn app.main:app --reload --port 8000   # API
+#   cd backend && uv run python -m app.worker                        # worker
+#   cd frontend && npm run dev                                        # UI
+
+services:
+  localstack:
+    image: localstack/localstack:3
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=sqs,dynamodb,s3
+      - DEFAULT_REGION=us-east-1
+      # Deterministic fake account ID so queue URLs are predictable
+      - LOCALSTACK_AUTH_TOKEN=         # leave blank — free tier is enough
+    volumes:
+      - ./localstack-init:/etc/localstack/init/ready.d
+      - localstack-data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Optional: run backend inside Docker instead of on the host.
+  # Useful for CI or when you want full parity with ECS.
+  # Comment out and run on host for hot reload.
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      # Override host-style endpoint with Docker-network-style endpoint
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - SQS_QUEUE_URL=http://localstack:4566/000000000000/merc-jobs
+    depends_on:
+      localstack:
+        condition: service_healthy
+    volumes:
+      # Mount source so you can rebuild without rebuilding the image.
+      # Remove this volume if you want true image-based runs.
+      - ./backend:/app
+    command: ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/.env
+    environment:
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - SQS_QUEUE_URL=http://localstack:4566/000000000000/merc-jobs
+    depends_on:
+      localstack:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: ["uv", "run", "python", "-m", "app.worker"]
+
+volumes:
+  localstack-data:

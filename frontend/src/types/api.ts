@@ -62,6 +62,7 @@ export interface GenerateReportRequest {
   specialty_name: string   // Must be the description string, not the id
   client_provider: Provider
   miles_radius: number     // integer: 5 | 10 | 25 | 50
+  customer_email: string
 }
 
 export type RadiusOption = 2 | 5 | 7 | 10

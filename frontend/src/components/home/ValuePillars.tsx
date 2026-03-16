@@ -19,7 +19,7 @@ const pillars = [
   {
     icon: Lightbulb,
     title: 'Actionable Strategy',
-    body: 'Every report includes a 1-on-1 strategy call with a consultant who will walk you through the findings and recommend your next move.',
+    body: 'Every report includes a complimentary 1-on-1 strategy call with a consultant who will walk you through the findings and recommend your next move.',
   },
 ]
 

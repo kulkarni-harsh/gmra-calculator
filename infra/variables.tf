@@ -52,3 +52,18 @@ variable "resend_api_key" {
   type        = string
   sensitive   = true
 }
+
+variable "resend_dkim_value" {
+  description = "TXT value for resend._domainkey DKIM record (provided by Resend dashboard)"
+  type        = string
+}
+
+variable "resend_mx_value" {
+  description = "MX record value for the send subdomain (provided by Resend dashboard, e.g. feedback-smtp.us-east-1.amazonses.com)"
+  type        = string
+}
+
+variable "resend_spf_value" {
+  description = "TXT SPF value for the send subdomain (provided by Resend dashboard, e.g. v=spf1 include:amazonses.com ~all)"
+  type        = string
+}

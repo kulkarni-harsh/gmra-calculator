@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, AlertTriangle, Home, Mail, Clock, Copy } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, Home, Mail, Clock, Copy, MailX } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 
@@ -32,6 +32,41 @@ export default function ConfirmationScreen({
   }
 
   if (error) {
+    const isIneligibleEmail = error.toLowerCase().includes('ineligible customer email')
+
+    if (isIneligibleEmail) {
+      return (
+        <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 py-20 text-center">
+          <MailX size={56} className="mb-4 text-red-400" />
+          <h2 className="font-[family-name:var(--font-heading)] text-3xl tracking-wide text-white">
+            EMAIL NOT ELIGIBLE
+          </h2>
+          <p className="mt-2 max-w-md text-sm text-white/60">
+            The email address you provided is not eligible for this service. Please use a valid business or professional email address.
+          </p>
+          <p className="mt-1 text-xs text-red-400/80">
+            {/* Personal or disposable email domains are not accepted. */}
+          </p>
+
+          <div className="mt-8 flex gap-4">
+            <Button
+              onClick={onRetry}
+              className="bg-[hsl(204_66%_52%)] font-bold text-white hover:bg-[hsl(204_66%_45%)]"
+            >
+              Use a Different Email
+            </Button>
+            <Button
+              variant="outline"
+              asChild
+              className="border-white/30 text-white hover:bg-white/10"
+            >
+              <a href="mailto:support@mrec.com">Contact Support</a>
+            </Button>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 py-20 text-center">
         <AlertTriangle size={56} className="mb-4 text-amber-400" />

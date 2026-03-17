@@ -33,13 +33,6 @@
         { "code": "99397", "description": "Established patient, age 65+" }
       ]
     },
-    "medicare_wellness": {
-      "label": "Medicare Annual Wellness Visits",
-      "codes": [
-        { "code": "G0438", "description": "Annual wellness visit, initial" },
-        { "code": "G0439", "description": "Annual wellness visit, subsequent" }
-      ]
-    },
     "obgyn_specific": {
       "label": "OB/GYN Specialty-Only (not universal)",
       "codes": [

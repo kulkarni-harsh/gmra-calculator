@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     RESEND_API_KEY: str = ""
     FRONTEND_URL: str = ""  # e.g. https://yourdomain.com — used to build status links in emails
 
+    # Stripe
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+
     # S3 report storage
     S3_BUCKET_NAME: str = "merc-reports"
     S3_REPORTS_PREFIX: str = "reports"

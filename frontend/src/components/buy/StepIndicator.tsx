@@ -6,10 +6,11 @@ const steps = [
   { num: 2, label: 'Location' },
   { num: 3, label: 'Contact' },
   { num: 4, label: 'Review' },
+  { num: 5, label: 'Payment' },
 ]
 
 interface StepIndicatorProps {
-  currentStep: number // 1-4
+  currentStep: number // 1-5
 }
 
 export default function StepIndicator({ currentStep }: StepIndicatorProps) {

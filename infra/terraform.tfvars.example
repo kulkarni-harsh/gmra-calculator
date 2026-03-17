@@ -5,4 +5,12 @@ mapbox_api_key      = "your-mapbox-key"
 alphasophia_api_key = "your-alphasophia-key"
 
 # Resend — API key from resend.com dashboard (starts with re_…)
-resend_api_key = "re_..."
+resend_api_key     = "re_..."
+resend_dkim_value  = "p=..."   # from Resend dashboard → Domains → DKIM
+resend_mx_value    = "10 feedback-smtp.us-east-1.amazonses.com"
+resend_spf_value   = "v=spf1 include:amazonses.com ~all"
+
+# Stripe — from stripe.com dashboard
+stripe_secret_key      = "sk_live_..."   # or sk_test_…
+stripe_webhook_secret  = "whsec_..."
+stripe_publishable_key = "pk_live_..."   # or pk_test_…

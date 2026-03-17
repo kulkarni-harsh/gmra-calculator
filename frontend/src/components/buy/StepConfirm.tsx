@@ -9,8 +9,9 @@ interface StepConfirmProps {
   milesRadius: number
   email: string
   phone: string
-  onGenerate: () => void
+  onProceedToPayment: () => void
   onBack: () => void
+  isLoading?: boolean
 }
 
 export default function StepConfirm({
@@ -19,8 +20,9 @@ export default function StepConfirm({
   milesRadius,
   email,
   phone,
-  onGenerate,
+  onProceedToPayment,
   onBack,
+  isLoading = false,
 }: StepConfirmProps) {
   const providerAddress = selectedProvider
     ? [
@@ -47,10 +49,10 @@ export default function StepConfirm({
     <div className="space-y-6">
       <div>
         <h2 className="font-[family-name:var(--font-heading)] text-2xl tracking-wide text-white">
-          STEP 4: REVIEW & GENERATE
+          STEP 4: REVIEW YOUR ORDER
         </h2>
         <p className="mt-1 text-sm text-white/60">
-          Confirm your details before generating the report.
+          Confirm your details before proceeding to payment.
         </p>
       </div>
 
@@ -72,27 +74,14 @@ export default function StepConfirm({
         </div>
       </div>
 
-      {/* TODO: STRIPE PAYMENT INSERTION POINT
-       * Before calling onGenerate(), this handler should:
-       * 1. Create a Stripe PaymentIntent via POST /api/v2/payments/create-intent
-       * 2. Confirm payment using Stripe.js / Stripe Elements
-       * 3. Only proceed to onGenerate() on payment success
-       *
-       * Example:
-       *   const { clientSecret } = await createPaymentIntent({ amount: 50000, currency: 'usd' })
-       *   const result = await stripe.confirmPayment({ elements, clientSecret, ... })
-       *   if (result.error) { setPaymentError(result.error.message); return }
-       *
-       * For now, payment is skipped and report generates directly.
-       */}
-
       <Button
-        onClick={onGenerate}
+        onClick={onProceedToPayment}
+        disabled={isLoading}
         size="lg"
-        className="w-full gap-2 bg-[hsl(204_66%_52%)] py-6 text-base font-bold uppercase tracking-wide text-white hover:bg-[hsl(204_66%_45%)]"
+        className="w-full gap-2 bg-[hsl(204_66%_52%)] py-6 text-base font-bold uppercase tracking-wide text-white hover:bg-[hsl(204_66%_45%)] disabled:opacity-60"
       >
         <FileText size={20} />
-        Generate My Comprehensive Report — $500
+        {isLoading ? 'Preparing Payment…' : 'Proceed to Payment — $500'}
       </Button>
 
       <p className="text-center text-xs text-white/40">
@@ -103,6 +92,7 @@ export default function StepConfirm({
         <Button
           variant="ghost"
           onClick={onBack}
+          disabled={isLoading}
           className="text-white/60 hover:bg-white/10 hover:text-white"
         >
           ← Back

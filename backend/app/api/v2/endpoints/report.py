@@ -1,13 +1,17 @@
+import json
 import logging
 import uuid
 
+import stripe
 from fastapi import APIRouter, HTTPException, Request
 
 from app.core.config import settings
+from app.schemas.payment import CreatePaymentIntentRequest
 from app.schemas.provider_request import ProviderRequest
 from app.services.alphasophia import get_hcp_data
 from app.services.email import send_request_confirmation
-from app.services.job_store import create_job, get_job
+from app.services.job_store import JobAlreadyExistsError, claim_job_for_generation, create_job_awaiting_payment, get_job
+from app.services.payment import create_payment_intent, verify_payment_intent
 from app.services.queue import send_job
 from app.types.alphasophia import Provider
 from app.utils.common import get_taxonomy_codes
@@ -52,19 +56,65 @@ async def search_providers(zip_code: str, specialty_name: str, request: Request)
     return [p.model_dump() for p in providers if isinstance(p, Provider)]
 
 
+@router.post("/create-payment-intent")
+async def create_payment_intent_endpoint(payload: CreatePaymentIntentRequest):
+    """
+    Pre-generate a job_id, create a Stripe PaymentIntent for $500, and pre-store the full
+    generation payload in DynamoDB with status 'awaiting_payment'. This ensures the webhook
+    can enqueue the job even if the user's browser closes before /generate is called.
+    """
+    job_id = f"MERC-{uuid.uuid4().hex[:12].upper()}"
+    try:
+        client_secret = create_payment_intent(
+            job_id=job_id,
+            customer_email=payload.customer_email,
+            provider_name=payload.provider_name,
+            specialty_name=payload.specialty_name,
+        )
+    except Exception as exc:
+        logging.error("Failed to create Stripe PaymentIntent: %s", exc)
+        raise HTTPException(status_code=502, detail="Failed to create payment session")
+
+    pre_payload_json = json.dumps({
+        "specialty_name": payload.specialty_name,
+        "client_provider": payload.client_provider.model_dump(),
+        "miles_radius": payload.miles_radius,
+        "customer_email": str(payload.customer_email),
+        "payment_intent_id": "pending",
+    })
+    try:
+        create_job_awaiting_payment(
+            job_id=job_id,
+            payload_json=pre_payload_json,
+            specialty_name=payload.specialty_name,
+            provider_name=payload.provider_name,
+        )
+    except JobAlreadyExistsError:
+        logging.error("job_id collision at intent creation: %s", job_id)
+        raise HTTPException(status_code=500, detail="Failed to initialize job")
+
+    return {"client_secret": client_secret, "job_id": job_id}
+
+
 @router.post("/generate")
 async def submit_report_job(payload: ProviderRequest):
     """
-    Enqueue a report generation job. Returns a job_id immediately.
-    Poll GET /status/{job_id} to check progress and retrieve the result.
+    Verify Stripe payment, then enqueue report generation.
+    Returns a job_id immediately. Poll GET /status/{job_id} to check progress.
     """
-    job_id = f"MERC-{uuid.uuid4().hex[:12].upper()}"
-    create_job(
-        job_id=job_id,
-        payload_json=payload.model_dump_json(),
-        specialty_name=payload.specialty_name,
-        provider_name=payload.client_provider.name,
-    )
+    try:
+        job_id = verify_payment_intent(
+            payment_intent_id=payload.payment_intent_id,
+            expected_email=payload.customer_email,
+        )
+    except ValueError as exc:
+        logging.warning("Payment verification failed: %s", exc)
+        raise HTTPException(status_code=402, detail=str(exc))
+
+    try:
+        claim_job_for_generation(job_id)
+    except JobAlreadyExistsError:
+        raise HTTPException(status_code=409, detail="This payment has already been used to generate a report")
     send_job(job_id)
 
     if payload.customer_email:
@@ -77,6 +127,62 @@ async def submit_report_job(payload: ProviderRequest):
         )
 
     return {"job_id": job_id, "status": "pending"}
+
+
+@router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    """
+    Handle Stripe webhook events.
+    Processes payment_intent.succeeded for async payment methods (3DS, bank redirects).
+    Must be registered in Stripe dashboard pointing to POST /api/v2/webhook/stripe.
+    """
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature", "")
+
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    if event["type"] == "payment_intent.succeeded":
+        intent = event["data"]["object"]
+        metadata = intent.get("metadata", {})
+        job_id = metadata.get("job_id")
+        if not job_id:
+            logging.warning("Stripe webhook: payment_intent.succeeded missing job_id, intent=%s", intent.get("id"))
+            return {"received": True}
+
+        try:
+            payload_json = claim_job_for_generation(job_id)
+        except JobAlreadyExistsError:
+            # Already claimed by the synchronous /generate path — nothing to do
+            logging.info("Stripe webhook: job %s already claimed via sync path", job_id)
+            return {"received": True}
+        except Exception as exc:
+            logging.error("Stripe webhook: failed to claim job %s: %s", job_id, exc)
+            raise HTTPException(status_code=500, detail="Failed to process webhook")
+
+        send_job(job_id)
+        logging.info("Stripe webhook: enqueued job %s via payment_intent.succeeded", job_id)
+
+        try:
+            stored = json.loads(payload_json)
+            customer_email = stored.get("customer_email", "")
+            provider_name = stored.get("client_provider", {}).get("name", "")
+            if customer_email:
+                status_url = f"{settings.FRONTEND_URL}/status" if settings.FRONTEND_URL else ""
+                send_request_confirmation(
+                    to=customer_email,
+                    job_id=job_id,
+                    provider_name=provider_name,
+                    status_url=status_url,
+                )
+        except Exception as exc:
+            logging.error("Stripe webhook: confirmation email failed for job %s: %s", job_id, exc)
+
+    return {"received": True}
 
 
 @router.get("/status/{job_id}")

@@ -4,6 +4,7 @@ import { useProviderSearch } from '@/hooks/useProviderSearch'
 import { useReportGeneration } from '@/hooks/useReportGeneration'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import type { Provider, RadiusOption } from '@/types/api'
+import { createPaymentIntent } from '@/lib/api'
 
 import TierSelection from '@/components/buy/TierSelection'
 import StepIndicator from '@/components/buy/StepIndicator'
@@ -12,6 +13,7 @@ import StepSpecialty from '@/components/buy/StepSpecialty'
 import StepLocation from '@/components/buy/StepLocation'
 import StepContact from '@/components/buy/StepContact'
 import StepConfirm from '@/components/buy/StepConfirm'
+import StepPayment from '@/components/buy/StepPayment'
 import GeneratingScreen from '@/components/buy/GeneratingScreen'
 import ConfirmationScreen from '@/components/buy/ConfirmationScreen'
 
@@ -23,7 +25,11 @@ interface BuyFormState {
   selectedProvider: Provider | null
   email: string
   phone: string
-  currentStep: 1 | 2 | 3 | 4
+  currentStep: 1 | 2 | 3 | 4 | 5
+  paymentClientSecret: string | null
+  paymentIntentId: string | null
+  isCreatingIntent: boolean
+  intentError: string | null
 }
 
 const INITIAL_STATE: BuyFormState = {
@@ -35,6 +41,10 @@ const INITIAL_STATE: BuyFormState = {
   email: '',
   phone: '',
   currentStep: 1,
+  paymentClientSecret: null,
+  paymentIntentId: null,
+  isCreatingIntent: false,
+  intentError: null,
 }
 
 export default function Buy() {
@@ -46,10 +56,15 @@ export default function Buy() {
   const { isGenerating, isComplete, error: genError, jobId, generate, reset: resetGen } = useReportGeneration()
 
   const advance = () =>
-    setState((prev) => ({ ...prev, currentStep: Math.min(prev.currentStep + 1, 4) as 1 | 2 | 3 | 4 }))
+    setState((prev) => ({ ...prev, currentStep: Math.min(prev.currentStep + 1, 5) as 1 | 2 | 3 | 4 | 5 }))
 
   const back = () =>
-    setState((prev) => ({ ...prev, currentStep: Math.max(prev.currentStep - 1, 1) as 1 | 2 | 3 | 4 }))
+    setState((prev) => ({
+      ...prev,
+      currentStep: Math.max(prev.currentStep - 1, 1) as 1 | 2 | 3 | 4 | 5,
+      // Clear payment state when navigating back from the payment step to avoid reusing a spent/in-flight intent
+      ...(prev.currentStep === 5 ? { paymentClientSecret: null, intentError: null } : {}),
+    }))
 
   const resetForm = () => {
     setState(INITIAL_STATE)
@@ -57,19 +72,58 @@ export default function Buy() {
     resetGen()
   }
 
-  const handleGenerate = () => {
+  const handleProceedToPayment = async () => {
     if (!state.selectedProvider) return
+    // Guard: if a valid secret already exists (e.g. user went back and re-clicked), reuse it
+    if (state.paymentClientSecret) {
+      setState((prev) => ({ ...prev, currentStep: 5 }))
+      return
+    }
+    setState((prev) => ({ ...prev, isCreatingIntent: true, intentError: null }))
+    try {
+      const { client_secret } = await createPaymentIntent({
+        customer_email: state.email,
+        provider_name: state.selectedProvider.name ?? '',
+        specialty_name: state.specialtyName,
+        client_provider: state.selectedProvider,
+        miles_radius: state.milesRadius,
+      })
+      setState((prev) => ({
+        ...prev,
+        paymentClientSecret: client_secret,
+        isCreatingIntent: false,
+        currentStep: 5,
+      }))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to prepare payment'
+      setState((prev) => ({ ...prev, isCreatingIntent: false, intentError: msg }))
+    }
+  }
+
+  const handlePaymentSuccess = (paymentIntentId: string) => {
+    if (!state.selectedProvider) return
+    setState((prev) => ({ ...prev, paymentIntentId }))
     generate({
       specialty_name: state.specialtyName,
       client_provider: state.selectedProvider,
       miles_radius: state.milesRadius,
       customer_email: state.email,
+      payment_intent_id: paymentIntentId,
     })
   }
 
-  const handleRetry = () => {
-    resetGen()
-    // Return user to step 4 to try again without losing form data
+  const handleRetryGeneration = () => {
+    if (!state.selectedProvider || !state.paymentIntentId) {
+      resetGen()
+      return
+    }
+    generate({
+      specialty_name: state.specialtyName,
+      client_provider: state.selectedProvider,
+      miles_radius: state.milesRadius,
+      customer_email: state.email,
+      payment_intent_id: state.paymentIntentId,
+    })
   }
 
   // Show generating / confirmation screens
@@ -98,7 +152,7 @@ export default function Buy() {
             htmlContent={null}
             jobId={null}
             error={genError}
-            onRetry={handleRetry}
+            onRetry={handleRetryGeneration}
             onReset={resetForm}
           />
         </div>
@@ -195,13 +249,29 @@ export default function Buy() {
               )}
 
               {state.currentStep === 4 && (
-                <StepConfirm
-                  specialtyName={state.specialtyName}
-                  selectedProvider={state.selectedProvider}
-                  milesRadius={state.milesRadius}
-                  email={state.email}
-                  phone={state.phone}
-                  onGenerate={handleGenerate}
+                <>
+                  {state.intentError && (
+                    <p className="mb-4 rounded-lg bg-red-900/30 px-4 py-3 text-sm text-red-300">
+                      {state.intentError}
+                    </p>
+                  )}
+                  <StepConfirm
+                    specialtyName={state.specialtyName}
+                    selectedProvider={state.selectedProvider}
+                    milesRadius={state.milesRadius}
+                    email={state.email}
+                    phone={state.phone}
+                    onProceedToPayment={handleProceedToPayment}
+                    onBack={back}
+                    isLoading={state.isCreatingIntent}
+                  />
+                </>
+              )}
+
+              {state.currentStep === 5 && state.paymentClientSecret && (
+                <StepPayment
+                  clientSecret={state.paymentClientSecret}
+                  onSuccess={handlePaymentSuccess}
                   onBack={back}
                 />
               )}

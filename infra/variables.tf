@@ -67,3 +67,20 @@ variable "resend_spf_value" {
   description = "TXT SPF value for the send subdomain (provided by Resend dashboard, e.g. v=spf1 include:amazonses.com ~all)"
   type        = string
 }
+
+variable "stripe_secret_key" {
+  description = "Stripe secret key (starts with sk_test_ or sk_live_)"
+  type        = string
+  sensitive   = true
+}
+
+variable "stripe_webhook_secret" {
+  description = "Stripe webhook signing secret (starts with whsec_)"
+  type        = string
+  sensitive   = true
+}
+
+variable "stripe_publishable_key" {
+  description = "Stripe publishable key (starts with pk_test_ or pk_live_) — baked into the frontend Docker build"
+  type        = string
+}

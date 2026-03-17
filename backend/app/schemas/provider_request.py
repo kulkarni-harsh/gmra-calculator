@@ -1,14 +1,14 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.types.alphasophia import Provider
-from pydantic import field_validator
+
 
 class ProviderRequest(BaseModel):
-    # Input should be specialty name, client hcp ID (selected from dropdown), miles radius
     specialty_name: str = Field(..., description="The name of the provider's specialty")
     client_provider: Provider = Field(..., description="The client provider for client vs market comparison")
     miles_radius: int = Field(..., description="The radius in miles to search for providers")
-    customer_email: str = Field(..., description="Email address to send the finished report to")
+    customer_email: EmailStr = Field(..., description="Email address to send the finished report to")
+    payment_intent_id: str = Field(..., description="Stripe PaymentIntent ID — verified before job enqueue")
 
     @field_validator("customer_email")
     def validate_customer_email(cls, value: str):

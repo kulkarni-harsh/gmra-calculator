@@ -34,6 +34,7 @@ log "Building & pushing frontend image (tag: $TAG)..."
 docker buildx build \
   --platform linux/amd64 \
   --push \
+  --build-arg "VITE_STRIPE_PUBLISHABLE_KEY=${VITE_STRIPE_PUBLISHABLE_KEY:-}" \
   -t "${FRONTEND_REPO}:${TAG}" \
   "${SCRIPT_DIR}/frontend"
 

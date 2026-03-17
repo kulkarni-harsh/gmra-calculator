@@ -63,6 +63,7 @@ export interface GenerateReportRequest {
   client_provider: Provider
   miles_radius: number     // integer: 5 | 10 | 25 | 50
   customer_email: string
+  payment_intent_id: string  // Stripe PaymentIntent ID verified server-side
 }
 
 export type RadiusOption = 1 | 2 | 4 | 5

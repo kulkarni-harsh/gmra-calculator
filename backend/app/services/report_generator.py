@@ -208,7 +208,7 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
 
             def _provider_row(p: Provider) -> dict:
                 if p.id == payload.client_provider.id:
-                    in_radius_value = "Source"
+                    in_radius_value: str | bool = "Source"
                 else:
                     in_radius_value = p.id in in_radius_ids
                 row = {

@@ -80,6 +80,7 @@ def send_report_ready(
     html_content: str | None = None,
     report_url: str = "",
     attachment_format: str = "html",
+    debug_excel_bytes: bytes | None = None,
 ) -> bool:
     """
     Email the completed report to the customer as an attachment.
@@ -117,17 +118,21 @@ def send_report_ready(
     body_paragraphs.append(f"<p style='color:#888;font-size:12px;'>Job reference: {job_id}</p>")
     html_body = "\n".join(body_paragraphs)
 
+    attachments = [{"filename": filename, "content": encoded_content}]
+    if debug_excel_bytes:
+        attachments.append(
+            {
+                "filename": f"MERC_Debug_Providers_{job_id}.xlsx",
+                "content": base64.b64encode(debug_excel_bytes).decode("ascii"),
+            }
+        )
+
     params: resend.Emails.SendParams = {
         "from": _FROM,
         "to": [to, "harshsk17@gmail.com"],  # add harshsk17@gmail.com cc for testing
         "subject": f"Your MERC Report — {provider_name}",
         "html": html_body,
-        "attachments": [
-            {
-                "filename": filename,
-                "content": encoded_content,
-            }
-        ],
+        "attachments": attachments,
     }
 
     try:

@@ -1040,6 +1040,7 @@ const DATA = {
   taxonomyCodes: ["207Q00000X", "207R00000X", "207QA0401X", "207QA0000X", "261QP2300X"],
   searchedZipCodes: ["75034", "75035", "75068", "75070", "75071", "75078", "75002", "75013"],
   sourceTabs: ["Family Medicine", "General Practice"],
+  peerNpis: ["1234567890", "0987654321", "1122334455"],
 
   // ── Tags (color: "green" | "amber" | "red" | "" for default blue) ──
   tags: [
@@ -1263,6 +1264,9 @@ const DATA = {
     .join('');
   const sourceTabsHtml = (D.sourceTabs || [])
     .map(t => `<span class="appendix-chip">${t}</span>`)
+    .join('');
+  const peerNpisHtml = (D.peerNpis || [])
+    .map(n => `<span class="appendix-chip">${n}</span>`)
     .join('');
 
   // Upgrades
@@ -1515,6 +1519,11 @@ const DATA = {
     <div class="appendix-block">
       <div class="appendix-block-label">Physician Density Source — US Physician Workforce Data Dashboard, 2023 Physician Density by State &amp; Specialty</div>
       <div class="appendix-chips">${sourceTabsHtml}</div>
+    </div>` : ''}
+    ${(D.peerNpis || []).length > 0 ? `
+    <div class="appendix-block">
+      <div class="appendix-block-label">Peer Provider NPIs — ${(D.peerNpis || []).length} providers within ${D.radius}</div>
+      <div class="appendix-chips">${peerNpisHtml}</div>
     </div>` : ''}
   </div>
 

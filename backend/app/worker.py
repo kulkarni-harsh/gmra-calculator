@@ -37,7 +37,7 @@ async def process_job(job_id: str, state: ReportState) -> None:
 
     try:
         payload = ProviderRequest.model_validate_json(job["payload"])
-        html = await run_report(payload, state)
+        html, debug_excel_bytes = await run_report(payload, state, job_id=job_id)
 
         # Upload HTML to S3 (internal archive)
         html_url = upload_report(job_id, html)
@@ -68,6 +68,7 @@ async def process_job(job_id: str, state: ReportState) -> None:
                 html_content=html,
                 report_url=html_url,
                 attachment_format="html",
+                debug_excel_bytes=debug_excel_bytes,
             )
 
     except Exception as exc:

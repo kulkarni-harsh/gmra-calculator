@@ -124,3 +124,4 @@ class ReportTemplateDataV2:
     taxonomyCodes: list[str]  # NPI taxonomy codes searched
     searchedZipCodes: list[str]  # ZIP codes within the exact radius
     sourceTabs: list[str]  # Dashboard tab names from specialty_lookup (density source)
+    peerNpis: list[str]  # NPIs of peer providers within the exact radius

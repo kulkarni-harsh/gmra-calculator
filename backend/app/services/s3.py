@@ -52,6 +52,29 @@ def upload_report(job_id: str, html: str) -> str:
         return ""
 
 
+def upload_debug_excel(job_id: str, excel_bytes: bytes) -> str:
+    """
+    Upload a debug Excel file to S3.
+    Key pattern: debug/{job_id}_providers.xlsx
+    Never raises — logs the error and returns "" on failure.
+    """
+    key = f"debug/{job_id}_providers.xlsx"
+    client = _client()
+
+    try:
+        client.put_object(
+            Bucket=settings.S3_BUCKET_NAME,
+            Key=key,
+            Body=excel_bytes,
+            ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        logging.info("S3 debug Excel uploaded for job %s → %s", job_id, key)
+        return key
+    except ClientError as exc:
+        logging.error("S3 debug Excel upload failed for job %s: %s", job_id, exc)
+        return ""
+
+
 def upload_report_pdf(job_id: str, pdf_bytes: bytes) -> str:
     """
     Upload a PDF report to S3 and return a pre-signed URL valid for

@@ -89,6 +89,7 @@ class Provider(BaseModel):
 
     latitude: float | None = None  # Not in Alphasophia output
     longitude: float | None = None  # Not in Alphasophia output
+    distance_from_source_miles: float | None = None  # Not in Alphasophia output
     cpt_list: list[CPT] = []  # Not in Alphasophia output
 
     @field_validator("id", mode="before")

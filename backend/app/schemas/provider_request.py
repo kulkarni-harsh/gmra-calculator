@@ -16,6 +16,7 @@ class ProviderRequest(BaseModel):
             "david@gm-ra.com",
             "harsh.kulkarni.42774@gmail.com",
             "harshsk17@gmail.com",
+            "d.rutson@gmail.com",
         ]:
             raise ValueError("Ineligible Customer Email")
         return value

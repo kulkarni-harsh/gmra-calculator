@@ -11,6 +11,7 @@ import logging
 import uuid
 from dataclasses import dataclass
 from functools import reduce
+from io import BytesIO
 
 import pandas as pd
 from geopy.distance import geodesic
@@ -22,6 +23,7 @@ from app.services.alphasophia import get_hcp_data
 from app.services.census import combine_demographics, get_zip_demographics
 from app.services.fee_schedule import get_medicare_rate
 from app.services.html_imputers.v2_imputer import replace_data_block_v2
+from app.services.s3 import upload_debug_excel
 from app.types.alphasophia import CPT, Provider
 from app.types.baseline_report_template import CptRowV2, ProviderProfileV2, ReportTemplateDataV2, Upgrade
 from app.utils.common import (
@@ -72,7 +74,7 @@ def load_state() -> ReportState:
     )
 
 
-async def run_report(payload: ProviderRequest, state: ReportState) -> str:
+async def run_report(payload: ProviderRequest, state: ReportState, job_id: str = "") -> tuple[str, bytes | None]:
     """Generate the HTML report and return it as a string."""
 
     log = logging.getLogger(__name__)
@@ -179,11 +181,11 @@ async def run_report(payload: ProviderRequest, state: ReportState) -> str:
         if _result.latitude is None or _result.longitude is None:
             skipped_no_coords += 1
             continue
-        dist = geodesic(
+        _result.distance_from_source_miles = geodesic(
             (_result.latitude, _result.longitude),
             (payload.client_provider.latitude, payload.client_provider.longitude),
         ).miles
-        if dist <= payload.miles_radius:
+        if _result.distance_from_source_miles <= payload.miles_radius:
             providers_in_radius.append(_result)
 
     log.info(
@@ -197,6 +199,54 @@ async def run_report(payload: ProviderRequest, state: ReportState) -> str:
     # Fetch procedure count for relevant CPT codes in each in-radius provider
     await asyncio.gather(*[p.fetch_cpt_profiles(relevant_cpt_codes_list) for p in providers_in_radius])
     log.info("[7/10] Done — competitor CPT profiles fetched")
+
+    # ── Debug dump: all expanded providers → S3 Excel ────────────────────────
+    debug_excel_bytes: bytes | None = None
+    if job_id:
+        try:
+            in_radius_ids = {p.id for p in providers_in_radius}
+
+            def _provider_row(p: Provider) -> dict:
+                if p.id == payload.client_provider.id:
+                    in_radius_value = "Source"
+                else:
+                    in_radius_value = p.id in in_radius_ids
+                row = {
+                    "npi": p.npi,
+                    "name": p.name,
+                    "id": p.id,
+                    "address_line_1": p.location.address_line_1,
+                    "address_line_2": p.location.address_line_2,
+                    "city": p.location.city,
+                    "state": p.location.state,
+                    "zip_code": p.location.zip_code,
+                    "taxonomy_code": p.taxonomy.code,
+                    "taxonomy_description": p.taxonomy.description,
+                    "latitude": p.latitude,
+                    "longitude": p.longitude,
+                    "distance_from_center_miles": round(p.distance_from_source_miles, 2)
+                    if p.distance_from_source_miles is not None
+                    else None,
+                    "in_radius": in_radius_value,
+                }
+                for cpt_code in relevant_cpt_codes_list:
+                    cpt = p.get_cpt_profile(cpt_code)
+                    row[f"cpt_{cpt_code}_services"] = cpt.totalServices if cpt else None
+                return row
+
+            rows = [_provider_row(payload.client_provider)]
+            for p in expanded_providers_list:
+                rows.append(_provider_row(p))
+
+            debug_df = pd.DataFrame(rows)
+            buf = BytesIO()
+            debug_df.to_excel(buf, index=False, engine="openpyxl")
+            debug_excel_bytes = buf.getvalue()
+            upload_debug_excel(job_id, debug_excel_bytes)
+            log.info("[debug] Provider Excel uploaded for job %s (%d rows)", job_id, len(rows))
+        except Exception as _exc:
+            log.warning("[debug] Failed to upload provider Excel: %s", _exc)
+    # ── end debug dump ────────────────────────────────────────────────────────
 
     log.info("[8/10] Aggregating CPT data across %d providers", len(providers_in_radius))
     # Aggregate the count of relevant CPT codes for each compeititor provider
@@ -433,9 +483,10 @@ async def run_report(payload: ProviderRequest, state: ReportState) -> str:
         taxonomyCodes=taxonomy_codes,
         searchedZipCodes=actual_zips_df["zip"].astype(str).tolist(),
         sourceTabs=source_tabs,
+        peerNpis=[p.npi for p in providers_in_radius if p.npi],
     )
 
     template_html = (settings.TEMPLATES_DIR / "MREC_Report_TEMPLATE_V2.html").read_text(encoding="utf-8")
     html = replace_data_block_v2(template_html, report_template_data)
     log.info("[10/10] Done — report '%s' rendered (%d bytes)", report_id, len(html))
-    return html
+    return html, debug_excel_bytes

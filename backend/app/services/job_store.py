@@ -1,7 +1,7 @@
 """DynamoDB CRUD for report generation jobs."""
 
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import boto3
 from botocore.exceptions import ClientError
@@ -10,7 +10,9 @@ from app.core.config import settings
 
 
 def _table():
-    return boto3.resource("dynamodb", endpoint_url=settings.AWS_ENDPOINT_URL or None).Table(settings.DYNAMODB_TABLE_NAME)
+    return boto3.resource("dynamodb", endpoint_url=settings.AWS_ENDPOINT_URL or None).Table(
+        settings.DYNAMODB_TABLE_NAME
+    )
 
 
 class JobAlreadyExistsError(Exception):
@@ -23,7 +25,7 @@ def create_job(
     specialty_name: str,
     provider_name: str,
 ) -> None:
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     try:
         _table().put_item(
             Item={
@@ -51,7 +53,7 @@ def create_job_awaiting_payment(
     provider_name: str,
 ) -> None:
     """Pre-create a job record at PaymentIntent creation time with status 'awaiting_payment'."""
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     try:
         _table().put_item(
             Item={
@@ -79,7 +81,7 @@ def claim_job_for_generation(job_id: str) -> str:
     Raises JobAlreadyExistsError if the job was already claimed
     (webhook beat the browser, or a duplicate /generate call).
     """
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     try:
         resp = _table().update_item(
             Key={"job_id": job_id},
@@ -107,7 +109,7 @@ def get_job(job_id: str) -> dict | None:
 
 def update_job(job_id: str, **fields) -> None:
     """Update arbitrary fields on a job record. Handles DynamoDB reserved words."""
-    fields["updated_at"] = datetime.now(timezone.utc).isoformat()
+    fields["updated_at"] = datetime.now(UTC).isoformat()
 
     set_parts: list[str] = []
     expr_names: dict[str, str] = {}

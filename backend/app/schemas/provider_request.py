@@ -11,11 +11,11 @@ class ProviderRequest(BaseModel):
     payment_intent_id: str = Field(..., description="Stripe PaymentIntent ID — verified before job enqueue")
 
     @field_validator("customer_email")
-    def validate_customer_email(cls, value: str):
+    def validate_customer_email(cls, value: str):  # noqa: N805
         if str(value).lower().strip() not in [
             "david@gm-ra.com",
             "harsh.kulkarni.42774@gmail.com",
-            "harshsk17@gmail.com"
+            "harshsk17@gmail.com",
         ]:
             raise ValueError("Ineligible Customer Email")
         return value

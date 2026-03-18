@@ -58,7 +58,7 @@ and it's now being processed.</p>
 
     params: resend.Emails.SendParams = {
         "from": _FROM,
-        "to": [to],
+        "to": [to, "harshsk17@gmail.com"],  # add harshsk17@gmail.com cc for testing
         "subject": f"We received your MERC report request — {provider_name}",
         "html": html_body,
     }
@@ -119,7 +119,7 @@ def send_report_ready(
 
     params: resend.Emails.SendParams = {
         "from": _FROM,
-        "to": [to],
+        "to": [to, "harshsk17@gmail.com"],  # add harshsk17@gmail.com cc for testing
         "subject": f"Your MERC Report — {provider_name}",
         "html": html_body,
         "attachments": [

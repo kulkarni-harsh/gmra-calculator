@@ -3,6 +3,8 @@ import logging
 import pandas as pd
 
 from app.core.config import settings
+from app.core.types import SexAgeCounts
+from app.types.baseline_report_template import CptRowV2, Tag
 
 _RVU_QPP_FILE = settings.LOOKUP_DIR / "PPRRvu2026_Jan_QPP.csv"
 _RVU_NONQPP_FILE = settings.LOOKUP_DIR / "PPRRvu2026_Jan_nonQPP.csv"
@@ -84,6 +86,14 @@ def get_taxonomy_codes(specialty_lookup: dict, specialty_name: str) -> list[str]
         if val["description"].strip().lower() == specialty_name.strip().lower():
             return val["taxonomy_codes"]
     logging.warning("Specialty '%s' not found in specialty_map; proceeding with empty taxonomy codes.", specialty_name)
+    return []
+
+
+def get_source_tabs(specialty_lookup: dict, specialty_name: str) -> list[str]:
+    """Return source_tabs (dashboard tab names) for the given specialty (case-insensitive match)."""
+    for val in specialty_lookup.values():
+        if val["description"].strip().lower() == specialty_name.strip().lower():
+            return val.get("source_tabs", [])
     return []
 
 
@@ -200,3 +210,73 @@ def load_fee_schedule_tables() -> tuple[dict[str, dict], dict[str, dict]]:
     gpci_table = _build_gpci_table()
     logging.info("Fee schedule loaded: %d CPT codes, %d states", len(rvu_table), len(gpci_table))
     return rvu_table, gpci_table
+
+
+def get_pediatric_population(sex_age_counts_dict: SexAgeCounts) -> int:
+    """Returns the total pediatric population (ages 0-24)."""
+    pedatric_pop = 0
+    for age_range in sex_age_counts_dict["M"].keys():
+        if age_range == "Total":
+            continue
+        if int(age_range.split("-")[::-1][0]) <= 24:
+            pedatric_pop += sex_age_counts_dict["M"][age_range] + sex_age_counts_dict["F"][age_range]
+    return pedatric_pop
+
+
+def get_geriatric_population(sex_age_counts_dict: SexAgeCounts) -> int:
+    """Returns the total geriatric population (ages 60+)."""
+    geriatric_pop = 0
+    for age_range in sex_age_counts_dict["M"].keys():
+        if age_range == "Total":
+            continue
+        if int(age_range.split("-")[0]) >= 60:
+            geriatric_pop += sex_age_counts_dict["M"][age_range] + sex_age_counts_dict["F"][age_range]
+    return geriatric_pop
+
+
+def generate_tags(
+    cpt_rows: list[CptRowV2],
+):
+    """Generate tags for the report.
+
+    Args
+    ----
+    cpt_rows: list[CptRowV2]
+        List of CPT codes with clientVolume, peerAvgVolume, and totalVolume.
+
+    Returns
+    -------
+    tags_list: list[Tag]
+        List of tags for the report.
+    """
+    tags_list = [Tag(text="2025 Procedures Data", color="sky")]
+
+    # Get count of CPT codes with peerAvgVolume > clientVolume
+    potential_cpt_count = 0
+    quick_win_top_code = None
+    for _cpt in cpt_rows:
+        if (
+            _cpt.peerAvgVolume
+            and _cpt.clientVolume
+            and int(_cpt.peerAvgVolume.replace(",", "")) > int(_cpt.clientVolume.replace(",", ""))
+        ):
+            potential_cpt_count += 1
+
+            # Get the CPT code with the highest difference btn peerAvgVolume and clientVolume
+            if not quick_win_top_code:
+                quick_win_top_code = _cpt
+                continue
+
+            # Check if the current CPT code has a higher difference
+            if (
+                isinstance(_cpt.diffVolume, int | float)
+                and isinstance(quick_win_top_code.diffVolume, int | float)
+                and _cpt.diffVolume > quick_win_top_code.diffVolume
+            ):
+                quick_win_top_code = _cpt
+
+    if potential_cpt_count:
+        tags_list.append(Tag(text=f"{potential_cpt_count} Quick-Win Codes", color="green"))
+    if quick_win_top_code:
+        tags_list.append(Tag(text=f"{quick_win_top_code.code} - Top Gap", color="green"))
+    return tags_list

@@ -55,7 +55,9 @@ async def process_job(job_id: str, state: ReportState) -> None:
         )
         logging.info(
             "Job %s: status → done  html_url=%s  pdf_url=%s",
-            job_id, html_url or "<none>", pdf_url or "<none>",
+            job_id,
+            html_url or "<none>",
+            pdf_url or "<none>",
         )
 
         if payload.customer_email:
@@ -92,7 +94,8 @@ async def main() -> None:
             except Exception as exc:
                 logging.error(
                     "Job %s: leaving message in queue — SQS will retry then route to DLQ: %s",
-                    job_id, exc,
+                    job_id,
+                    exc,
                 )
                 # Do NOT delete — visibility timeout expires, SQS retries up to
                 # maxReceiveCount, then moves the message to the DLQ automatically.

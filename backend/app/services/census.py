@@ -64,7 +64,7 @@ def _fetch_zip_demographics(zip_codes_list: tuple[str, ...], api_key: str) -> li
         "for": f"zip code tabulation area:{','.join(zip_codes_list)}",
         "key": api_key,
     }
-    r = requests.get("https://api.census.gov/data/2022/acs/acs5", params=params, timeout=_CENSUS_TIMEOUT)
+    r = requests.get("https://api.census.gov/data/2024/acs/acs5", params=params, timeout=_CENSUS_TIMEOUT)
     r.raise_for_status()
     return r.json()
 

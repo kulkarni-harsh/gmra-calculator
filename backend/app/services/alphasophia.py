@@ -7,12 +7,14 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 from app.core.config import settings
 from app.types.alphasophia import CPT, Provider
 
-_HCP_SEARCH_TIMEOUT = httpx.Timeout(connect=20, read=120, write=20, pool=60*10)
-_NPI_TIMEOUT = httpx.Timeout(connect=20, read=60, write=20, pool=60*10)
-_PROCEDURE_TIMEOUT = httpx.Timeout(connect=20, read=120, write=20, pool=60*10)
+_HCP_SEARCH_TIMEOUT = httpx.Timeout(connect=20, read=120, write=20, pool=60 * 10)
+_NPI_TIMEOUT = httpx.Timeout(connect=20, read=60, write=20, pool=60 * 10)
+_PROCEDURE_TIMEOUT = httpx.Timeout(connect=20, read=120, write=20, pool=60 * 10)
 
 # Shared clients — reused across calls to avoid per-request connection setup/teardown noise.
-_alphasophia_client = httpx.AsyncClient(base_url="https://api.alphasophia.com", limits=httpx.Limits(max_connections=1000))
+_alphasophia_client = httpx.AsyncClient(
+    base_url="https://api.alphasophia.com", limits=httpx.Limits(max_connections=1000)
+)
 _npi_client = httpx.AsyncClient(base_url="https://npiregistry.cms.hhs.gov", limits=httpx.Limits(max_connections=200))
 
 # Cap concurrent requests to AlphaSophia to avoid triggering 504s under load.
@@ -180,12 +182,13 @@ async def _fetch_hcp_procedure(hcp_id: int, page: int, code: str | None) -> list
     }
     try:
         await asyncio.wait_for(_alphasophia_sem.acquire(), timeout=600)
-    except asyncio.TimeoutError:
-        raise httpx.TimeoutException(f"Timed out waiting for AlphaSophia semaphore slot (HCP {hcp_id}: {code})")
+    except TimeoutError:
+        raise httpx.TimeoutException(
+            f"Timed out waiting for AlphaSophia semaphore slot (HCP {hcp_id}: {code})"
+        ) from None
     except Exception as exc:
         logging.critical(
-            f"An unexpected error occurred fetching HCP Procedure API. {type(exc).__name__}: {exc}", 
-            exc_info=True
+            f"An unexpected error occurred fetching HCP Procedure API. {type(exc).__name__}: {exc}", exc_info=True
         )
         raise
     try:

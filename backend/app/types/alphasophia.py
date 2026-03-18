@@ -62,7 +62,7 @@ class CPT(BaseModel):
     def convert_total_charges(cls, value: Any) -> float:  # noqa: N805
         if value is not None:
             return float(value)
-        logging.critical(f"totalCharges is not a float: {value}")
+        # logging.critical(f"totalCharges is not a float: {value}")
         return -0.1
 
     @field_validator("totalPatients", mode="before")

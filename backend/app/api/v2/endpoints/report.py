@@ -56,6 +56,33 @@ async def search_providers(zip_code: str, specialty_name: str, request: Request)
     return [p.model_dump() for p in providers if isinstance(p, Provider)]
 
 
+@router.get("/provider")
+async def get_provider(zip_code: str, npi: str, specialty_name: str, request: Request):
+    """Fetch a single provider by ZIP code, NPI, and specialty."""
+    taxonomy_codes = get_taxonomy_codes(request.app.state.specialty_lookup, specialty_name)
+    if not taxonomy_codes:
+        logging.warning("No taxonomy codes found for specialty %s", specialty_name)
+        raise HTTPException(status_code=404, detail="Provider not found")
+
+    try:
+        providers = await get_hcp_data(
+            zip_codes_list=[zip_code],
+            taxonomy_codes_list=taxonomy_codes,
+            cpt_codes_list=[],
+            npi_list=[npi],
+            page_size=10,
+        )
+    except Exception as exc:
+        logging.error("Failed to fetch provider from AlphaSophia: %s", exc)
+        raise HTTPException(status_code=502, detail="Failed to fetch provider data") from exc
+
+    match = next((p for p in providers if isinstance(p, Provider) and p.npi == npi), None)
+    if not match:
+        raise HTTPException(status_code=404, detail="Provider not found")
+
+    return match.model_dump()
+
+
 @router.post("/create-payment-intent")
 async def create_payment_intent_endpoint(payload: CreatePaymentIntentRequest):
     """
@@ -73,15 +100,17 @@ async def create_payment_intent_endpoint(payload: CreatePaymentIntentRequest):
         )
     except Exception as exc:
         logging.error("Failed to create Stripe PaymentIntent: %s", exc)
-        raise HTTPException(status_code=502, detail="Failed to create payment session")
+        raise HTTPException(status_code=502, detail="Failed to create payment session") from exc
 
-    pre_payload_json = json.dumps({
-        "specialty_name": payload.specialty_name,
-        "client_provider": payload.client_provider.model_dump(),
-        "miles_radius": payload.miles_radius,
-        "customer_email": str(payload.customer_email),
-        "payment_intent_id": "pending",
-    })
+    pre_payload_json = json.dumps(
+        {
+            "specialty_name": payload.specialty_name,
+            "client_provider": payload.client_provider.model_dump(),
+            "miles_radius": payload.miles_radius,
+            "customer_email": str(payload.customer_email),
+            "payment_intent_id": "pending",
+        }
+    )
     try:
         create_job_awaiting_payment(
             job_id=job_id,
@@ -91,7 +120,7 @@ async def create_payment_intent_endpoint(payload: CreatePaymentIntentRequest):
         )
     except JobAlreadyExistsError:
         logging.error("job_id collision at intent creation: %s", job_id)
-        raise HTTPException(status_code=500, detail="Failed to initialize job")
+        raise HTTPException(status_code=500, detail="Failed to initialize job") from None
 
     return {"client_secret": client_secret, "job_id": job_id}
 
@@ -109,12 +138,12 @@ async def submit_report_job(payload: ProviderRequest):
         )
     except ValueError as exc:
         logging.warning("Payment verification failed: %s", exc)
-        raise HTTPException(status_code=402, detail=str(exc))
+        raise HTTPException(status_code=402, detail=str(exc)) from exc
 
     try:
         claim_job_for_generation(job_id)
     except JobAlreadyExistsError:
-        raise HTTPException(status_code=409, detail="This payment has already been used to generate a report")
+        raise HTTPException(status_code=409, detail="This payment has already been used to generate a report") from None
     send_job(job_id)
 
     if payload.customer_email:
@@ -122,7 +151,7 @@ async def submit_report_job(payload: ProviderRequest):
         send_request_confirmation(
             to=payload.customer_email,
             job_id=job_id,
-            provider_name=payload.client_provider.name,
+            provider_name=str(payload.client_provider.name),
             status_url=status_url,
         )
 
@@ -142,9 +171,9 @@ async def stripe_webhook(request: Request):
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid payload")
+        raise HTTPException(status_code=400, detail="Invalid payload") from None
     except stripe.error.SignatureVerificationError:
-        raise HTTPException(status_code=400, detail="Invalid signature")
+        raise HTTPException(status_code=400, detail="Invalid signature") from None
 
     if event["type"] == "payment_intent.succeeded":
         intent = event["data"]["object"]
@@ -162,7 +191,7 @@ async def stripe_webhook(request: Request):
             return {"received": True}
         except Exception as exc:
             logging.error("Stripe webhook: failed to claim job %s: %s", job_id, exc)
-            raise HTTPException(status_code=500, detail="Failed to process webhook")
+            raise HTTPException(status_code=500, detail="Failed to process webhook") from exc
 
         send_job(job_id)
         logging.info("Stripe webhook: enqueued job %s via payment_intent.succeeded", job_id)

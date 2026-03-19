@@ -79,6 +79,7 @@ class ReportTemplateData:
 class CptRowV2:
     code: str
     desc: str | None = None
+    patientType: str | None = None  # "New Patient" | "Established" — used by V3 template
     clientVolume: str | None = None
     peerAvgVolume: str | None = None
     totalVolume: str | None = None  # totalVolume = clientVolume + peerVolume
@@ -125,3 +126,7 @@ class ReportTemplateDataV2:
     searchedZipCodes: list[str]  # ZIP codes within the exact radius
     sourceTabs: list[str]  # Dashboard tab names from specialty_lookup (density source)
     peerNpis: list[str]  # NPIs of peer providers within the exact radius
+    # Sorted descending list of each provider's % share of total market CPT services (0–100).
+    # Anonymous — no names or NPIs. For T1+ reports, the client provider is included as one entry.
+    # For T0 (Market Entry) reports, only peer providers are included (no named client).
+    providerShares: list[int] | None = None

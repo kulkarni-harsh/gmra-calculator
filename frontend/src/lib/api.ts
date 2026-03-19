@@ -1,7 +1,7 @@
 // All API calls are centralized here. Never call fetch() directly from components.
 // To switch from local to cloud hosting, update VITE_API_BASE_URL in .env.
 
-import type { GenerateReportRequest, Provider, Specialty } from '@/types/api'
+import type { CreateT0PaymentIntentPayload, GenerateReportRequest, GenerateT0ReportRequest, Provider, Specialty } from '@/types/api'
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8000'
 const API = `${BASE_URL}/api`
@@ -93,4 +93,35 @@ export async function createPaymentIntent(
     throw new Error(`Failed to create payment session (${res.status}): ${text}`)
   }
   return res.json() as Promise<CreatePaymentIntentResult>
+}
+
+const API_V3 = `${BASE_URL}/api/v3`
+
+export async function createT0PaymentIntent(
+  payload: CreateT0PaymentIntentPayload,
+): Promise<CreatePaymentIntentResult> {
+  const res = await fetch(`${API_V3}/create-payment-intent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`Failed to create T0 payment session (${res.status}): ${text}`)
+  }
+  return res.json() as Promise<CreatePaymentIntentResult>
+}
+
+export async function generateT0Report(payload: GenerateT0ReportRequest): Promise<GenerateResult> {
+  const res = await fetch(`${API_V3}/report/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`T0 job submission failed (${res.status}): ${text}`)
+  }
+  const { job_id } = (await res.json()) as { job_id: string }
+  return { htmlContent: null, jobId: job_id }
 }

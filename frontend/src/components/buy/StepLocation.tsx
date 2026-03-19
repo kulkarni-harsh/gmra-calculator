@@ -6,7 +6,7 @@ import { FormField, StyledInput, StyledSelect } from '@/components/buy/FormField
 import ProviderList from '@/components/buy/ProviderList'
 import type { Provider, RadiusOption } from '@/types/api'
 
-const RADIUS_OPTIONS: RadiusOption[] = [1, 2, 4, 5]
+const RADIUS_OPTIONS: RadiusOption[] = [5, 10, 25, 50]
 
 interface StepLocationProps {
   zipCode: string

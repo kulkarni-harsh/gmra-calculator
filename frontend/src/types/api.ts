@@ -66,4 +66,36 @@ export interface GenerateReportRequest {
   payment_intent_id: string  // Stripe PaymentIntent ID verified server-side
 }
 
-export type RadiusOption = 1 | 2 | 4 | 5
+export type RadiusOption = 5 | 10 | 25 | 50
+
+// T0 address-only report types
+export interface T0Location {
+  address_line_1: string
+  address_line_2?: string
+  city: string
+  state: string
+  zip_code: string
+}
+
+export interface GenerateT0ReportRequest {
+  specialty_name: string
+  address_line_1: string
+  address_line_2?: string
+  city: string
+  state: string
+  zip_code: string
+  miles_radius: number
+  customer_email: string
+  payment_intent_id: string
+}
+
+export interface CreateT0PaymentIntentPayload {
+  customer_email: string
+  specialty_name: string
+  address_line_1: string
+  address_line_2?: string
+  city: string
+  state: string
+  zip_code: string
+  miles_radius: number
+}

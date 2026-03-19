@@ -63,7 +63,7 @@ export default function StepAddress({
       </div>
 
       <div className="space-y-4">
-        <FormField label="Address Line 1" required>
+        <FormField label="Address Line 1" required error={touched && !location.address_line_1.trim() ? 'Required' : undefined}>
           <StyledInput
             placeholder="123 Main St"
             value={location.address_line_1}
@@ -80,7 +80,7 @@ export default function StepAddress({
         </FormField>
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField label="City" required>
+          <FormField label="City" required error={touched && !location.city.trim() ? 'Required' : undefined}>
             <StyledInput
               placeholder="Austin"
               value={location.city}
@@ -88,7 +88,7 @@ export default function StepAddress({
             />
           </FormField>
 
-          <FormField label="State" required>
+          <FormField label="State" required error={touched && location.state.length !== 2 ? 'Required' : undefined}>
             <Select value={location.state} onValueChange={(v) => set('state', v)}>
               <SelectTrigger className="border-white/20 bg-white/5 text-white focus:border-[hsl(204_66%_52%)]">
                 <SelectValue placeholder="State" />

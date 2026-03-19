@@ -177,7 +177,11 @@ export default function Buy() {
       <div className="min-h-screen bg-[hsl(215_63%_14%)]">
         <div className="mx-auto max-w-[1280px] px-6 py-12">
           <ConfirmationScreen
-            providerName={state.selectedProvider?.name ?? null}
+            providerName={
+              state.selectedTierId === 0
+                ? `${state.t0Location.address_line_1}, ${state.t0Location.city} ${state.t0Location.state}`
+                : (state.selectedProvider?.name ?? null)
+            }
             email={state.email}
             htmlContent={null}
             jobId={null}

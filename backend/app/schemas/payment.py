@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 from app.types.alphasophia import Provider
 
@@ -19,4 +19,4 @@ class CreateT0PaymentIntentRequest(BaseModel):
     city: str
     state: str
     zip_code: str
-    miles_radius: int
+    miles_radius: int = Field(..., ge=1, le=100)

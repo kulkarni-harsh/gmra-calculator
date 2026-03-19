@@ -4,22 +4,39 @@ import { cn } from '@/lib/utils'
 
 const tiers = [
   {
+    id: 0 as const,
+    name: 'Market Entry Report',
+    subtitle: 'Ground-level demand analysis',
+    price: '$399',
+    badge: 'New',
+    locked: false,
+    features: [
+      'Market demand snapshot',
+      'Through-the-door CPT code analysis',
+      'Local demographics analysis',
+      'Provider density benchmark',
+      'PDF report',
+    ],
+  },
+  {
     id: 1 as const,
     name: 'Through-the-Door Codes Report',
+    subtitle: 'Provider-vs-market comparison',
     price: '$500',
     badge: 'Most Popular',
     locked: false,
     features: [
-      'Competitive benchmarking vs. local providers',
-      'Through-the-door CPT code analysis',
-      'Local demographics analysis',
+      'Everything in Market Entry',
+      'Your practice vs. local competitors',
+      'Client vs. peer CPT volume comparison',
+      'Fair-share gap analysis',
       'Comprehensive PDF report',
-      'Provider density benchmark',
     ],
   },
   {
     id: 2 as const,
     name: '5-Code Strategic Report',
+    subtitle: '',
     price: '$599',
     badge: 'Coming Soon',
     locked: true,
@@ -33,6 +50,7 @@ const tiers = [
   {
     id: 3 as const,
     name: '10-Code Full Analysis + Add-On',
+    subtitle: '',
     price: '$799',
     badge: 'Coming Soon',
     locked: true,
@@ -47,8 +65,8 @@ const tiers = [
 ]
 
 interface TierSelectionProps {
-  selectedTierId: 1 | 2 | 3
-  onSelect: (id: 1 | 2 | 3) => void
+  selectedTierId: 0 | 1 | 2 | 3
+  onSelect: (id: 0 | 1 | 2 | 3) => void
 }
 
 export default function TierSelection({ selectedTierId, onSelect }: TierSelectionProps) {
@@ -58,7 +76,7 @@ export default function TierSelection({ selectedTierId, onSelect }: TierSelectio
         SELECT YOUR REPORT
       </h2>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {tiers.map((tier) => {
           const isSelected = selectedTierId === tier.id
 
@@ -105,6 +123,9 @@ export default function TierSelection({ selectedTierId, onSelect }: TierSelectio
               <h3 className="font-[family-name:var(--font-heading)] text-xl tracking-wide text-white">
                 {tier.name}
               </h3>
+              {tier.subtitle && (
+                <p className="mt-0.5 text-xs text-white/50">{tier.subtitle}</p>
+              )}
               <p className="mt-1 text-3xl font-bold text-[hsl(204_66%_52%)]">{tier.price}</p>
 
               <ul className="mt-4 space-y-1.5">

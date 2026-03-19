@@ -98,7 +98,11 @@ async def stripe_webhook(request: Request):
         try:
             stored = json.loads(payload_json)
             customer_email = stored.get("customer_email", "")
-            provider_name = stored.get("client_provider", {}).get("name", "")
+            # T0 stores address instead of client_provider
+            if stored.get("report_type") == "t0":
+                provider_name = f"{stored.get('address_line_1', '')}, {stored.get('city', '')} {stored.get('state', '')}"
+            else:
+                provider_name = stored.get("client_provider", {}).get("name", "")
             if customer_email:
                 status_url = f"{settings.FRONTEND_URL}/status" if settings.FRONTEND_URL else ""
                 send_request_confirmation(

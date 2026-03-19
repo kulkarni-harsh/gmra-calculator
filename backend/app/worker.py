@@ -15,7 +15,6 @@ import logging
 
 from app.core.config import settings
 from app.core.logging import configure_logging
-from app.schemas.provider_request import ProviderRequest
 from app.services.email import send_report_ready
 from app.services.job_store import get_job, update_job
 from app.services.queue import delete_message, receive_jobs
@@ -23,9 +22,12 @@ from app.services.report_generator import ReportState, load_state
 
 
 async def process_job(job_id: str, state: ReportState) -> None:
+    from app.schemas.address_report_request import AddressReportRequest
+    from app.schemas.provider_request import ProviderRequest
     from app.services.pdf import html_to_pdf
     from app.services.report_generator import run_report
     from app.services.s3 import upload_report, upload_report_pdf
+    from app.services.t0_report_generator import run_t0_report
 
     job = get_job(job_id)
     if not job:
@@ -36,13 +38,17 @@ async def process_job(job_id: str, state: ReportState) -> None:
     logging.info("Job %s: status → running", job_id)
 
     try:
-        payload = ProviderRequest.model_validate_json(job["payload"])
-        html, debug_excel_bytes = await run_report(payload, state, job_id=job_id)
+        raw = json.loads(job["payload"])
+        report_type = raw.get("report_type", "t1")
 
-        # Upload HTML to S3 (internal archive)
+        if report_type == "t0":
+            t0_payload = AddressReportRequest.model_validate(raw)
+            html, debug_excel_bytes = await run_t0_report(t0_payload, state, job_id=job_id)
+        else:
+            t1_payload = ProviderRequest.model_validate(raw)
+            html, debug_excel_bytes = await run_report(t1_payload, state, job_id=job_id)
+
         html_url = upload_report(job_id, html)
-
-        # Convert to PDF and upload
         pdf_bytes = html_to_pdf(html)
         pdf_url = upload_report_pdf(job_id, pdf_bytes)
 
@@ -53,18 +59,21 @@ async def process_job(job_id: str, state: ReportState) -> None:
             report_s3_url=html_url,
             report_pdf_s3_url=pdf_url,
         )
-        logging.info(
-            "Job %s: status → done  html_url=%s  pdf_url=%s",
-            job_id,
-            html_url or "<none>",
-            pdf_url or "<none>",
-        )
+        logging.info("Job %s: status → done  html_url=%s  pdf_url=%s", job_id, html_url or "<none>", pdf_url or "<none>")
 
-        if payload.customer_email:
+        # Build email context from whichever payload branch was taken — avoids unbound variable refs.
+        if report_type == "t0":
+            email_to = str(t0_payload.customer_email)
+            provider_label = f"{t0_payload.address_line_1}, {t0_payload.city}"
+        else:
+            email_to = str(t1_payload.customer_email)
+            provider_label = str(t1_payload.client_provider.name)
+
+        if email_to:
             send_report_ready(
-                to=payload.customer_email,
+                to=email_to,
                 job_id=job_id,
-                provider_name=payload.client_provider.name,
+                provider_name=provider_label,
                 html_content=html,
                 report_url=html_url,
                 attachment_format="html",
@@ -74,7 +83,7 @@ async def process_job(job_id: str, state: ReportState) -> None:
     except Exception as exc:
         logging.error("Job %s: status → failed  error=%s", job_id, exc, exc_info=True)
         update_job(job_id, status="failed", error=str(exc))
-        raise  # re-raise so main() withholds deletion and SQS can retry → DLQ
+        raise
 
 
 async def main() -> None:

@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { FileText } from 'lucide-react'
-import type { Provider } from '@/types/api'
+import type { Provider, T0Location } from '@/types/api'
 
 interface StepConfirmProps {
   specialtyName: string
@@ -12,6 +12,9 @@ interface StepConfirmProps {
   onProceedToPayment: () => void
   onBack: () => void
   isLoading?: boolean
+  t0Location?: T0Location
+  tierName: string
+  price: string
 }
 
 export default function StepConfirm({
@@ -23,23 +26,30 @@ export default function StepConfirm({
   onProceedToPayment,
   onBack,
   isLoading = false,
+  t0Location,
+  tierName,
+  price,
 }: StepConfirmProps) {
-  const providerAddress = selectedProvider
-    ? [
-        selectedProvider.location?.address_line_1,
-        selectedProvider.location?.city,
-        selectedProvider.location?.state,
-        selectedProvider.location?.zip_code,
-      ]
+  const addressDisplay = t0Location
+    ? [t0Location.address_line_1, t0Location.city, t0Location.state, t0Location.zip_code]
         .filter(Boolean)
         .join(', ')
-    : '—'
+    : selectedProvider
+      ? [
+          selectedProvider.location?.address_line_1,
+          selectedProvider.location?.city,
+          selectedProvider.location?.state,
+          selectedProvider.location?.zip_code,
+        ]
+          .filter(Boolean)
+          .join(', ')
+      : '—'
 
   const rows = [
-    { label: 'Report', value: 'Through-the-Door Codes Report ($500)' },
+    { label: 'Report', value: `${tierName} (${price})` },
     { label: 'Specialty', value: specialtyName || '—' },
-    { label: 'Practice', value: selectedProvider?.name ?? '—' },
-    { label: 'Address', value: providerAddress },
+    ...(!t0Location ? [{ label: 'Practice', value: selectedProvider?.name ?? '—' }] : []),
+    { label: 'Address', value: addressDisplay },
     { label: 'Radius', value: `${milesRadius} miles` },
     { label: 'Email', value: email || '—' },
     { label: 'Phone', value: phone || 'Not provided' },
@@ -81,7 +91,7 @@ export default function StepConfirm({
         className="w-full gap-2 bg-[hsl(204_66%_52%)] py-6 text-base font-bold uppercase tracking-wide text-white hover:bg-[hsl(204_66%_45%)] disabled:opacity-60"
       >
         <FileText size={20} />
-        {isLoading ? 'Preparing Payment…' : 'Proceed to Payment — $500'}
+        {isLoading ? 'Preparing Payment…' : `Proceed to Payment — ${price}`}
       </Button>
 
       <p className="text-center text-xs text-white/40">

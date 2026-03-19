@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { generateReport } from '@/lib/api'
-import type { GenerateReportRequest } from '@/types/api'
+import type { GenerateResult } from '@/lib/api'
 
 export function useReportGeneration() {
   const [isGenerating, setIsGenerating] = useState(false)
@@ -9,22 +8,21 @@ export function useReportGeneration() {
   const [htmlContent, setHtmlContent] = useState<string | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
 
-  const generate = (payload: GenerateReportRequest) => {
+  // Accept any async function that returns a GenerateResult — works for both T0 and T1
+  const generate = (generateFn: () => Promise<GenerateResult>) => {
     setIsGenerating(true)
     setIsComplete(false)
     setError(null)
     setHtmlContent(null)
     setJobId(null)
-
-    generateReport(payload)
+    generateFn()
       .then(({ htmlContent: html, jobId: id }) => {
         setHtmlContent(html)
         setJobId(id)
         setIsComplete(true)
       })
       .catch((err: unknown) => {
-        const msg = err instanceof Error ? err.message : 'Report generation failed'
-        setError(msg)
+        setError(err instanceof Error ? err.message : 'Report generation failed')
       })
       .finally(() => setIsGenerating(false))
   }

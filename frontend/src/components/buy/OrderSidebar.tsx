@@ -1,6 +1,6 @@
 import { Separator } from '@/components/ui/separator'
 import { CheckCircle2, Shield, Flag, Calendar } from 'lucide-react'
-import type { Provider } from '@/types/api'
+import type { Provider, T0Location } from '@/types/api'
 
 interface OrderSidebarProps {
   specialtyName: string
@@ -8,6 +8,9 @@ interface OrderSidebarProps {
   milesRadius: number
   email: string
   compact?: boolean
+  t0Location?: T0Location
+  tierLabel?: string
+  price?: string
 }
 
 const INCLUDED = [
@@ -24,8 +27,14 @@ export default function OrderSidebar({
   milesRadius,
   email,
   compact = false,
+  t0Location,
+  tierLabel,
+  price,
 }: OrderSidebarProps) {
-  const providerDisplay = selectedProvider?.name ?? '—'
+  const locationDisplay = t0Location
+    ? `${t0Location.address_line_1}, ${t0Location.city} ${t0Location.state}`
+    : (selectedProvider?.name ?? '—')
+  const locationLabel = t0Location ? 'Location' : 'Practice'
   const specialtyDisplay = specialtyName || '—'
   const radiusDisplay = milesRadius ? `${milesRadius} miles` : '—'
   const emailDisplay = email || '—'
@@ -34,9 +43,9 @@ export default function OrderSidebar({
     return (
       <div className="flex items-center justify-between rounded-lg bg-[hsl(217_33%_17%)] px-4 py-3 text-sm text-white">
         <span className="font-[family-name:var(--font-heading)] tracking-wide">
-          Through-the-Door Report
+          {tierLabel ?? 'Through-the-Door Report'}
         </span>
-        <span className="font-bold text-[hsl(204_66%_52%)]">$500</span>
+        <span className="font-bold text-[hsl(204_66%_52%)]">{price ?? '$500'}</span>
       </div>
     )
   }
@@ -49,14 +58,14 @@ export default function OrderSidebar({
 
       <Separator className="my-3 bg-white/10" />
 
-      <p className="font-semibold leading-snug">Through-the-Door Codes Report</p>
-      <p className="mt-0.5 text-2xl font-bold text-[hsl(204_66%_52%)]">$500</p>
+      <p className="font-semibold leading-snug">{tierLabel ?? 'Through-the-Door Codes Report'}</p>
+      <p className="mt-0.5 text-2xl font-bold text-[hsl(204_66%_52%)]">{price ?? '$500'}</p>
 
       <Separator className="my-4 bg-white/10" />
 
       <div className="space-y-2 text-sm">
         {[
-          { label: 'Practice', value: providerDisplay },
+          { label: locationLabel, value: locationDisplay },
           { label: 'Specialty', value: specialtyDisplay },
           { label: 'Radius', value: radiusDisplay },
           { label: 'Email', value: emailDisplay },

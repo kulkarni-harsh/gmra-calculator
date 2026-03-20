@@ -151,6 +151,7 @@ async def generate_market_analysis(
         llm = ChatBedrockConverse(
             model=settings.BEDROCK_MODEL_ID,
             region_name=settings.AWS_DEFAULT_REGION or "us-east-1",
+            endpoint_url=settings.BEDROCK_ENDPOINT_URL or None,
             temperature=0.4,
             max_tokens=600,
         )

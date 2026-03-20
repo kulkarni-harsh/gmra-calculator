@@ -30,8 +30,9 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
 
-    # Bedrock LLM
+    # Bedrock LLM — endpoint defaults to real AWS (not LocalStack)
     BEDROCK_MODEL_ID: str = "us.anthropic.claude-3-5-haiku-20241022-v1:0"
+    BEDROCK_ENDPOINT_URL: str = ""  # leave blank to use real AWS even when AWS_ENDPOINT_URL points to LocalStack
 
     # S3 report storage
     S3_BUCKET_NAME: str = "merc-reports"

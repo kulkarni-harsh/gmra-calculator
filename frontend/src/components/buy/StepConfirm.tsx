@@ -6,7 +6,7 @@ import type { Provider, T0Location } from '@/types/api'
 interface StepConfirmProps {
   specialtyName: string
   selectedProvider: Provider | null
-  milesRadius: number
+  radiusLabel: string
   email: string
   phone: string
   onProceedToPayment: () => void
@@ -20,7 +20,7 @@ interface StepConfirmProps {
 export default function StepConfirm({
   specialtyName,
   selectedProvider,
-  milesRadius,
+  radiusLabel,
   email,
   phone,
   onProceedToPayment,
@@ -50,7 +50,7 @@ export default function StepConfirm({
     { label: 'Specialty', value: specialtyName || '—' },
     ...(!t0Location ? [{ label: 'Practice', value: selectedProvider?.name ?? '—' }] : []),
     { label: 'Address', value: addressDisplay },
-    { label: 'Radius', value: `${milesRadius} miles` },
+    { label: 'Radius', value: radiusLabel },
     { label: 'Email', value: email || '—' },
     { label: 'Phone', value: phone || 'Not provided' },
   ]

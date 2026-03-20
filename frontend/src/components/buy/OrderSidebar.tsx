@@ -5,7 +5,7 @@ import type { Provider, T0Location } from '@/types/api'
 interface OrderSidebarProps {
   specialtyName: string
   selectedProvider: Provider | null
-  milesRadius: number
+  radiusLabel: string
   email: string
   compact?: boolean
   t0Location?: T0Location
@@ -24,7 +24,7 @@ const INCLUDED = [
 export default function OrderSidebar({
   specialtyName,
   selectedProvider,
-  milesRadius,
+  radiusLabel,
   email,
   compact = false,
   t0Location,
@@ -36,7 +36,7 @@ export default function OrderSidebar({
     : (selectedProvider?.name ?? '—')
   const locationLabel = t0Location ? 'Location' : 'Practice'
   const specialtyDisplay = specialtyName || '—'
-  const radiusDisplay = milesRadius ? `${milesRadius} miles` : '—'
+  const radiusDisplay = radiusLabel || '—'
   const emailDisplay = email || '—'
 
   if (compact) {

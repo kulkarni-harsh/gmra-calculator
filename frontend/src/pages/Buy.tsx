@@ -3,7 +3,7 @@ import { useSpecialties } from '@/hooks/useSpecialties'
 import { useProviderSearch } from '@/hooks/useProviderSearch'
 import { useReportGeneration } from '@/hooks/useReportGeneration'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
-import type { Provider, RadiusOption, T0Location } from '@/types/api'
+import type { Provider, RadiusOption, DriveTimeOption, T0Location } from '@/types/api'
 import { createPaymentIntent, createT0PaymentIntent, generateReport, generateT0Report } from '@/lib/api'
 
 import TierSelection from '@/components/buy/TierSelection'
@@ -23,6 +23,7 @@ interface BuyFormState {
   specialtyName: string
   zipCode: string
   milesRadius: RadiusOption
+  driveTimeMinutes: DriveTimeOption
   selectedProvider: Provider | null
   t0Location: T0Location
   email: string
@@ -39,6 +40,7 @@ const INITIAL_STATE: BuyFormState = {
   specialtyName: '',
   zipCode: '',
   milesRadius: 5,
+  driveTimeMinutes: 30,
   selectedProvider: null,
   t0Location: { address_line_1: '', address_line_2: '', city: '', state: '', zip_code: '' },
   email: '',
@@ -75,6 +77,11 @@ export default function Buy() {
     resetGen()
   }
 
+  const radiusLabel =
+    state.selectedTierId === 0
+      ? `${state.driveTimeMinutes} min drive`
+      : `${state.milesRadius} miles`
+
   const handleProceedToPayment = async () => {
     // Guard: if a valid secret already exists (e.g. user went back and re-clicked), reuse it
     if (state.paymentClientSecret) {
@@ -89,7 +96,7 @@ export default function Buy() {
           customer_email: state.email,
           specialty_name: state.specialtyName,
           ...state.t0Location,
-          miles_radius: state.milesRadius,
+          drive_time_minutes: state.driveTimeMinutes,
         })
       } else {
         if (!state.selectedProvider) return
@@ -114,7 +121,7 @@ export default function Buy() {
       generate(() => generateT0Report({
         specialty_name: state.specialtyName,
         ...state.t0Location,
-        miles_radius: state.milesRadius,
+        drive_time_minutes: state.driveTimeMinutes,
         customer_email: state.email,
         payment_intent_id: paymentIntentId,
       }))
@@ -136,7 +143,7 @@ export default function Buy() {
       generate(() => generateT0Report({
         specialty_name: state.specialtyName,
         ...state.t0Location,
-        miles_radius: state.milesRadius,
+        drive_time_minutes: state.driveTimeMinutes,
         customer_email: state.email,
         payment_intent_id: state.paymentIntentId!,
       }))
@@ -212,7 +219,7 @@ export default function Buy() {
                 <OrderSidebar
                   specialtyName={state.specialtyName}
                   selectedProvider={state.selectedProvider}
-                  milesRadius={state.milesRadius}
+                  radiusLabel={radiusLabel}
                   email={state.email}
                   t0Location={state.selectedTierId === 0 ? state.t0Location : undefined}
                   tierLabel={state.selectedTierId === 0 ? 'Market Entry Report' : 'Through-the-Door Codes Report'}
@@ -230,7 +237,7 @@ export default function Buy() {
                 <OrderSidebar
                   specialtyName={state.specialtyName}
                   selectedProvider={state.selectedProvider}
-                  milesRadius={state.milesRadius}
+                  radiusLabel={radiusLabel}
                   email={state.email}
                   compact
                   t0Location={state.selectedTierId === 0 ? state.t0Location : undefined}
@@ -261,9 +268,9 @@ export default function Buy() {
               {state.currentStep === 2 && state.selectedTierId === 0 && (
                 <StepAddress
                   location={state.t0Location}
-                  milesRadius={state.milesRadius}
+                  driveTimeMinutes={state.driveTimeMinutes}
                   onLocationChange={(loc) => setState((prev) => ({ ...prev, t0Location: loc }))}
-                  onRadiusChange={(r) => setState((prev) => ({ ...prev, milesRadius: r }))}
+                  onDriveTimeChange={(v) => setState((prev) => ({ ...prev, driveTimeMinutes: v }))}
                   onNext={advance}
                   onBack={back}
                 />
@@ -308,7 +315,7 @@ export default function Buy() {
                   <StepConfirm
                     specialtyName={state.specialtyName}
                     selectedProvider={state.selectedProvider}
-                    milesRadius={state.milesRadius}
+                    radiusLabel={radiusLabel}
                     email={state.email}
                     phone={state.phone}
                     onProceedToPayment={handleProceedToPayment}

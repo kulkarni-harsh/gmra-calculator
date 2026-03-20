@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FormField, StyledInput } from '@/components/buy/FormField'
-import type { T0Location, RadiusOption } from '@/types/api'
+import type { T0Location, DriveTimeOption } from '@/types/api'
 
-const RADIUS_OPTIONS: { value: RadiusOption; label: string }[] = [
-  { value: 5,  label: '5 miles' },
-  { value: 10, label: '10 miles' },
-  { value: 25, label: '25 miles' },
-  { value: 50, label: '50 miles' },
+const DRIVE_TIME_OPTIONS: { value: DriveTimeOption; label: string }[] = [
+  { value: 10, label: '10 min drive' },
+  { value: 30, label: '30 min drive' },
+  { value: 45, label: '45 min drive' },
+  { value: 60, label: '60 min drive' },
 ]
 
 const US_STATES = [
@@ -20,18 +20,18 @@ const US_STATES = [
 
 interface StepAddressProps {
   location: T0Location
-  milesRadius: RadiusOption
+  driveTimeMinutes: DriveTimeOption
   onLocationChange: (loc: T0Location) => void
-  onRadiusChange: (radius: RadiusOption) => void
+  onDriveTimeChange: (v: DriveTimeOption) => void
   onNext: () => void
   onBack: () => void
 }
 
 export default function StepAddress({
   location,
-  milesRadius,
+  driveTimeMinutes,
   onLocationChange,
-  onRadiusChange,
+  onDriveTimeChange,
   onNext,
   onBack,
 }: StepAddressProps) {
@@ -58,7 +58,7 @@ export default function StepAddress({
           STEP 2: YOUR LOCATION
         </h2>
         <p className="mt-1 text-sm text-white/60">
-          Enter the address you want to analyze. We'll find all competitors within your chosen radius.
+          Enter the address you want to analyze. We'll find all competitors within your chosen drive time.
         </p>
       </div>
 
@@ -115,16 +115,16 @@ export default function StepAddress({
             />
           </FormField>
 
-          <FormField label="Search Radius">
+          <FormField label="Drive Time">
             <Select
-              value={String(milesRadius)}
-              onValueChange={(v) => onRadiusChange(Number(v) as RadiusOption)}
+              value={String(driveTimeMinutes)}
+              onValueChange={(v) => onDriveTimeChange(Number(v) as DriveTimeOption)}
             >
               <SelectTrigger className="border-white/20 bg-white/5 text-white focus:border-[hsl(204_66%_52%)]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-[hsl(217_33%_17%)] text-white">
-                {RADIUS_OPTIONS.map((r) => (
+                {DRIVE_TIME_OPTIONS.map((r) => (
                   <SelectItem key={r.value} value={String(r.value)} className="focus:bg-white/10">
                     {r.label}
                   </SelectItem>

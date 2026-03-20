@@ -67,6 +67,7 @@ export interface GenerateReportRequest {
 }
 
 export type RadiusOption = 5 | 10 | 25 | 50
+export type DriveTimeOption = 10 | 30 | 45 | 60
 
 // T0 address-only report types
 export interface T0Location {
@@ -84,7 +85,7 @@ export interface GenerateT0ReportRequest {
   city: string
   state: string
   zip_code: string
-  miles_radius: number
+  drive_time_minutes: number
   customer_email: string
   payment_intent_id: string
 }
@@ -97,5 +98,5 @@ export interface CreateT0PaymentIntentPayload {
   city: string
   state: string
   zip_code: string
-  miles_radius: number
+  drive_time_minutes: number
 }

@@ -24,7 +24,7 @@ from app.services.census import combine_demographics, get_zip_demographics
 from app.services.fee_schedule import get_medicare_rate
 from app.services.geocoder import geocode_address
 from app.services.html_imputers.v3_imputer import replace_data_block_v3
-from app.services.mapbox import generate_map
+from app.services.mapbox import generate_map, stamp_provider_drive_times
 from app.services.report_generator import ReportState
 from app.services.s3 import upload_debug_excel
 from app.types.alphasophia import CPT, Provider
@@ -39,6 +39,13 @@ from app.utils.common import (
     get_source_tabs,
     get_taxonomy_codes,
 )
+
+# ── Drive-time fetch constants ────────────────────────────────────────────────
+# Max drive-time option is 60 min. At ~50 mph average, 60 min ≈ 50 miles.
+# Always fetch providers within this fixed radius; drive-time filter happens after stamping.
+_DRIVE_TIME_FETCH_MILES: float = 50.0
+# Approximate miles per minute (50 mph average) — used to scale census ZIP radius.
+_APPROX_MILES_PER_MINUTE: float = 50.0 / 60.0
 
 
 async def run_t0_report(
@@ -84,7 +91,7 @@ async def run_t0_report(
         axis=1,
     )
 
-    expanded_zips_df = zip_centroids_df[zip_centroids_df["distance_from_source_miles"] <= 2 * payload.miles_radius]
+    expanded_zips_df = zip_centroids_df[zip_centroids_df["distance_from_source_miles"] <= _DRIVE_TIME_FETCH_MILES]
     if expanded_zips_df.empty:
         expanded_zips_df = pd.DataFrame({
             "zip": [payload.zip_code],
@@ -92,7 +99,7 @@ async def run_t0_report(
             "lon": [source_lon],
             "distance_from_source_miles": [0.0],
         })
-    log.info("[3/10] Done — %d ZIP codes in 2× search radius (%d mi)", len(expanded_zips_df), 2 * payload.miles_radius)
+    log.info("[3/10] Done — %d ZIP codes within %.0f-mile fetch radius", len(expanded_zips_df), _DRIVE_TIME_FETCH_MILES)
 
     log.info("[4/10] Fetching providers from AlphaSophia across %d ZIP codes", len(expanded_zips_df))
     providers_list: list[Provider] = []
@@ -117,7 +124,20 @@ async def run_t0_report(
     await asyncio.gather(*[_enrich(p) for p in providers_list])
     log.info("[5/10] Done — addresses resolved")
 
-    log.info("[6/10] Filtering providers to exact radius of %d mi", payload.miles_radius)
+    log.info("[5.5/10] Stamping drive times from source to %d enriched providers", len(providers_list))
+    try:
+        await asyncio.to_thread(
+            stamp_provider_drive_times,
+            source_lat,
+            source_lon,
+            providers_list,
+            settings.MAPBOX_API_KEY,
+        )
+        log.info("[5.5/10] Done — drive times stamped")
+    except Exception as exc:
+        log.warning("[5.5/10] Drive time stamping failed — drive-time filter will exclude all providers: %s", exc)
+
+    log.info("[6/10] Filtering providers to drive time <= %d min", payload.drive_time_minutes)
     providers_in_radius: list[Provider] = []
     for p in providers_list:
         if p.latitude is None or p.longitude is None:
@@ -125,9 +145,9 @@ async def run_t0_report(
         p.distance_from_source_miles = geodesic(
             (p.latitude, p.longitude), (source_lat, source_lon)
         ).miles
-        if p.distance_from_source_miles <= payload.miles_radius:
+        if p.drive_time_minutes is not None and p.drive_time_minutes <= payload.drive_time_minutes:
             providers_in_radius.append(p)
-    log.info("[6/10] Done — %d providers within radius", len(providers_in_radius))
+    log.info("[6/10] Done — %d providers within %d min drive", len(providers_in_radius), payload.drive_time_minutes)
 
     log.info("[7/10] Generating map image")
     map_image_src: str | None = None
@@ -226,7 +246,8 @@ async def run_t0_report(
     log.info("[9/10] Done — %d CPT rows, market total: %d", len(cpt_rows), total_market_services)
 
     log.info("[10/10] Fetching census demographics + rendering report")
-    actual_zips_df = zip_centroids_df[zip_centroids_df["distance_from_source_miles"] <= payload.miles_radius]
+    _census_miles = payload.drive_time_minutes * _APPROX_MILES_PER_MINUTE
+    actual_zips_df = zip_centroids_df[zip_centroids_df["distance_from_source_miles"] <= _census_miles]
     if actual_zips_df.empty:
         actual_zips_df = pd.DataFrame({
             "zip": [payload.zip_code], "lat": [source_lat], "lon": [source_lon],
@@ -284,7 +305,7 @@ async def run_t0_report(
         f"<strong>{target_density:.1f} providers per 100k residents</strong>, "
         f"implying <strong>{expected_providers:.1f} expected providers</strong> in this market. "
         f"There are currently <strong>{peer_providers_count} active providers</strong> "
-        f"within {payload.miles_radius} miles, "
+        f"within {payload.drive_time_minutes} min drive, "
         f"leaving a gap of <strong>{provider_gap:+.1f} providers</strong>."
         if target_density is not None
         else f"No state-level density data is available for <strong>{payload.specialty_name}</strong>"
@@ -318,12 +339,21 @@ async def run_t0_report(
         if competitor_drive_times else None
     )
 
+    _provider_drive_vol_pairs: list[tuple[float, int]] = sorted(
+        [
+            (p.drive_time_minutes, round(p.cpt_total_services / _share_denom * 100))
+            for p in providers_in_radius
+            if p.drive_time_minutes is not None
+        ],
+        key=lambda x: x[0],
+    )
+
     analysis_text = await generate_market_analysis(
         data=MarketAnalysisInput(
             city=payload.city,
             state=payload.state,
             specialty=payload.specialty_name,
-            miles_radius=payload.miles_radius,
+            drive_time_minutes=payload.drive_time_minutes,
             total_population=total_population,
             relevant_pop=relevant_pop,
             population_label=population_label,
@@ -338,6 +368,7 @@ async def run_t0_report(
             nearest_competitor_drive_min=_nearest_competitor_drive_min,
             median_competitor_drive_min=_median_competitor_drive_min,
             providers_within_10_min=_providers_within_10_min,
+            provider_drive_volume_pairs=_provider_drive_vol_pairs,
         ),
         fallback_text=_fallback_analysis,
     )
@@ -349,7 +380,7 @@ async def run_t0_report(
         dateIssued=pd.Timestamp.now().strftime("%m/%d/%Y"),
         specialty=payload.specialty_name,
         market=f"{payload.city}, {payload.state}",
-        radius=f"{payload.miles_radius} mi",
+        radius=f"{payload.drive_time_minutes} min drive",
         reportTier="Market Entry",
         address=f"{payload.address_line_1} {payload.address_line_2 if payload.address_line_2 else ''}",
         clientName="",  # no named client for T0

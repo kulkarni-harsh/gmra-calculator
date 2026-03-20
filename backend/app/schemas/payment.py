@@ -23,6 +23,7 @@ class CreateT0PaymentIntentRequest(BaseModel):
         ...,
         description="Drive-time catchment in minutes. Must be one of: 10, 30, 45, 60.",
     )
+
     @field_validator("drive_time_minutes")
     @classmethod
     def validate_drive_time_minutes(cls, value: int) -> int:  # noqa: N805

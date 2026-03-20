@@ -67,7 +67,7 @@ export interface GenerateReportRequest {
 }
 
 export type RadiusOption = 5 | 10 | 25 | 50
-export type DriveTimeOption = 10 | 30 | 45 | 60
+export type DriveTimeOption = 5 | 10 | 15 | 30 | 45 | 60
 
 // T0 address-only report types
 export interface T0Location {

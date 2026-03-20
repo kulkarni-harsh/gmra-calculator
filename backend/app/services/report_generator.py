@@ -8,12 +8,12 @@ State is loaded once at startup and passed in — no global singletons.
 import asyncio
 import json
 import logging
-import ulid
 from dataclasses import dataclass
 from functools import reduce
 from io import BytesIO
 
 import pandas as pd
+import ulid
 from geopy.distance import geodesic
 
 from app.core.config import settings
@@ -264,7 +264,6 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
                 agg_cpt.codeType = _p_cpt.codeType
         agg_cpt_list.append(agg_cpt)
 
-    
     log.info("[8/10] Aggregating CPT data for each provider, across %d providers", len(providers_in_radius))
     # Get the count of providers in the market
     peer_providers_count = max(len(providers_in_radius), 1)

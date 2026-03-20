@@ -1,8 +1,8 @@
 import json
 import logging
-import ulid
 
 import stripe
+import ulid
 from fastapi import APIRouter, HTTPException, Request
 
 from app.core.config import settings
@@ -100,7 +100,9 @@ async def stripe_webhook(request: Request):
             customer_email = stored.get("customer_email", "")
             # T0 stores address instead of client_provider
             if stored.get("report_type") == "t0":
-                provider_name = f"{stored.get('address_line_1', '')}, {stored.get('city', '')} {stored.get('state', '')}"
+                provider_name = (
+                    f"{stored.get('address_line_1', '')}, {stored.get('city', '')} {stored.get('state', '')}"
+                )
             else:
                 provider_name = stored.get("client_provider", {}).get("name", "")
             if customer_email:
@@ -134,18 +136,20 @@ async def create_t0_payment_intent_endpoint(payload: CreateT0PaymentIntentReques
         logging.error("Failed to create T0 Stripe PaymentIntent: %s", exc)
         raise HTTPException(status_code=502, detail="Failed to create payment session") from exc
 
-    pre_payload_json = json.dumps({
-        "report_type": "t0",
-        "specialty_name": payload.specialty_name,
-        "address_line_1": payload.address_line_1,
-        "address_line_2": payload.address_line_2,
-        "city": payload.city,
-        "state": payload.state,
-        "zip_code": payload.zip_code,
-        "drive_time_minutes": payload.drive_time_minutes,
-        "customer_email": str(payload.customer_email),
-        "payment_intent_id": "pending",
-    })
+    pre_payload_json = json.dumps(
+        {
+            "report_type": "t0",
+            "specialty_name": payload.specialty_name,
+            "address_line_1": payload.address_line_1,
+            "address_line_2": payload.address_line_2,
+            "city": payload.city,
+            "state": payload.state,
+            "zip_code": payload.zip_code,
+            "drive_time_minutes": payload.drive_time_minutes,
+            "customer_email": str(payload.customer_email),
+            "payment_intent_id": "pending",
+        }
+    )
 
     try:
         create_job_awaiting_payment(

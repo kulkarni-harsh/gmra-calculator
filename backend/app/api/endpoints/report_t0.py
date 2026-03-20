@@ -26,7 +26,9 @@ async def submit_t0_report_job(payload: AddressReportRequest):
         raise HTTPException(status_code=402, detail=str(exc)) from exc
 
     try:
-        claim_job_for_generation(job_id)  # return value (payload JSON) not needed — full payload already in request body
+        claim_job_for_generation(
+            job_id
+        )  # return value (payload JSON) not needed — full payload already in request body
     except JobAlreadyExistsError:
         raise HTTPException(status_code=409, detail="This payment has already been used to generate a report") from None
 

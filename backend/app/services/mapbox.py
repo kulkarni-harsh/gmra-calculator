@@ -1,4 +1,3 @@
-
 """
 mapbox_isochrones.py
 --------------------
@@ -12,18 +11,20 @@ Generates a Mapbox-based static PNG map with:
 Requirements:
     pip install requests shapely polyline
 """
+
 import json
-import urllib.parse
-from typing import TYPE_CHECKING, Optional
 import math
+import urllib.parse
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.types.alphasophia import Provider
+import io
+
 import requests
-from shapely.geometry import shape, Point, mapping
 from loguru import logger
 from PIL import Image, ImageDraw, ImageFont
-import io
+from shapely.geometry import Point, mapping, shape
 
 try:
     import polyline as polyline_lib
@@ -35,7 +36,6 @@ import logging
 from functools import lru_cache
 from urllib.parse import quote
 
-import requests
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
@@ -126,6 +126,7 @@ def get_drive_distance_time(lat1: float, long1: float, lat2: float, long2: float
         return 10e9, 10e9  # Return large values to indicate an error
     return _fetch_drive_distance_time(lat1, long1, lat2, long2)
 
+
 # ── Geocoding ─────────────────────────────────────────────────────────────────
 def calculate_contour_minutes(
     source_lat: float,
@@ -153,16 +154,16 @@ def calculate_contour_minutes(
     """
     # Mapbox Matrix API accepts max 25 coordinates total (1 source + N destinations)
     # For larger provider lists, batch into chunks of 24
-    MAX_DESTINATIONS = 24
+    MAX_DESTINATIONS = 24  # noqa
 
     coordinates = [(source_lon, source_lat)] + [(lon, lat) for lat, lon in providers]
     max_duration_seconds = 0
     provider_drive_times: dict[tuple[float, float], float] = {}
 
     for i in range(1, len(coordinates), MAX_DESTINATIONS):
-        batch = [coordinates[0]] + coordinates[i:i + MAX_DESTINATIONS]
+        batch = [coordinates[0]] + coordinates[i : i + MAX_DESTINATIONS]
         # providers is 0-indexed; coordinates[0] is the source, so providers[i-1] aligns with coordinates[i]
-        batch_providers = providers[i - 1: i - 1 + MAX_DESTINATIONS]
+        batch_providers = providers[i - 1 : i - 1 + MAX_DESTINATIONS]
         coords_str = ";".join(f"{lon},{lat}" for lon, lat in batch)
         sources_str = "0"
         destinations_str = ";".join(str(j) for j in range(1, len(batch)))
@@ -199,10 +200,7 @@ def calculate_contour_minutes(
     if len(contours) > 4:
         contours.pop(1)
 
-    logger.info(
-        f"Furthest provider: {max_minutes} min → rounded to {max_rounded} min. "
-        f"Contours: {contours}"
-    )
+    logger.info(f"Furthest provider: {max_minutes} min → rounded to {max_rounded} min. Contours: {contours}")
     return contours, provider_drive_times
 
 
@@ -233,15 +231,11 @@ def stamp_provider_drive_times(
     Call this before filtering providers by drive time.
     """
     provider_coords: list[tuple[float, float]] = [
-        (p.latitude, p.longitude)
-        for p in providers
-        if p.latitude is not None and p.longitude is not None
+        (p.latitude, p.longitude) for p in providers if p.latitude is not None and p.longitude is not None
     ]
     if not provider_coords:
         return
-    _, provider_drive_times = calculate_contour_minutes(
-        source_lat, source_lon, provider_coords, token, profile=profile
-    )
+    _, provider_drive_times = calculate_contour_minutes(source_lat, source_lon, provider_coords, token, profile=profile)
     for p in providers:
         if p.latitude is not None and p.longitude is not None:
             p.drive_time_minutes = provider_drive_times.get((p.latitude, p.longitude))
@@ -249,24 +243,22 @@ def stamp_provider_drive_times(
 
 # ── Isochrone fetching ────────────────────────────────────────────────────────
 
+
 def fetch_isochrones(
-        lat: float,
-        lon: float,
-        token: str,
-        minutes: list[int],
-        profile: str = "driving",
+    lat: float,
+    lon: float,
+    token: str,
+    minutes: list[int],
+    profile: str = "driving",
 ) -> dict:
     """
     Fetch drive-time isochrone polygons from the Mapbox Isochrone API.
     Automatically batches into requests of 4 (API hard limit).
     Returns {minute: GeoJSON Feature}.
     """
-    BATCH_SIZE = 4
+    BATCH_SIZE = 4  # noqa
     sorted_minutes = sorted(minutes)
-    batches = [
-        sorted_minutes[i:i + BATCH_SIZE]
-        for i in range(0, len(sorted_minutes), BATCH_SIZE)
-    ]
+    batches = [sorted_minutes[i : i + BATCH_SIZE] for i in range(0, len(sorted_minutes), BATCH_SIZE)]
     by_minute = {}
     for batch in batches:
         contours_param = ",".join(str(m) for m in batch)
@@ -290,18 +282,16 @@ def fetch_isochrones(
 
 # ── Provider zone classification ──────────────────────────────────────────────
 
+
 def classify_providers(
-        providers: list[tuple[float, float]],
-        isochrones: dict,
-) -> dict[tuple[float, float], Optional[int]]:
+    providers: list[tuple[float, float]],
+    isochrones: dict,
+) -> dict[tuple[float, float], int | None]:
     """
     For each provider (lat, lon), find the smallest isochrone zone it falls
     within. Returns {(lat, lon): minutes | None}.
     """
-    shapely_isos = {
-        m: shape(feat["geometry"])
-        for m, feat in sorted(isochrones.items())
-    }
+    shapely_isos = {m: shape(feat["geometry"]) for m, feat in sorted(isochrones.items())}
     result = {}
     for lat, lon in providers:
         point = Point(lon, lat)
@@ -316,11 +306,12 @@ def classify_providers(
 
 # ── Coordinate helpers ────────────────────────────────────────────────────────
 
+
 def _round_coords(coords: list, precision: int = 5) -> list:
     """Recursively round all coordinates in a GeoJSON coordinate array."""
     if not coords:
         return coords
-    if isinstance(coords[0], (int, float)):
+    if isinstance(coords[0], int | float):
         return [round(c, precision) for c in coords]
     return [_round_coords(ring, precision) for ring in coords]
 
@@ -340,6 +331,7 @@ def _simplify_polygon(geojson_geometry: dict, tolerance: float = 0.01) -> dict:
 
 # ── Polyline encoding ─────────────────────────────────────────────────────────
 
+
 def _encode_polyline(coords: list[tuple[float, float]]) -> str:
     """
     Encode (lat, lon) pairs as a Google-format encoded polyline (precision 5).
@@ -348,7 +340,7 @@ def _encode_polyline(coords: list[tuple[float, float]]) -> str:
     if HAS_POLYLINE:
         return polyline_lib.encode(coords, 5)
     result = []
-    prev_lat = prev_lon = 0
+    prev_lat = prev_lon = 0.0
     for lat, lon in coords:
         for value, prev in [(lat, prev_lat), (lon, prev_lon)]:
             delta = round(value * 1e5) - round(prev * 1e5)
@@ -356,7 +348,7 @@ def _encode_polyline(coords: list[tuple[float, float]]) -> str:
             if delta < 0:
                 delta = ~delta
             while delta >= 0x20:
-                result.append(chr((0x20 | (delta & 0x1f)) + 63))
+                result.append(chr((0x20 | (delta & 0x1F)) + 63))
                 delta >>= 5
             result.append(chr(delta + 63))
         prev_lat = lat
@@ -365,12 +357,12 @@ def _encode_polyline(coords: list[tuple[float, float]]) -> str:
 
 
 def _geometry_to_path_overlays(
-        geojson_geometry: dict,
-        stroke_color: str,
-        stroke_opacity: float,
-        fill_color: str,
-        fill_opacity: float,
-        stroke_width: int = 1,
+    geojson_geometry: dict,
+    stroke_color: str,
+    stroke_opacity: float,
+    fill_color: str,
+    fill_opacity: float,
+    stroke_width: int = 1,
 ) -> list[str]:
     """
     Convert a GeoJSON Polygon/MultiPolygon to encoded polyline `path` overlay
@@ -392,40 +384,40 @@ def _geometry_to_path_overlays(
         lat_lon = [(round(c[1], 5), round(c[0], 5)) for c in ring]
         encoded = _encode_polyline(lat_lon)
         encoded_uri = urllib.parse.quote(encoded, safe="")
-        paths.append(
-            f"path-{stroke_width}+{sc}-{stroke_opacity}"
-            f"+{fc}-{fill_opacity}({encoded_uri})"
-        )
+        paths.append(f"path-{stroke_width}+{sc}-{stroke_opacity}+{fc}-{fill_opacity}({encoded_uri})")
     return paths
 
 
 # ── Marker GeoJSON ────────────────────────────────────────────────────────────
 
+
 def _build_marker_geojson(
     source_lat: float,
     source_lon: float,
     providers: list[tuple[float, float]],
-    provider_zones: dict[tuple[float, float], Optional[int]],
+    provider_zones: dict[tuple[float, float], int | None],
     minute_to_color: dict,
 ) -> str:
     """
     Build a compact GeoJSON FeatureCollection for source + providers.
     Accepts minute_to_color built externally by build_static_image_url().
     """
-    features = [{
-        "type": "Feature",
-        "properties": {
-            "marker-color":  "#c40700",
-            "marker-size":   "medium",
-            "marker-symbol": "marker",
-        },
-        "geometry": {
-            "type": "Point",
-            "coordinates": [round(source_lon, 5), round(source_lat, 5)],
-        },
-    }]
+    features = [
+        {
+            "type": "Feature",
+            "properties": {
+                "marker-color": "#c40700",
+                "marker-size": "medium",
+                "marker-symbol": "marker",
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [round(source_lon, 5), round(source_lat, 5)],
+            },
+        }
+    ]
 
-    zone_groups: dict[Optional[int], list] = {}
+    zone_groups: dict[int | None, list] = {}
     for lat, lon in providers:
         zone = provider_zones.get((lat, lon))
         zone_groups.setdefault(zone, []).append([round(lon, 5), round(lat, 5)])
@@ -433,22 +425,23 @@ def _build_marker_geojson(
     for zone, coords_list in zone_groups.items():
         color = "#" + minute_to_color.get(zone, "9b1c1c")
         geom = (
-            {"type": "Point",      "coordinates": coords_list[0]}
+            {"type": "Point", "coordinates": coords_list[0]}
             if len(coords_list) == 1
             else {"type": "MultiPoint", "coordinates": coords_list}
         )
-        features.append({
-            "type": "Feature",
-            "properties": {
-                "marker-color":  color,
-                "marker-size":   "medium",
-                "marker-symbol": "doctor",
-            },
-            "geometry": geom,
-        })
+        features.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "marker-color": color,
+                    "marker-size": "medium",
+                    "marker-symbol": "doctor",
+                },
+                "geometry": geom,
+            }
+        )
 
-    return json.dumps({"type": "FeatureCollection", "features": features},
-                      separators=(",", ":"))
+    return json.dumps({"type": "FeatureCollection", "features": features}, separators=(",", ":"))
 
 
 def _build_isochrone_label_overlays(
@@ -460,23 +453,24 @@ def _build_isochrone_label_overlays(
     Uses the pin-s-{label}+{color} format which supports up to 2 chars.
     """
     from shapely.geometry import shape
+
     overlays = []
     for minute, feature in isochrones.items():
-        centroid  = shape(feature["geometry"]).centroid
-        color     = minute_to_color.get(minute, "000000").lstrip("#")
-        label     = str(minute)          # "5", "10", "15" etc. — up to 2 chars
-        overlays.append(
-            f"pin-s-{label}+{color}({round(centroid.x, 5)},{round(centroid.y, 5)})"
-        )
+        centroid = shape(feature["geometry"]).centroid
+        color = minute_to_color.get(minute, "000000").lstrip("#")
+        label = str(minute)  # "5", "10", "15" etc. — up to 2 chars
+        overlays.append(f"pin-s-{label}+{color}({round(centroid.x, 5)},{round(centroid.y, 5)})")
     return overlays
 
+
 # ── Static image URL builder ──────────────────────────────────────────────────
+
 
 def build_static_image_url(
     source_lat: float,
     source_lon: float,
     providers: list[tuple[float, float]],
-    provider_zones: dict[tuple[float, float], Optional[int]],
+    provider_zones: dict[tuple[float, float], int | None],
     isochrones: dict,
     token: str,
     width: int = 1200,
@@ -484,11 +478,11 @@ def build_static_image_url(
     style: str = "mapbox/streets-v12",
     simplify_tolerance: float = 0.003,
 ) -> tuple[str, dict]:
-    width  = min(width,  1280)
+    width = min(width, 1280)
     height = min(height, 1280)
 
     # Styles by rank (index 0 = smallest/innermost, index 4 = largest/outermost)
-    ORDERED_STYLES = [
+    ORDERED_STYLES = [  # noqa
         {"stroke": "#60aeca", "fill": "60aeca", "stroke_op": 1, "fill_op": 0},  # 1st (smallest)
         {"stroke": "#447eca", "fill": "447eca", "stroke_op": 1, "fill_op": 0},  # 2nd
         {"stroke": "#1c41ca", "fill": "1c41ca", "stroke_op": 1, "fill_op": 0},  # 3rd
@@ -496,29 +490,25 @@ def build_static_image_url(
         {"stroke": "#000000", "fill": "000000", "stroke_op": 1, "fill_op": 0},  # 5th (largest)
     ]
 
-    ORDERED_COLORS = ["60aeca", "447eca", "1c41ca", "053b78", "000000"]
+    ORDERED_COLORS = ["60aeca", "447eca", "1c41ca", "053b78", "000000"]  # noqa
 
     sorted_minutes = sorted(isochrones.keys())
-    minute_to_style = {
-        minute: ORDERED_STYLES[i]
-        for i, minute in enumerate(sorted_minutes)
-    }
-    minute_to_color = {
-        minute: ORDERED_COLORS[i]
-        for i, minute in enumerate(sorted_minutes)
-    }
+    minute_to_style = {minute: ORDERED_STYLES[i] for i, minute in enumerate(sorted_minutes)}
+    minute_to_color = {minute: ORDERED_COLORS[i] for i, minute in enumerate(sorted_minutes)}
     minute_to_color[None] = "9b1c1c"  # outside all zones → red
 
     overlay_parts = []
 
     for minute in sorted(isochrones.keys(), reverse=True):  # largest → smallest (z-order)
-        feature  = isochrones[minute]
-        s        = minute_to_style[minute]
+        feature = isochrones[minute]
+        s = minute_to_style[minute]
         geometry = _simplify_polygon(feature["geometry"], simplify_tolerance)
-        paths    = _geometry_to_path_overlays(
+        paths = _geometry_to_path_overlays(
             geometry,
-            stroke_color=s["stroke"], stroke_opacity=s["stroke_op"],
-            fill_color=s["fill"],     fill_opacity=s["fill_op"],
+            stroke_color=s["stroke"],  # type: ignore
+            stroke_opacity=s["stroke_op"],  # type: ignore
+            fill_color=s["fill"],  # type: ignore
+            fill_opacity=s["fill_op"],  # type: ignore
             stroke_width=2,
         )
         overlay_parts.extend(paths)
@@ -551,6 +541,7 @@ def build_static_image_url(
 
 
 # ── Download ──────────────────────────────────────────────────────────────────
+
 
 def download_static_image(url: str) -> bytes:
     """Download the static map PNG and return as bytes."""
@@ -607,16 +598,18 @@ def add_legend(
     img.convert("RGB").save(buf, "PNG")
     return buf.getvalue()
 
+
 # ── Main entry point ──────────────────────────────────────────────────────────
 
+
 def generate_map(
-        token: str,
-        source_lat: float,
-        source_lon: float,
-        providers: "list[Provider]",
-        profile: str = "driving",
-        width: int = 1200,
-        height: int = 800,
+    token: str,
+    source_lat: float,
+    source_lon: float,
+    providers: "list[Provider]",
+    profile: str = "driving",
+    width: int = 1200,
+    height: int = 800,
 ) -> bytes:
     """
     Generate a static map PNG with drive-time isochrones and provider markers.
@@ -634,9 +627,7 @@ def generate_map(
         PNG image bytes with the drive-time legend overlaid.
     """
     provider_coords: list[tuple[float, float]] = [
-        (p.latitude, p.longitude)
-        for p in providers
-        if p.latitude is not None and p.longitude is not None
+        (p.latitude, p.longitude) for p in providers if p.latitude is not None and p.longitude is not None
     ]
 
     if not provider_coords:
@@ -645,21 +636,26 @@ def generate_map(
     # If all providers already have drive times stamped (from stamp_provider_drive_times),
     # skip the Matrix API call and derive contours from the known times.
     pre_stamped = all(
-        p.drive_time_minutes is not None
+        isinstance(p.drive_time_minutes, float)
         for p in providers
-        if p.latitude is not None and p.longitude is not None
+        if isinstance(p.latitude, float) and isinstance(p.longitude, float)
     )
     if pre_stamped:
         drive_times = [
             p.drive_time_minutes
             for p in providers
-            if p.latitude is not None and p.longitude is not None
+            if isinstance(p.latitude, float)
+            and isinstance(p.longitude, float)
+            and isinstance(p.drive_time_minutes, float)
         ]
+
         contour_minutes = _contours_from_drive_times(drive_times)
         provider_drive_times: dict[tuple[float, float], float] = {
             (p.latitude, p.longitude): p.drive_time_minutes  # type: ignore[assignment]
             for p in providers
-            if p.latitude is not None and p.longitude is not None
+            if isinstance(p.latitude, float)
+            and isinstance(p.longitude, float)
+            and isinstance(p.drive_time_minutes, float)
         }
     else:
         contour_minutes, provider_drive_times = calculate_contour_minutes(
@@ -680,10 +676,14 @@ def generate_map(
 
     logger.info("[→] Building static image URL …")
     url, minute_to_color = build_static_image_url(
-        source_lat, source_lon,
-        provider_coords, provider_zones,
-        isochrones, token,
-        width=width, height=height,
+        source_lat,
+        source_lon,
+        provider_coords,
+        provider_zones,
+        isochrones,
+        token,
+        width=width,
+        height=height,
     )
     logger.info("[→] Downloading static image and adding legend …")
     image_bytes = download_static_image(url)

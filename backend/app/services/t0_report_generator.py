@@ -63,8 +63,13 @@ async def run_t0_report(
     source_tabs = get_source_tabs(state.specialty_lookup, payload.specialty_name)
     provider_state = payload.state
 
-    log.info("[2/10] Geocoding address: '%s %s, %s %s'",
-             payload.address_line_1, payload.city, payload.state, payload.zip_code)
+    log.info(
+        "[2/10] Geocoding address: '%s %s, %s %s'",
+        payload.address_line_1,
+        payload.city,
+        payload.state,
+        payload.zip_code,
+    )
     address_str = (
         f"{payload.address_line_1} "
         f"{payload.address_line_2 + ' ' if payload.address_line_2 else ''}"
@@ -93,12 +98,14 @@ async def run_t0_report(
 
     expanded_zips_df = zip_centroids_df[zip_centroids_df["distance_from_source_miles"] <= _DRIVE_TIME_FETCH_MILES]
     if expanded_zips_df.empty:
-        expanded_zips_df = pd.DataFrame({
-            "zip": [payload.zip_code],
-            "lat": [source_lat],
-            "lon": [source_lon],
-            "distance_from_source_miles": [0.0],
-        })
+        expanded_zips_df = pd.DataFrame(
+            {
+                "zip": [payload.zip_code],
+                "lat": [source_lat],
+                "lon": [source_lon],
+                "distance_from_source_miles": [0.0],
+            }
+        )
     log.info("[3/10] Done — %d ZIP codes within %.0f-mile fetch radius", len(expanded_zips_df), _DRIVE_TIME_FETCH_MILES)
 
     log.info("[4/10] Fetching providers from AlphaSophia across %d ZIP codes", len(expanded_zips_df))
@@ -142,9 +149,7 @@ async def run_t0_report(
     for p in providers_list:
         if p.latitude is None or p.longitude is None:
             continue
-        p.distance_from_source_miles = geodesic(
-            (p.latitude, p.longitude), (source_lat, source_lon)
-        ).miles
+        p.distance_from_source_miles = geodesic((p.latitude, p.longitude), (source_lat, source_lon)).miles
         if p.drive_time_minutes is not None and p.drive_time_minutes <= payload.drive_time_minutes:
             providers_in_radius.append(p)
     log.info("[6/10] Done — %d providers within %d min drive", len(providers_in_radius), payload.drive_time_minutes)
@@ -171,12 +176,29 @@ async def run_t0_report(
     # ── Debug dump ────────────────────────────────────────────────────────────
     debug_excel_bytes: bytes | None = None
     if job_id:
+        in_radius_ids = {p.id for p in providers_in_radius}
         try:
+
             def _row(p: Provider) -> dict:
+                in_radius_value = p.id in in_radius_ids
                 row = {
-                    "npi": p.npi, "name": p.name,
-                    "lat": p.latitude, "lon": p.longitude,
-                    "distance_mi": round(p.distance_from_source_miles, 2) if p.distance_from_source_miles else None,
+                    "npi": p.npi,
+                    "name": p.name,
+                    "id": p.id,
+                    "address_line_1": p.location.address_line_1,
+                    "address_line_2": p.location.address_line_2,
+                    "city": p.location.city,
+                    "state": p.location.state,
+                    "zip_code": p.location.zip_code,
+                    "taxonomy_code": p.taxonomy.code,
+                    "taxonomy_description": p.taxonomy.description,
+                    "latitude": p.latitude,
+                    "longitude": p.longitude,
+                    "distance_from_center_miles": round(p.distance_from_source_miles, 2)
+                    if p.distance_from_source_miles is not None
+                    else None,
+                    "drive_time_minutes": p.drive_time_minutes,
+                    "in_radius": in_radius_value,
                 }
                 for code in relevant_cpt_codes_list:
                     cpt = p.get_cpt_profile(code)
@@ -184,7 +206,11 @@ async def run_t0_report(
                 return row
 
             buf = BytesIO()
-            pd.DataFrame([_row(p) for p in providers_list]).to_excel(buf, index=False, engine="openpyxl")
+            # Upload debug Excel with source and in-radius providers
+            pd.DataFrame(
+                [{"npi": "source", "latitude": source_lat, "longitude": source_lon, "distance_from_center_miles": 0}]
+                + [_row(p) for p in providers_list]
+            ).to_excel(buf, index=False, engine="openpyxl")
             debug_excel_bytes = buf.getvalue()
             upload_debug_excel(job_id, debug_excel_bytes)
         except Exception as exc:
@@ -198,9 +224,7 @@ async def run_t0_report(
     provider_raw_totals: list[int] = []
     for p in providers_in_radius:
         total = sum(
-            (p.get_cpt_profile(code).totalServices or 0)
-            for code in relevant_cpt_codes_list
-            if p.get_cpt_profile(code)
+            (p.get_cpt_profile(code).totalServices or 0) for code in relevant_cpt_codes_list if p.get_cpt_profile(code)
         )
         p.cpt_total_services = total
         provider_raw_totals.append(total)
@@ -231,9 +255,7 @@ async def run_t0_report(
     for agg_cpt in agg_cpt_list:
         vol = agg_cpt.totalServices if agg_cpt.totalServices > 0 else 0
         total_market_services += vol
-        medicare_rate = get_medicare_rate(
-            str(agg_cpt.code), provider_state, state.rvu_table, state.gpci_table
-        )
+        medicare_rate = get_medicare_rate(str(agg_cpt.code), provider_state, state.rvu_table, state.gpci_table)
         cpt_rows.append(
             CptRowV2(
                 code=str(agg_cpt.code),
@@ -246,13 +268,34 @@ async def run_t0_report(
     log.info("[9/10] Done — %d CPT rows, market total: %d", len(cpt_rows), total_market_services)
 
     log.info("[10/10] Fetching census demographics + rendering report")
-    _census_miles = payload.drive_time_minutes * _APPROX_MILES_PER_MINUTE
-    actual_zips_df = zip_centroids_df[zip_centroids_df["distance_from_source_miles"] <= _census_miles]
+    _farthest_provider = max(
+        (p for p in providers_in_radius if isinstance(p.distance_from_source_miles, float)),
+        key=lambda p: p.drive_time_minutes if p.drive_time_minutes is not None else 0,
+        default=None,
+    )
+    if not isinstance(_farthest_provider, Provider):
+        raise ValueError("Could not find farthest provider")
+    if not isinstance(_farthest_provider.distance_from_source_miles, float):
+        raise ValueError("Could not find farthest provider distance")
+
+    # Actual ZIPs = ZIPs found in nearby providers + ZIPs close than the farthest provider
+    actual_zips_df = zip_centroids_df[
+        (zip_centroids_df["zip"].astype(str).isin([str(p.location.zip_code) for p in providers_in_radius]))
+        | (
+            zip_centroids_df["distance_from_source_miles"].round(2)
+            <= round(_farthest_provider.distance_from_source_miles, 2)
+        )
+    ]
+
     if actual_zips_df.empty:
-        actual_zips_df = pd.DataFrame({
-            "zip": [payload.zip_code], "lat": [source_lat], "lon": [source_lon],
-            "distance_from_source_miles": [0.0],
-        })
+        actual_zips_df = pd.DataFrame(
+            {
+                "zip": [payload.zip_code],
+                "lat": [source_lat],
+                "lon": [source_lon],
+                "distance_from_source_miles": [0.0],
+            }
+        )
 
     total_population = 0
     try:
@@ -309,7 +352,7 @@ async def run_t0_report(
         f"leaving a gap of <strong>{provider_gap:+.1f} providers</strong>."
         if target_density is not None
         else f"No state-level density data is available for <strong>{payload.specialty_name}</strong>"
-             f" in <strong>{provider_state}</strong>."
+        f" in <strong>{provider_state}</strong>."
     )
     _fallback_analysis = (
         f"The {payload.city}, {payload.state} market has "
@@ -326,17 +369,14 @@ async def run_t0_report(
     # drive_time_minutes is set by generate_map() via the Matrix API; fall back
     # to None if the map step was skipped or a provider had no valid route.
     competitor_drive_times = sorted(
-        p.drive_time_minutes
-        for p in providers_in_radius
-        if p.drive_time_minutes is not None
+        p.drive_time_minutes for p in providers_in_radius if p.drive_time_minutes is not None
     )
     _nearest_competitor_drive_min: float | None = competitor_drive_times[0] if competitor_drive_times else None
     _median_competitor_drive_min: float | None = (
         competitor_drive_times[len(competitor_drive_times) // 2] if competitor_drive_times else None
     )
     _providers_within_10_min: int | None = (
-        sum(1 for t in competitor_drive_times if t <= 10)
-        if competitor_drive_times else None
+        sum(1 for t in competitor_drive_times if t <= 10) if competitor_drive_times else None
     )
 
     _provider_drive_vol_pairs: list[tuple[float, int]] = sorted(

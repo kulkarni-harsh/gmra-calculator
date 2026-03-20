@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.endpoints import jobs, payment, providers
-from app.api.endpoints import report_t0, report_t1
+from app.api.endpoints import jobs, payment, providers, report_t0, report_t1
 
 api_router = APIRouter()
 api_router.include_router(providers.router, tags=["providers"], prefix="/providers")

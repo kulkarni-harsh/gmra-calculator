@@ -58,7 +58,9 @@ async def process_job(job_id: str, state: ReportState) -> None:
             report_s3_url=html_url,
             report_pdf_s3_url=pdf_url,
         )
-        logging.info("Job %s: status → done  html_url=%s  pdf_url=%s", job_id, html_url or "<none>", pdf_url or "<none>")
+        logging.info(
+            "Job %s: status → done  html_url=%s  pdf_url=%s", job_id, html_url or "<none>", pdf_url or "<none>"
+        )
 
         # Build email context from whichever payload branch was taken — avoids unbound variable refs.
         if report_type == "t0":

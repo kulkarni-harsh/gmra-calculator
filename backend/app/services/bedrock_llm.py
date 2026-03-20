@@ -103,7 +103,8 @@ def _build_prompt(d: MarketAnalysisInput) -> str:
             )
         median_line = (
             f"- Median competitor drive time: {d.median_competitor_drive_min:.0f} min\n"
-            if d.median_competitor_drive_min is not None else ""
+            if d.median_competitor_drive_min is not None
+            else ""
         )
         geo_context = (
             f"- Nearest competitor: {d.nearest_competitor_drive_min:.0f} min drive from proposed location\n"
@@ -116,8 +117,7 @@ def _build_prompt(d: MarketAnalysisInput) -> str:
     # ── Competitor proximity vs CPT volume ──────────────────────────────────
     if d.provider_drive_volume_pairs:
         lines = "\n".join(
-            f"  - {round(dt)} min drive · {share}% volume share"
-            for dt, share in d.provider_drive_volume_pairs[:10]
+            f"  - {round(dt)} min drive · {share}% volume share" for dt, share in d.provider_drive_volume_pairs[:10]
         )
         proximity_volume_context = f"Competitors sorted by drive time (nearest first):\n{lines}\n"
     else:
@@ -207,8 +207,13 @@ async def generate_market_analysis(
         )
         # AIMessage.content can be str | list — coerce to plain string
         raw = response.content
-        text = raw if isinstance(raw, str) else " ".join(
-            c if isinstance(c, str) else (c.get("text") or "") for c in raw  # type: ignore[union-attr]
+        text = (
+            raw
+            if isinstance(raw, str)
+            else " ".join(
+                c if isinstance(c, str) else (c.get("text") or "")
+                for c in raw  # type: ignore[union-attr]
+            )
         )
         # Replace \n\n before \n — order matters to preserve paragraph breaks
         html_text = text.replace("\n\n", "<br><br>").replace("\n", " ").strip()

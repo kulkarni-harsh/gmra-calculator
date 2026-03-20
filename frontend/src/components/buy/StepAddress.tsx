@@ -5,7 +5,9 @@ import { FormField, StyledInput } from '@/components/buy/FormField'
 import type { T0Location, DriveTimeOption } from '@/types/api'
 
 const DRIVE_TIME_OPTIONS: { value: DriveTimeOption; label: string }[] = [
+  { value: 5, label: '5 min drive' },
   { value: 10, label: '10 min drive' },
+  { value: 15, label: '15 min drive' },
   { value: 30, label: '30 min drive' },
   { value: 45, label: '45 min drive' },
   { value: 60, label: '60 min drive' },

@@ -1,6 +1,6 @@
 import json
 import logging
-import uuid
+import ulid
 
 import stripe
 from fastapi import APIRouter, HTTPException, Request
@@ -22,8 +22,7 @@ async def create_payment_intent_endpoint(payload: CreatePaymentIntentRequest):
     generation payload in DynamoDB with status 'awaiting_payment'. This ensures the webhook
     can enqueue the job even if the user's browser closes before /generate is called.
     """
-    job_id = f"MERC-{uuid.uuid4().hex[:12].upper()}"
-    print("job_id", job_id)
+    job_id = f"MERC-{ulid.ulid()}"
     try:
         client_secret = create_payment_intent(
             job_id=job_id,
@@ -121,7 +120,7 @@ async def stripe_webhook(request: Request):
 @router.post("/create-t0-payment-intent")
 async def create_t0_payment_intent_endpoint(payload: CreateT0PaymentIntentRequest):
     """Pre-generate job_id, create Stripe PaymentIntent for $399, store T0 job in DynamoDB."""
-    job_id = f"MERC-{uuid.uuid4().hex[:12].upper()}"
+    job_id = f"MERC-{ulid.ulid()}"
     address_label = f"{payload.address_line_1}, {payload.city} {payload.state} {payload.zip_code}"
 
     try:

@@ -7,7 +7,7 @@ No provider NPI lookup — market-level aggregate only.
 
 import asyncio
 import logging
-import uuid
+import ulid
 from functools import reduce
 from io import BytesIO
 
@@ -258,7 +258,7 @@ async def run_t0_report(
         verdict_type, verdict_value = "caution", "CAUTION"
         verdict_sub = "Market is near state density baseline — limited opportunity."
 
-    report_id = f"MERC-{pd.Timestamp.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+    report_id = job_id or f"MERC-{ulid.ulid()}"
 
     density_line = (
         f"The 2023 state-level physician density for <strong>{payload.specialty_name}</strong> in "

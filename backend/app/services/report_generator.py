@@ -8,7 +8,7 @@ State is loaded once at startup and passed in — no global singletons.
 import asyncio
 import json
 import logging
-import uuid
+import ulid
 from dataclasses import dataclass
 from functools import reduce
 from io import BytesIO
@@ -428,7 +428,7 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
     )
 
     log.info("[10/10] Rendering HTML report template (V2)")
-    report_id = f"MERC-{pd.Timestamp.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+    report_id = job_id or f"MERC-{ulid.ulid()}"
     address_str = (
         f"{payload.client_provider.location.address_line_1 or ''} "
         f"{payload.client_provider.location.address_line_2 or ''}, "

@@ -94,7 +94,6 @@ async def main() -> None:
 
     while True:
         messages = receive_jobs(max_messages=1, wait_seconds=20)
-        print("messages", messages)
         for msg in messages:
             body = json.loads(msg["Body"])
             job_id = body.get("job_id", "<unknown>")

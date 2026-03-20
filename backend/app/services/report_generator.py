@@ -29,6 +29,7 @@ from app.types.baseline_report_template import CptRowV2, ProviderProfileV2, Repo
 from app.utils.common import (
     generate_tags,
     get_anchor_cpt_codes,
+    get_anchor_cpt_patient_type_map,
     get_geriatric_population,
     get_pediatric_population,
     get_provider_density,
@@ -83,6 +84,7 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
 
     # Get relevant CPT codes list, Taxonomy Codes & Source Tabs from where we got provider density info
     relevant_cpt_codes_list = get_anchor_cpt_codes(state.anchor_cpt_lookup, payload.specialty_name)
+    cpt_patient_type_map = get_anchor_cpt_patient_type_map(state.anchor_cpt_lookup)
     taxonomy_codes = get_taxonomy_codes(state.specialty_lookup, payload.specialty_name)
     source_tabs = get_source_tabs(state.specialty_lookup, payload.specialty_name)
     provider_state = payload.client_provider.location.state or ""
@@ -262,8 +264,32 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
                 agg_cpt.codeType = _p_cpt.codeType
         agg_cpt_list.append(agg_cpt)
 
+    
+    log.info("[8/10] Aggregating CPT data for each provider, across %d providers", len(providers_in_radius))
     # Get the count of providers in the market
     peer_providers_count = max(len(providers_in_radius), 1)
+
+    # ── Provider CPT share distribution (Section 03) ─────────────────────────────
+    # Include client provider + all in-radius peers. Sum totalServices for each
+    # provider across the relevant CPT codes, then express as % of market total.
+    all_providers_for_share = [payload.client_provider] + list(providers_in_radius)
+    provider_raw_totals: list[int] = []
+    for _p in all_providers_for_share:
+        _p_total = sum(
+            (_p.get_cpt_profile(code).totalServices or 0)
+            for code in relevant_cpt_codes_list
+            if _p.get_cpt_profile(code)
+        )
+        _p.cpt_total_services = _p_total
+        provider_raw_totals.append(_p_total)
+
+    _share_denominator = sum(provider_raw_totals) or 1
+    provider_shares: list[int] = sorted(
+        [round(t / _share_denominator * 100) for t in provider_raw_totals],
+        reverse=True,
+    )
+    # TODO: Drop zero-share entries (providers with no matching CPT data)
+    # provider_shares = [s for s in provider_shares if s > 0]
 
     # Create a triplet of [competitor CPT, client CPT, medicare rate for that CPT]
     cpt_triples: list[tuple[CPT, CPT, float | None]] = []
@@ -306,6 +332,7 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
             CptRowV2(
                 code=str(agg_cpt.code),
                 desc=agg_cpt.description,
+                patientType=cpt_patient_type_map.get(str(agg_cpt.code)),
                 medicareRate=f"${medicare_rate:,.2f}" if medicare_rate is not None else None,
                 totalVolume=f"{(int(peer_services) + int(client_services)):,}"
                 if (peer_services + client_services) > 0
@@ -484,9 +511,10 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
         searchedZipCodes=actual_zips_df["zip"].astype(str).tolist(),
         sourceTabs=source_tabs,
         peerNpis=[p.npi for p in providers_in_radius if p.npi],
+        providerShares=provider_shares,
     )
 
-    template_html = (settings.TEMPLATES_DIR / "MREC_Report_TEMPLATE_V2.html").read_text(encoding="utf-8")
+    template_html = (settings.TEMPLATES_DIR / "MREC_Report_TEMPLATE_T1.html").read_text(encoding="utf-8")
     html = replace_data_block_v2(template_html, report_template_data)
     log.info("[10/10] Done — report '%s' rendered (%d bytes)", report_id, len(html))
     return html, debug_excel_bytes

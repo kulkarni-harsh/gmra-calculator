@@ -249,10 +249,10 @@ async def run_t0_report(
         verdict_type, verdict_value = "caution", "N/A"
         verdict_sub = "No state-level density data available for this specialty/state."
     elif provider_gap > 1:
-        verdict_type, verdict_value = "green", "GO"
+        verdict_type, verdict_value = "opportunity", "GO"
         verdict_sub = f"Underserved — {provider_gap:.1f} provider-equivalent gap vs. state density baseline."
     elif provider_gap < -1:
-        verdict_type, verdict_value = "red", "AVOID"
+        verdict_type, verdict_value = "avoid", "AVOID"
         verdict_sub = f"Saturated — {abs(provider_gap):.1f} providers above state density baseline."
     else:
         verdict_type, verdict_value = "caution", "CAUTION"
@@ -290,7 +290,7 @@ async def run_t0_report(
         market=f"{payload.city}, {payload.state}",
         radius=f"{payload.miles_radius} mi",
         reportTier="Market Entry",
-        address=address_str,
+        address=f"{payload.address_line_1} {payload.address_line_2 if payload.address_line_2 else ''}",
         clientName="",  # no named client for T0
         tags=generate_tags(cpt_rows),
         verdictType=verdict_type,
@@ -333,7 +333,7 @@ async def run_t0_report(
         providerShares=provider_shares,
     )
 
-    template_html = (settings.TEMPLATES_DIR / "MREC_Report_TEMPLATE_V3.html").read_text(encoding="utf-8")
+    template_html = (settings.TEMPLATES_DIR / "MREC_Report_TEMPLATE_T0.html").read_text(encoding="utf-8")
     html = replace_data_block_v3(template_html, report_data)
     log.info("[9/9] Done — T0 report '%s' rendered (%d bytes)", report_id, len(html))
     return html, debug_excel_bytes

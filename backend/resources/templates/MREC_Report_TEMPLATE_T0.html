@@ -229,11 +229,14 @@ body {
 
 .title-left {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .tier-pill {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   background: var(--ice);
   border: 1px solid var(--sky);
@@ -246,6 +249,8 @@ body {
   width: 6px; height: 6px;
   border-radius: 50%;
   background: var(--sky);
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .tier-pill-text {
@@ -273,6 +278,7 @@ body {
 }
 
 .verdict-box {
+  width: 30%;
   min-width: 180px;
   padding: 16px 20px;
   border-radius: 3px;
@@ -280,6 +286,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .verdict-box.opportunity {
@@ -310,6 +318,7 @@ body {
   font-size: 26px;
   letter-spacing: 2px;
   line-height: 1;
+  white-space: normal;
 }
 
 .verdict-box.opportunity .verdict-value { color: var(--green); }
@@ -321,6 +330,7 @@ body {
   font-weight: 600;
   color: var(--muted);
   letter-spacing: 1px;
+  white-space: normal;
 }
 
 /* ══════════════════════════════════
@@ -551,22 +561,13 @@ body {
 }
 
 /* right-align headers for all numeric columns to match data cell alignment */
-.comparison-table thead th:nth-child(n+2) {
+.comparison-table thead th:nth-child(n+3) {
   text-align: right;
 }
 
 .comparison-table td:nth-child(3),
 .comparison-table td:nth-child(4),
-.comparison-table td:nth-child(5),
-.comparison-table td:nth-child(6),
-.comparison-table td:nth-child(7),
-.comparison-table td:nth-child(8),
-.comparison-table td:nth-child(9) {
-  text-align: right;
-}
-
-/* right-align Medicare Rate td (col 2) */
-.comparison-table td:nth-child(2) {
+.comparison-table td:nth-child(5) {
   text-align: right;
 }
 
@@ -590,6 +591,10 @@ body {
   font-style: italic;
 }
 
+.comparison-table tfoot td:nth-child(n+2) {
+  text-align: right;
+}
+
 .comparison-footnote {
   font-size: 9px;
   color: var(--muted);
@@ -599,7 +604,7 @@ body {
 .gauge-wrap {
   position: relative;
   width: 130px;
-  height: 70px;
+  height: 95px;
   flex-shrink: 0;
 }
 
@@ -652,8 +657,8 @@ body {
 .saturation-stats {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
 }
 .sat-stat {
   background: var(--light);
@@ -756,9 +761,10 @@ body {
 
 .gauge-label {
   position: absolute;
-  bottom: -20%; left: 50%;
-  transform: translateX(-50%);
+  bottom: 20%; left: 30%;
+  transform: translateX(-20%);
   text-align: center;
+  white-space: nowrap;
 }
 
 .gauge-pct {
@@ -1067,7 +1073,7 @@ const DATA = {
   // verdictType: "opportunity" (green) | "caution" (amber) | "avoid" (red)
   verdictType:  "opportunity",
   verdictValue: "GO",
-  verdictSub:   "Strong Opportunity",
+  verdictSub:   "Underserved — 3.0 provider-equivalent gap vs. state density baseline.",
 
   // ── Section 1: Population & Provider Density ──────────────
   totalPopulation:    "503,447",
@@ -1202,11 +1208,14 @@ const DATA = {
   }).join('');
 
   const fmtCurrency = (n) => Number.isFinite(n) ? '$' + Math.round(n).toLocaleString('en-US') : '—';
+  const marketRevenueTotal = cptNormalizedRows.reduce(
+    (sum, r) => sum + (Number.isFinite(r.revenue) ? r.revenue : 0),
+    0
+  );
 
   const cptScoreRowsHtml = cptNormalizedRows.map(r => `
     <tr>
       <td>${r.code}</td>
-      <td>${r.desc || '—'}</td>
       <td>${r.patientType || '—'}</td>
       <td>${fmtInt(r.marketVolume)}</td>
       <td class="medicare-rate-col" title="CMS 2026 Physician Fee Schedule — office-setting rate, state-adjusted">${r.medicareRate || '—'}</td>
@@ -1351,33 +1360,33 @@ const DATA = {
 
     <div class="section-note">
       <strong>Market baseline:</strong> Annual visit volumes processed by all active providers within ${D.radius} of ${D.address}.
-      These E&amp;M codes represent the universal "through the door" demand that any office-based practice in this location would encounter.
+      These codes represent the universal "through the door" demand that any office-based practice in this location would encounter.
     </div>
 
     <table class="data-table comparison-table">
       <thead>
         <tr>
           <th>CPT</th>
-          <th>Description</th>
           <th>Patient Type</th>
           <th>Market Volume / Yr</th>
-          <th title="CMS 2026 Physician Fee Schedule — office-setting rate, state-adjusted">Avg Reimbursement</th>
-          <th>Market Revenue</th>
+          <th title="CMS 2026 Physician Fee Schedule — office-setting rate, state-adjusted">Medicare Rate</th>
+          <th title="Estimated based on CMS 2026 Medicare fee schedule — actual reimbursement will vary">Est. Market Revenue *</th>
         </tr>
       </thead>
       <tbody>${cptScoreRowsHtml}</tbody>
       <tfoot>
         <tr>
-          <td colspan="3">Total (CPT Basket)</td>
+          <td colspan="2">Total (CPT Basket)</td>
           <td>${fmtInt(marketVisitsTotal)}</td>
           <td>—</td>
-          <td>—</td>
+          <td>${fmtCurrency(marketRevenueTotal)}</td>
         </tr>
       </tfoot>
     </table>
     <div class="comparison-footnote">
-      Volumes reflect 2024 Medicare claims data for the searched ZIP codes and taxonomy codes.
-      <em>Medicare Rate</em> = CMS 2026 Physician Fee Schedule — office-setting rate, state-adjusted.
+      <div><strong>Market baseline:</strong> Volumes reflect 2025 Medicare claims data for the searched ZIP codes and taxonomy codes.</div>
+      <div><strong>Medicare Rate:</strong> CMS 2026 Physician Fee Schedule — office-setting rate, state-adjusted.</div>
+      <div><strong>* Est. Market Revenue:</strong> Projected using the CMS 2026 Medicare Physician Fee Schedule (office-setting, state-adjusted). Actual reimbursement varies by payer mix, contract rates, and coding — use as a directional estimate only.</div>
     </div>
 
     <!-- SECTION 03 -->
@@ -1427,10 +1436,6 @@ const DATA = {
             <div class="sat-stat-label">Benchmark Target</div>
             <div class="sat-stat-val muted">${Number.isFinite(targetProviders) ? targetProviders.toFixed(1) : '—'}</div>
           </div>
-          <div class="sat-stat">
-            <div class="sat-stat-label">Patients / Provider</div>
-            <div class="sat-stat-val">${fmtInt(patientsPerProvider)}</div>
-          </div>
         </div>
       </div>
 
@@ -1440,8 +1445,8 @@ const DATA = {
         <div class="prov-dist-sub">Share of total market services per provider &nbsp;·&nbsp; anonymous, ranked</div>
         <div class="prov-dist-chart">${providerShareBars}</div>
         <div class="prov-dist-note">
-          Based on ${D.cptTotalVisits} total market services across ${(D.providerShares || []).length} providers.
-          Provider identities are not disclosed in this report.
+          Based on services count for all procedures listed in Section 02 across ${(D.providerShares || []).length} providers.
+          Individual provider volume breakdowns are not disclosed — market share distribution is shown in aggregate only.
         </div>
       </div>
 

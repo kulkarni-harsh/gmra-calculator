@@ -1,12 +1,11 @@
 from fastapi import APIRouter
 
 from app.api.endpoints import jobs, payment, providers
-from app.api.v2.router import router as v2_router
-from app.api.v3.router import router as v3_router
+from app.api.endpoints import report_t0, report_t1
 
 api_router = APIRouter()
-api_router.include_router(providers.router, tags=["providers"])
-api_router.include_router(payment.router, tags=["payment"])
-api_router.include_router(jobs.router, tags=["jobs"])
-api_router.include_router(v2_router, tags=["v2"], prefix="/v2")
-api_router.include_router(v3_router, tags=["v3"], prefix="/v3")
+api_router.include_router(providers.router, tags=["providers"], prefix="/providers")
+api_router.include_router(payment.router, tags=["payments"], prefix="/payments")
+api_router.include_router(jobs.router, tags=["jobs"], prefix="/jobs")
+api_router.include_router(report_t1.router, tags=["reports-t1"], prefix="/reports/t1")
+api_router.include_router(report_t0.router, tags=["reports-t0"], prefix="/reports/t0")

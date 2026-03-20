@@ -119,6 +119,16 @@ def get_anchor_cpt_codes(anchor_cpt_lookup: dict, specialty_name: str) -> list[s
     return anchor_cpt_codes
 
 
+def get_anchor_cpt_patient_type_map(anchor_cpt_lookup: dict) -> dict[str, str]:
+    """Return a mapping of CPT code → patient type ("New Patient" | "Established")."""
+    result: dict[str, str] = {}
+    for group in anchor_cpt_lookup.get("through_the_door_cpt_codes", {}).values():
+        for entry in group.get("codes", []):
+            if "patient_type" in entry:
+                result[entry["code"]] = entry["patient_type"]
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Fee schedule loaders — called once at startup, stored on app.state
 # ---------------------------------------------------------------------------

@@ -49,7 +49,7 @@ export interface Provider {
   cpt_list: CPT[]
 }
 
-// GET /api/v2/report/specialties response item
+// GET /api/providers/specialties response item
 export interface Specialty {
   id: string
   description: string
@@ -57,7 +57,7 @@ export interface Specialty {
   national_density: number | null   // providers per 100k nationally
 }
 
-// POST /api/v2/report/generate request body — mirrors ProviderRequest schema
+// POST /api/reports/t1/generate request body — mirrors ProviderRequest schema
 export interface GenerateReportRequest {
   specialty_name: string   // Must be the description string, not the id
   client_provider: Provider

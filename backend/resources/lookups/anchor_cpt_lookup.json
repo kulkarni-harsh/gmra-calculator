@@ -3,44 +3,44 @@
     "em_office_visits": {
       "label": "E&M Office Visits",
       "codes": [
-        { "code": "99202", "description": "New patient, low complexity" },
-        { "code": "99203", "description": "New patient, low-moderate complexity" },
-        { "code": "99204", "description": "New patient, moderate complexity" },
-        { "code": "99205", "description": "New patient, high complexity" },
-        { "code": "99211", "description": "Established patient, minimal" },
-        { "code": "99212", "description": "Established patient, low complexity" },
-        { "code": "99213", "description": "Established patient, low-moderate complexity" },
-        { "code": "99214", "description": "Established patient, moderate complexity" },
-        { "code": "99215", "description": "Established patient, high complexity" }
+        { "code": "99202", "patient_type": "New Patient",   "description": "New patient, low complexity" },
+        { "code": "99203", "patient_type": "New Patient",   "description": "New patient, low-moderate complexity" },
+        { "code": "99204", "patient_type": "New Patient",   "description": "New patient, moderate complexity" },
+        { "code": "99205", "patient_type": "New Patient",   "description": "New patient, high complexity" },
+        { "code": "99211", "patient_type": "Established",   "description": "Established patient, minimal" },
+        { "code": "99212", "patient_type": "Established",   "description": "Established patient, low complexity" },
+        { "code": "99213", "patient_type": "Established",   "description": "Established patient, low-moderate complexity" },
+        { "code": "99214", "patient_type": "Established",   "description": "Established patient, moderate complexity" },
+        { "code": "99215", "patient_type": "Established",   "description": "Established patient, high complexity" }
       ]
     },
     "preventive_visits": {
       "label": "Preventive Medicine Visits",
       "codes": [
-        { "code": "99381", "description": "New patient, infant (<1 yr)" },
-        { "code": "99382", "description": "New patient, age 1-4" },
-        { "code": "99383", "description": "New patient, age 5-11" },
-        { "code": "99384", "description": "New patient, age 12-17" },
-        { "code": "99385", "description": "New patient, age 18-39" },
-        { "code": "99386", "description": "New patient, age 40-64" },
-        { "code": "99387", "description": "New patient, age 65+" },
-        { "code": "99391", "description": "Established patient, infant (<1 yr)" },
-        { "code": "99392", "description": "Established patient, age 1-4" },
-        { "code": "99393", "description": "Established patient, age 5-11" },
-        { "code": "99394", "description": "Established patient, age 12-17" },
-        { "code": "99395", "description": "Established patient, age 18-39" },
-        { "code": "99396", "description": "Established patient, age 40-64" },
-        { "code": "99397", "description": "Established patient, age 65+" }
+        { "code": "99381", "patient_type": "New Patient",   "description": "New patient, infant (<1 yr)" },
+        { "code": "99382", "patient_type": "New Patient",   "description": "New patient, age 1-4" },
+        { "code": "99383", "patient_type": "New Patient",   "description": "New patient, age 5-11" },
+        { "code": "99384", "patient_type": "New Patient",   "description": "New patient, age 12-17" },
+        { "code": "99385", "patient_type": "New Patient",   "description": "New patient, age 18-39" },
+        { "code": "99386", "patient_type": "New Patient",   "description": "New patient, age 40-64" },
+        { "code": "99387", "patient_type": "New Patient",   "description": "New patient, age 65+" },
+        { "code": "99391", "patient_type": "Established",   "description": "Established patient, infant (<1 yr)" },
+        { "code": "99392", "patient_type": "Established",   "description": "Established patient, age 1-4" },
+        { "code": "99393", "patient_type": "Established",   "description": "Established patient, age 5-11" },
+        { "code": "99394", "patient_type": "Established",   "description": "Established patient, age 12-17" },
+        { "code": "99395", "patient_type": "Established",   "description": "Established patient, age 18-39" },
+        { "code": "99396", "patient_type": "Established",   "description": "Established patient, age 40-64" },
+        { "code": "99397", "patient_type": "Established",   "description": "Established patient, age 65+" }
       ]
     },
     "obgyn_specific": {
       "label": "OB/GYN Specialty-Only (not universal)",
       "codes": [
-        { "code": "59400", "description": "Routine obstetric care, vaginal delivery" },
-        { "code": "59409", "description": "Vaginal delivery only" },
-        { "code": "59510", "description": "Routine obstetric care, cesarean delivery" },
-        { "code": "59514", "description": "Cesarean delivery only" },
-        { "code": "59618", "description": "Routine obstetric care, VBAC attempt" }
+        { "code": "59400", "patient_type": "Obstetric",     "description": "Routine obstetric care, vaginal delivery" },
+        { "code": "59409", "patient_type": "Obstetric",     "description": "Vaginal delivery only" },
+        { "code": "59510", "patient_type": "Obstetric",     "description": "Routine obstetric care, cesarean delivery" },
+        { "code": "59514", "patient_type": "Obstetric",     "description": "Cesarean delivery only" },
+        { "code": "59618", "patient_type": "Obstetric",     "description": "Routine obstetric care, VBAC attempt" }
       ]
     }
   }

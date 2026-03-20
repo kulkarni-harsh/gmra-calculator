@@ -6,10 +6,10 @@ import stripe
 from fastapi import APIRouter, HTTPException, Request
 
 from app.core.config import settings
-from app.schemas.payment import CreatePaymentIntentRequest
+from app.schemas.payment import CreatePaymentIntentRequest, CreateT0PaymentIntentRequest
 from app.services.email import send_request_confirmation
 from app.services.job_store import JobAlreadyExistsError, claim_job_for_generation, create_job_awaiting_payment
-from app.services.payment import create_payment_intent
+from app.services.payment import create_payment_intent, create_t0_payment_intent
 from app.services.queue import send_job
 
 router = APIRouter()
@@ -23,6 +23,7 @@ async def create_payment_intent_endpoint(payload: CreatePaymentIntentRequest):
     can enqueue the job even if the user's browser closes before /generate is called.
     """
     job_id = f"MERC-{uuid.uuid4().hex[:12].upper()}"
+    print("job_id", job_id)
     try:
         client_secret = create_payment_intent(
             job_id=job_id,
@@ -62,7 +63,7 @@ async def stripe_webhook(request: Request):
     """
     Handle Stripe webhook events.
     Processes payment_intent.succeeded for async payment methods (3DS, bank redirects).
-    Must be registered in Stripe dashboard pointing to POST /api/webhook/stripe.
+    Must be registered in Stripe dashboard pointing to POST /api/payments/webhook/stripe.
     """
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature", "")
@@ -115,3 +116,47 @@ async def stripe_webhook(request: Request):
             logging.error("Stripe webhook: confirmation email failed for job %s: %s", job_id, exc)
 
     return {"received": True}
+
+
+@router.post("/create-t0-payment-intent")
+async def create_t0_payment_intent_endpoint(payload: CreateT0PaymentIntentRequest):
+    """Pre-generate job_id, create Stripe PaymentIntent for $399, store T0 job in DynamoDB."""
+    job_id = f"MERC-{uuid.uuid4().hex[:12].upper()}"
+    address_label = f"{payload.address_line_1}, {payload.city} {payload.state} {payload.zip_code}"
+
+    try:
+        client_secret = create_t0_payment_intent(
+            job_id=job_id,
+            customer_email=str(payload.customer_email),
+            specialty_name=payload.specialty_name,
+            address_label=address_label,
+        )
+    except Exception as exc:
+        logging.error("Failed to create T0 Stripe PaymentIntent: %s", exc)
+        raise HTTPException(status_code=502, detail="Failed to create payment session") from exc
+
+    pre_payload_json = json.dumps({
+        "report_type": "t0",
+        "specialty_name": payload.specialty_name,
+        "address_line_1": payload.address_line_1,
+        "address_line_2": payload.address_line_2,
+        "city": payload.city,
+        "state": payload.state,
+        "zip_code": payload.zip_code,
+        "miles_radius": payload.miles_radius,
+        "customer_email": str(payload.customer_email),
+        "payment_intent_id": "pending",
+    })
+
+    try:
+        create_job_awaiting_payment(
+            job_id=job_id,
+            payload_json=pre_payload_json,
+            specialty_name=payload.specialty_name,
+            provider_name=address_label,
+        )
+    except JobAlreadyExistsError:
+        logging.error("job_id collision at T0 intent creation: %s", job_id)
+        raise HTTPException(status_code=500, detail="Failed to initialize job") from None
+
+    return {"client_secret": client_secret, "job_id": job_id}

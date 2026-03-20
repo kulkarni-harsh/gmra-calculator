@@ -69,7 +69,7 @@ class ReportTemplateData:
     competitorCount: int | None = None
 
 
-# ── V2 types (MREC_Report_TEMPLATE_V2) ────────────────────────────────────────
+# ── V2 types (MREC_Report_TEMPLATE_T1) ────────────────────────────────────────
 # Revenue fields have been removed. All sections (New vs Established split,
 # Code Concentration, Fair Share, Visit Mix) are derived client-side from
 # CPT volume data — no revenue fields required.

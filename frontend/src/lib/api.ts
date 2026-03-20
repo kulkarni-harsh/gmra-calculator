@@ -5,10 +5,9 @@ import type { CreateT0PaymentIntentPayload, GenerateReportRequest, GenerateT0Rep
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8000'
 const API = `${BASE_URL}/api`
-const API_V2 = `${BASE_URL}/api/v2/report`
 
 export async function fetchSpecialties(): Promise<Specialty[]> {
-  const res = await fetch(`${API}/specialties`)
+  const res = await fetch(`${API}/providers/specialties`)
   if (!res.ok) throw new Error(`Failed to fetch specialties (${res.status})`)
   const data: unknown = await res.json()
   // The endpoint may return string[] or Specialty[]. Normalize to Specialty[].
@@ -25,7 +24,7 @@ export async function fetchSpecialties(): Promise<Specialty[]> {
 
 export async function searchProviders(zipCode: string, specialtyName: string): Promise<Provider[]> {
   const params = new URLSearchParams({ zip_code: zipCode, specialty_name: specialtyName })
-  const res = await fetch(`${API}/search-providers?${params}`)
+  const res = await fetch(`${API}/providers/search-providers?${params}`)
   if (!res.ok) throw new Error(`Provider search failed (${res.status})`)
   return res.json() as Promise<Provider[]>
 }
@@ -47,7 +46,7 @@ export interface JobStatus {
 }
 
 export async function generateReport(payload: GenerateReportRequest): Promise<GenerateResult> {
-  const submitRes = await fetch(`${API_V2}/generate`, {
+  const submitRes = await fetch(`${API}/reports/t1/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -61,7 +60,7 @@ export async function generateReport(payload: GenerateReportRequest): Promise<Ge
 }
 
 export async function checkJobStatus(jobId: string): Promise<JobStatus> {
-  const res = await fetch(`${API}/status/${jobId}`)
+  const res = await fetch(`${API}/jobs/status/${jobId}`)
   if (res.status === 404) throw new Error('Job not found — check your tracking ID')
   if (!res.ok) throw new Error(`Status check failed (${res.status})`)
   return res.json() as Promise<JobStatus>
@@ -83,7 +82,7 @@ export interface CreatePaymentIntentResult {
 export async function createPaymentIntent(
   payload: CreatePaymentIntentPayload,
 ): Promise<CreatePaymentIntentResult> {
-  const res = await fetch(`${API}/create-payment-intent`, {
+  const res = await fetch(`${API}/payments/create-payment-intent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -95,12 +94,10 @@ export async function createPaymentIntent(
   return res.json() as Promise<CreatePaymentIntentResult>
 }
 
-const API_V3 = `${BASE_URL}/api/v3`
-
 export async function createT0PaymentIntent(
   payload: CreateT0PaymentIntentPayload,
 ): Promise<CreatePaymentIntentResult> {
-  const res = await fetch(`${API_V3}/create-payment-intent`, {
+  const res = await fetch(`${API}/payments/create-t0-payment-intent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -113,7 +110,7 @@ export async function createT0PaymentIntent(
 }
 
 export async function generateT0Report(payload: GenerateT0ReportRequest): Promise<GenerateResult> {
-  const res = await fetch(`${API_V3}/report/generate`, {
+  const res = await fetch(`${API}/reports/t0/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

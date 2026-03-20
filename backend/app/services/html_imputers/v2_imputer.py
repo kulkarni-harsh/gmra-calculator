@@ -1,4 +1,4 @@
-"""HTML imputer for MREC_Report_TEMPLATE_V2.
+"""HTML imputer for MREC_Report_TEMPLATE_T1.
 
 Thin wrapper around the shared DATA-block replacement logic, typed to the V2
 schema.  The underlying regex replacement is identical to the baseline imputer;

@@ -39,7 +39,7 @@ async def process_job(job_id: str, state: ReportState) -> None:
 
     try:
         raw = json.loads(job["payload"])
-        report_type = raw.get("report_type", "t1")
+        report_type = raw.get("report_type", "t0")
 
         if report_type == "t0":
             t0_payload = AddressReportRequest.model_validate(raw)
@@ -94,6 +94,7 @@ async def main() -> None:
 
     while True:
         messages = receive_jobs(max_messages=1, wait_seconds=20)
+        print("messages", messages)
         for msg in messages:
             body = json.loads(msg["Body"])
             job_id = body.get("job_id", "<unknown>")

@@ -37,7 +37,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.PROJECT_NAME,
         version=settings.VERSION,
-        debug=settings.DEBUG,
+        # debug=settings.DEBUG,
         lifespan=lifespan,
     )
 

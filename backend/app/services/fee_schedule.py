@@ -56,9 +56,20 @@ def get_medicare_rate(
     state_key = state.strip().upper()
     gpci = gpci_table.get(state_key)
     if gpci is None:
+        # print("TEST")
         logging.debug("State %s not found in GPCI table; using national (1.0) GPCIs", state_key)
         gpci = {"pw": 1.0, "pe": 1.0, "mp": 1.0}
 
     pe_rvu = rvu["pe_fac"] if facility else rvu["pe_nonfac"]
     payment = (rvu["work"] * gpci["pw"] + pe_rvu * gpci["pe"] + rvu["mp"] * gpci["mp"]) * rvu["cf"]
+    # print('rvu["work"]', rvu["work"])
+    # print('gpci["pw"]', gpci["pw"])
+    # print('pe_rvu', pe_rvu)
+    # print('gpci["pe"]', gpci["pe"])
+    # print('rvu["mp"]', rvu["mp"])
+    # print('gpci["mp"]', gpci["mp"])
+    # print('rvu["cf"]', rvu["cf"])
+    # print('payment', payment)
+    # print('(rvu["work"] * gpci["pw"] + pe_rvu * gpci["pe"] + rvu["mp"] * gpci["mp"]) * rvu["cf"]')
+    # print(f'({rvu["work"]} * {gpci["pw"]} + {pe_rvu} * {gpci["pe"]} + {rvu["mp"]} * {gpci["mp"]}) * {rvu["cf"]}')
     return round(payment, 2)

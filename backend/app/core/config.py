@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str
     VERSION: str
     API_PREFIX: str
-    DEBUG: bool
+    # DEBUG: bool
     CENSUS_API_KEY: str
     MAPBOX_API_KEY: str
     ALPHASOPHIA_API_KEY: str

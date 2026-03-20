@@ -91,6 +91,7 @@ class Provider(BaseModel):
     longitude: float | None = None  # Not in Alphasophia output
     distance_from_source_miles: float | None = None  # Not in Alphasophia output
     cpt_list: list[CPT] = []  # Not in Alphasophia output
+    cpt_total_services: int = 0  # Sum of totalServices across report CPT codes; set during report generation
 
     @field_validator("id", mode="before")
     def convert_to_int(cls, value: Any) -> int:  # noqa: N805

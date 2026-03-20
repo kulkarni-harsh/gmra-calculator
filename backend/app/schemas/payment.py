@@ -19,4 +19,7 @@ class CreateT0PaymentIntentRequest(BaseModel):
     city: str
     state: str
     zip_code: str
-    miles_radius: int = Field(..., ge=1, le=100)
+    drive_time_minutes: int = Field(
+        ...,
+        description="Drive-time catchment in minutes: 10 | 30 | 45 | 60",
+    )

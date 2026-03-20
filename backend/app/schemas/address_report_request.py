@@ -9,7 +9,10 @@ class AddressReportRequest(BaseModel):
     city: str = Field(..., description="City")
     state: str = Field(..., description="2-letter US state code")
     zip_code: str = Field(..., description="5-digit ZIP code")
-    miles_radius: int = Field(..., ge=1, le=100, description="Radius in miles to search for competitors")
+    drive_time_minutes: int = Field(
+        ...,
+        description="Drive-time catchment in minutes. Must be one of: 10, 30, 45, 60.",
+    )
     customer_email: EmailStr = Field(..., description="Email to send the finished report to")
     payment_intent_id: str = Field(..., description="Stripe PaymentIntent ID — verified before job enqueue")
 
@@ -23,4 +26,11 @@ class AddressReportRequest(BaseModel):
             "d.rutson@gmail.com",
         ]:
             raise ValueError("Ineligible Customer Email")
+        return value
+
+    @field_validator("drive_time_minutes")
+    @classmethod
+    def validate_drive_time_minutes(cls, value: int) -> int:  # noqa: N805
+        if value not in {10, 30, 45, 60}:
+            raise ValueError("drive_time_minutes must be one of: 10, 30, 45, 60")
         return value

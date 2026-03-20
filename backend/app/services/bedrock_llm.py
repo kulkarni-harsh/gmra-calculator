@@ -32,7 +32,7 @@ class MarketAnalysisInput:
     city: str
     state: str
     specialty: str
-    miles_radius: int
+    drive_time_minutes: int
     total_population: int
     relevant_pop: int
     population_label: str
@@ -50,6 +50,9 @@ class MarketAnalysisInput:
     nearest_competitor_drive_min: float | None = None
     median_competitor_drive_min: float | None = None
     providers_within_10_min: int | None = None
+    # List of (drive_time_minutes, cpt_volume_share_pct) pairs, sorted by drive time ASC.
+    # Enables LLM to reason about proximity risk vs. volume dominance together.
+    provider_drive_volume_pairs: list[tuple[float, int]] = field(default_factory=list)
 
 
 def _build_prompt(d: MarketAnalysisInput) -> str:
@@ -110,6 +113,16 @@ def _build_prompt(d: MarketAnalysisInput) -> str:
     else:
         geo_context = "- Competitor drive-time data not available\n"
 
+    # ── Competitor proximity vs CPT volume ──────────────────────────────────
+    if d.provider_drive_volume_pairs:
+        lines = "\n".join(
+            f"  - {round(dt)} min drive · {share}% volume share"
+            for dt, share in d.provider_drive_volume_pairs[:10]
+        )
+        proximity_volume_context = f"Competitors sorted by drive time (nearest first):\n{lines}\n"
+    else:
+        proximity_volume_context = "- Competitor proximity-volume data not available\n"
+
     # ── Relevant population note ──────────────────────────────────────────
     pop_note = ""
     if d.relevant_pop != d.total_population and d.total_population > 0:
@@ -131,9 +144,10 @@ def _build_prompt(d: MarketAnalysisInput) -> str:
         "what this implies about raw demand in the market.\n"
         "2. Provider Density & Location Advantage — Compare active providers "
         "to the benchmark, state whether this market is underserved/saturated/neutral. "
-        "Comment on drive-time competition: if the nearest competitor is within "
-        "5–10 minutes, note direct proximity risk; if most competitors are 15+ minutes "
-        "away, highlight the location's drive-time catchment advantage. "
+        "Comment on drive-time competition and volume: if the nearest competitor is within "
+        "5–10 minutes AND has high CPT volume share, note direct proximity+dominance risk; "
+        "if nearby competitors have low volume share, note the opportunity despite proximity. "
+        "If most high-volume competitors are 15+ minutes away, highlight the catchment advantage. "
         "Give a clear site-selection opinion.\n"
         "3. Market Concentration & Procedure Mix — How concentrated is provider "
         "volume (dominant players vs distributed market), and which procedure types "
@@ -150,13 +164,14 @@ def _build_prompt(d: MarketAnalysisInput) -> str:
         "MARKET DATA:\n\n"
         f"Location: {d.city}, {d.state}\n"
         f"Specialty: {d.specialty}\n"
-        f"Search radius: {d.miles_radius} miles\n"
+        f"Drive-time catchment: {d.drive_time_minutes} min\n"
         f"Total population: {d.total_population:,}\n"
         f"{pop_note}"
         f"Annual patient visits (CPT services across all providers): {d.total_market_services:,}\n"
         f"Market verdict: {d.verdict_type.upper()}\n\n"
         f"Provider Density:\n{density_context}\n"
         f"Competitor Geographic Distribution:\n{geo_context}\n"
+        f"Competitor Proximity vs Volume:\n{proximity_volume_context}\n"
         f"Market Concentration:\n{concentration_context}\n"
         f"{cpt_context}\n"
         "---\n\n"

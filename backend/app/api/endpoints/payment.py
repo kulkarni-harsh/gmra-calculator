@@ -142,7 +142,7 @@ async def create_t0_payment_intent_endpoint(payload: CreateT0PaymentIntentReques
         "city": payload.city,
         "state": payload.state,
         "zip_code": payload.zip_code,
-        "miles_radius": payload.miles_radius,
+        "drive_time_minutes": payload.drive_time_minutes,
         "customer_email": str(payload.customer_email),
         "payment_intent_id": "pending",
     })

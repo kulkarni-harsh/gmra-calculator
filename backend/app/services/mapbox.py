@@ -161,6 +161,7 @@ def calculate_contour_minutes(
 
     for i in range(1, len(coordinates), MAX_DESTINATIONS):
         batch = [coordinates[0]] + coordinates[i:i + MAX_DESTINATIONS]
+        # providers is 0-indexed; coordinates[0] is the source, so providers[i-1] aligns with coordinates[i]
         batch_providers = providers[i - 1: i - 1 + MAX_DESTINATIONS]
         coords_str = ";".join(f"{lon},{lat}" for lon, lat in batch)
         sources_str = "0"
@@ -652,7 +653,7 @@ def generate_map(
         drive_times = [
             p.drive_time_minutes
             for p in providers
-            if p.drive_time_minutes is not None
+            if p.latitude is not None and p.longitude is not None
         ]
         contour_minutes = _contours_from_drive_times(drive_times)
         provider_drive_times: dict[tuple[float, float], float] = {

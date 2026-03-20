@@ -21,12 +21,12 @@ class CreateT0PaymentIntentRequest(BaseModel):
     zip_code: str
     drive_time_minutes: int = Field(
         ...,
-        description="Drive-time catchment in minutes. Must be one of: 10, 30, 45, 60.",
+        description="Drive-time catchment in minutes. Must be one of: 5, 10, 15, 30, 45, 60.",
     )
 
     @field_validator("drive_time_minutes")
     @classmethod
     def validate_drive_time_minutes(cls, value: int) -> int:  # noqa: N805
-        if value not in {10, 30, 45, 60}:
-            raise ValueError("drive_time_minutes must be one of: 10, 30, 45, 60")
+        if value not in {5, 10, 15, 30, 45, 60}:
+            raise ValueError("drive_time_minutes must be one of: 5, 10, 15, 30, 45, 60")
         return value

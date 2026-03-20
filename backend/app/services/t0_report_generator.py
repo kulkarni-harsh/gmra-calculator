@@ -419,7 +419,7 @@ async def run_t0_report(
         reportId=report_id,
         dateIssued=pd.Timestamp.now().strftime("%m/%d/%Y"),
         specialty=payload.specialty_name,
-        market=f"{payload.city}, {payload.state}",
+        market=f"{payload.zip_code} {payload.city}, {payload.state}",
         radius=f"{payload.drive_time_minutes} min drive",
         reportTier="Market Entry",
         address=f"{payload.address_line_1} {payload.address_line_2 if payload.address_line_2 else ''}",

@@ -55,7 +55,6 @@ async def process_job(job_id: str, state: ReportState) -> None:
         update_job(
             job_id,
             status="done",
-            result_html=html,
             report_s3_url=html_url,
             report_pdf_s3_url=pdf_url,
         )

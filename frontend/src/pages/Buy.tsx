@@ -35,7 +35,7 @@ interface BuyFormState {
 }
 
 const INITIAL_STATE: BuyFormState = {
-  selectedTierId: 1,
+  selectedTierId: 0,
   specialtyName: '',
   zipCode: '',
   milesRadius: 5,

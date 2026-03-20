@@ -826,6 +826,25 @@ body {
   color: white;
 }
 
+/* Map section */
+.map-section {
+  padding: 0 40px 20px 40px;
+}
+
+.map-image {
+  width: 100%;
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+.map-caption {
+  margin-top: 6px;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
 /* Upgrade section */
 .upgrade-section {
   background: var(--ice);
@@ -1110,6 +1129,10 @@ const DATA = {
     <strong>Recommended next step:</strong> commission a deeper CPT strategic model to evaluate provider capacity needs,
     optimal service mix, and revenue opportunity for this location.
   `,
+
+  // ── Map image (base64 data URI or relative path for local preview) ───────
+  // Set to null to hide the map section entirely.
+  mapImageSrc: "./map_coords_TX_outdoors.png",
 
   // ── Section 5: Upgrade Options ────────────────────────────
   upgrades: [
@@ -1451,6 +1474,17 @@ const DATA = {
       </div>
 
     </div>
+
+    <!-- MAP SECTION -->
+    ${D.mapImageSrc ? `
+    <div class="section-header">
+      <div class="section-num">MAP</div>
+      <div class="section-title">Geographic <em>Market Coverage</em></div>
+    </div>
+    <div class="map-section">
+      <img class="map-image" src="${D.mapImageSrc}" alt="Market coverage map" />
+      <div class="map-caption">Drive-time isochrones from ${D.address} &nbsp;·&nbsp; Peer Providers marked</div>
+    </div>` : ''}
 
     <!-- SECTION 04 -->
     <div class="section-header">

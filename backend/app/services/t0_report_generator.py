@@ -6,6 +6,7 @@ No provider NPI lookup — market-level aggregate only.
 """
 
 import asyncio
+import base64
 import logging
 from functools import reduce
 from io import BytesIO
@@ -23,6 +24,7 @@ from app.services.census import combine_demographics, get_zip_demographics
 from app.services.fee_schedule import get_medicare_rate
 from app.services.geocoder import geocode_address
 from app.services.html_imputers.v3_imputer import replace_data_block_v3
+from app.services.mapbox import generate_map
 from app.services.report_generator import ReportState
 from app.services.s3 import upload_debug_excel
 from app.types.alphasophia import CPT, Provider
@@ -47,14 +49,14 @@ async def run_t0_report(
     """Generate the Tier 0 V3 HTML report from an address. Returns (html, debug_excel_bytes)."""
     log = logging.getLogger(__name__)
 
-    log.info("[1/9] Resolving CPT codes and taxonomy for specialty '%s'", payload.specialty_name)
+    log.info("[1/10] Resolving CPT codes and taxonomy for specialty '%s'", payload.specialty_name)
     relevant_cpt_codes_list = get_anchor_cpt_codes(state.anchor_cpt_lookup, payload.specialty_name)
     cpt_patient_type_map = get_anchor_cpt_patient_type_map(state.anchor_cpt_lookup)
     taxonomy_codes = get_taxonomy_codes(state.specialty_lookup, payload.specialty_name)
     source_tabs = get_source_tabs(state.specialty_lookup, payload.specialty_name)
     provider_state = payload.state
 
-    log.info("[2/9] Geocoding address: '%s %s, %s %s'",
+    log.info("[2/10] Geocoding address: '%s %s, %s %s'",
              payload.address_line_1, payload.city, payload.state, payload.zip_code)
     address_str = (
         f"{payload.address_line_1} "
@@ -70,12 +72,12 @@ async def run_t0_report(
             raise ValueError(f"Could not geocode address and no ZIP centroid found for {payload.zip_code}")
         source_lat = float(zip_row.iloc[0]["lat"])
         source_lon = float(zip_row.iloc[0]["lon"])
-        log.warning("[2/9] Geocoding failed — fell back to ZIP centroid (%.4f, %.4f)", source_lat, source_lon)
+        log.warning("[2/10] Geocoding failed — fell back to ZIP centroid (%.4f, %.4f)", source_lat, source_lon)
     else:
         source_lat, source_lon = coords
-        log.info("[2/9] Geocoded to lat=%.4f, lon=%.4f", source_lat, source_lon)
+        log.info("[2/10] Geocoded to lat=%.4f, lon=%.4f", source_lat, source_lon)
 
-    log.info("[3/9] Computing ZIP distances from geocoded location")
+    log.info("[3/10] Computing ZIP distances from geocoded location")
     zip_centroids_df = state.zip_centroids_df.copy()
     zip_centroids_df["distance_from_source_miles"] = zip_centroids_df.apply(
         lambda row: geodesic((source_lat, source_lon), (row["lat"], row["lon"])).miles,
@@ -90,9 +92,9 @@ async def run_t0_report(
             "lon": [source_lon],
             "distance_from_source_miles": [0.0],
         })
-    log.info("[3/9] Done — %d ZIP codes in 2× search radius (%d mi)", len(expanded_zips_df), 2 * payload.miles_radius)
+    log.info("[3/10] Done — %d ZIP codes in 2× search radius (%d mi)", len(expanded_zips_df), 2 * payload.miles_radius)
 
-    log.info("[4/9] Fetching providers from AlphaSophia across %d ZIP codes", len(expanded_zips_df))
+    log.info("[4/10] Fetching providers from AlphaSophia across %d ZIP codes", len(expanded_zips_df))
     providers_list: list[Provider] = []
     try:
         providers_list = await get_hcp_data(
@@ -102,20 +104,20 @@ async def run_t0_report(
             cpt_codes_list=relevant_cpt_codes_list,
             page_size=100,
         )
-        log.info("[4/9] Done — fetched %d providers from AlphaSophia", len(providers_list))
+        log.info("[4/10] Done — fetched %d providers from AlphaSophia", len(providers_list))
     except Exception as exc:
-        log.error("[4/9] AlphaSophia fetch failed: %s", exc)
+        log.error("[4/10] AlphaSophia fetch failed: %s", exc)
 
-    log.info("[5/9] Enriching %d provider addresses and coordinates", len(providers_list))
+    log.info("[5/10] Enriching %d provider addresses and coordinates", len(providers_list))
 
     async def _enrich(p: Provider) -> None:
         await p.update_address_and_zip()
         await p.update_lat_long()
 
     await asyncio.gather(*[_enrich(p) for p in providers_list])
-    log.info("[5/9] Done — addresses resolved")
+    log.info("[5/10] Done — addresses resolved")
 
-    log.info("[6/9] Filtering providers to exact radius of %d mi", payload.miles_radius)
+    log.info("[6/10] Filtering providers to exact radius of %d mi", payload.miles_radius)
     providers_in_radius: list[Provider] = []
     for p in providers_list:
         if p.latitude is None or p.longitude is None:
@@ -125,11 +127,26 @@ async def run_t0_report(
         ).miles
         if p.distance_from_source_miles <= payload.miles_radius:
             providers_in_radius.append(p)
-    log.info("[6/9] Done — %d providers within radius", len(providers_in_radius))
+    log.info("[6/10] Done — %d providers within radius", len(providers_in_radius))
 
-    log.info("[7/9] Fetching CPT profiles for %d in-radius providers", len(providers_in_radius))
+    log.info("[7/10] Generating map image")
+    map_image_src: str | None = None
+    try:
+        map_bytes = await asyncio.to_thread(
+            generate_map,
+            token=settings.MAPBOX_API_KEY,
+            source_lat=source_lat,
+            source_lon=source_lon,
+            providers=providers_in_radius,
+        )
+        map_image_src = f"data:image/png;base64,{base64.b64encode(map_bytes).decode()}"
+        log.info("[7/10] Map image generated (%d bytes)", len(map_bytes))
+    except Exception as exc:
+        log.warning("[7/10] Map generation failed — report will render without map: %s", exc)
+
+    log.info("[8/10] Fetching CPT profiles for %d in-radius providers", len(providers_in_radius))
     await asyncio.gather(*[p.fetch_cpt_profiles(relevant_cpt_codes_list) for p in providers_in_radius])
-    log.info("[7/9] Done — CPT profiles fetched")
+    log.info("[8/10] Done — CPT profiles fetched")
 
     # ── Debug dump ────────────────────────────────────────────────────────────
     debug_excel_bytes: bytes | None = None
@@ -154,7 +171,7 @@ async def run_t0_report(
             log.warning("[debug] Failed to upload Excel: %s", exc)
     # ── end debug dump ────────────────────────────────────────────────────────
 
-    log.info("[8/9] Aggregating CPT data across %d providers", len(providers_in_radius))
+    log.info("[9/10] Aggregating CPT data across %d providers", len(providers_in_radius))
     peer_providers_count = max(len(providers_in_radius), 1)
 
     # Provider share distribution (all peers, no client)
@@ -206,9 +223,9 @@ async def run_t0_report(
                 totalVolume=f"{vol:,}" if vol > 0 else None,
             )
         )
-    log.info("[8/9] Done — %d CPT rows, market total: %d", len(cpt_rows), total_market_services)
+    log.info("[9/10] Done — %d CPT rows, market total: %d", len(cpt_rows), total_market_services)
 
-    log.info("[9/9] Fetching census demographics + rendering report")
+    log.info("[10/10] Fetching census demographics + rendering report")
     actual_zips_df = zip_centroids_df[zip_centroids_df["distance_from_source_miles"] <= payload.miles_radius]
     if actual_zips_df.empty:
         actual_zips_df = pd.DataFrame({
@@ -225,7 +242,7 @@ async def run_t0_report(
         combined_demo: SexAgeCounts = reduce(combine_demographics, zip_demo_dict.values())
         total_population = combined_demo["Total"]
     except Exception as exc:
-        log.error("[9/9] Census demographics failed: %s", exc)
+        log.error("[10/10] Census demographics failed: %s", exc)
         combined_demo = SexAgeCounts({"M": {}, "F": {}, "Total": 0})
 
     if "geriatric" in payload.specialty_name.lower():
@@ -355,9 +372,10 @@ async def run_t0_report(
         sourceTabs=source_tabs,
         peerNpis=[p.npi for p in providers_in_radius if p.npi],
         providerShares=provider_shares,
+        mapImageSrc=map_image_src,
     )
 
     template_html = (settings.TEMPLATES_DIR / "MREC_Report_TEMPLATE_T0.html").read_text(encoding="utf-8")
     html = replace_data_block_v3(template_html, report_data)
-    log.info("[9/9] Done — T0 report '%s' rendered (%d bytes)", report_id, len(html))
+    log.info("[10/10] Done — T0 report '%s' rendered (%d bytes)", report_id, len(html))
     return html, debug_excel_bytes

@@ -803,6 +803,7 @@ dependencies = [
     { name = "ipykernel" },
     { name = "langchain" },
     { name = "langchain-aws" },
+    { name = "langchain-core" },
     { name = "matplotlib" },
     { name = "opencage" },
     { name = "openpyxl" },
@@ -819,6 +820,7 @@ dependencies = [
     { name = "tenacity" },
     { name = "tqdm" },
     { name = "types-requests" },
+    { name = "ulid" },
     { name = "uvicorn", extra = ["standard"] },
     { name = "vulture" },
     { name = "weasyprint" },
@@ -837,6 +839,7 @@ requires-dist = [
     { name = "ipykernel", specifier = ">=7.2.0" },
     { name = "langchain", specifier = ">=0.3.26" },
     { name = "langchain-aws", specifier = ">=0.2.28" },
+    { name = "langchain-core", specifier = ">=0.3.0" },
     { name = "matplotlib", specifier = ">=3.10.8" },
     { name = "opencage", specifier = ">=3.3.0" },
     { name = "openpyxl", specifier = ">=3.1.5" },
@@ -853,6 +856,7 @@ requires-dist = [
     { name = "tenacity", specifier = ">=9.1.4" },
     { name = "tqdm", specifier = ">=4.67.3" },
     { name = "types-requests", specifier = ">=2.32.4.20260107" },
+    { name = "ulid", specifier = ">=1.1" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.35.0,<1.0.0" },
     { name = "vulture", specifier = ">=2.15" },
     { name = "weasyprint", specifier = ">=62.0" },
@@ -3284,6 +3288,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/5e/a7/c202b344c5ca7daf3
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c7/b0/003792df09decd6849a5e39c28b513c06e84436a54440380862b5aeff25d/tzdata-2025.3-py2.py3-none-any.whl", hash = "sha256:06a47e5700f3081aab02b2e513160914ff0694bce9947d6b76ebd6bf57cfc5d1", size = 348521, upload-time = "2025-12-13T17:45:33.889Z" },
 ]
+
+[[package]]
+name = "ulid"
+version = "1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/56/d4/6829692e4902d53684b7696cf3d5158f07439ebc4bc3ca7822b5ca173e44/ulid-1.1.tar.gz", hash = "sha256:0943e8a751ec10dfcdb4df2758f96dffbbfbc055d0b49288caf2f92125900d49", size = 1174, upload-time = "2016-08-01T23:00:12.792Z" }
 
 [[package]]
 name = "urllib3"

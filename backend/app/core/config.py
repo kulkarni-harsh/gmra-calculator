@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
 
+    # Bedrock LLM
+    BEDROCK_MODEL_ID: str = "us.anthropic.claude-3-5-haiku-20241022-v1:0"
+
     # S3 report storage
     S3_BUCKET_NAME: str = "merc-reports"
     S3_REPORTS_PREFIX: str = "reports"

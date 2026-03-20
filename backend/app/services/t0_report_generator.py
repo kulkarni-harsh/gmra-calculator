@@ -7,17 +7,18 @@ No provider NPI lookup — market-level aggregate only.
 
 import asyncio
 import logging
-import ulid
 from functools import reduce
 from io import BytesIO
 
 import pandas as pd
+import ulid
 from geopy.distance import geodesic
 
 from app.core.config import settings
 from app.core.types import SexAgeCounts
 from app.schemas.address_report_request import AddressReportRequest
 from app.services.alphasophia import get_hcp_data
+from app.services.bedrock_llm import MarketAnalysisInput, generate_market_analysis
 from app.services.census import combine_demographics, get_zip_demographics
 from app.services.fee_schedule import get_medicare_rate
 from app.services.geocoder import geocode_address
@@ -272,13 +273,36 @@ async def run_t0_report(
         else f"No state-level density data is available for <strong>{payload.specialty_name}</strong>"
              f" in <strong>{provider_state}</strong>."
     )
-    analysis_text = (
+    _fallback_analysis = (
         f"The {payload.city}, {payload.state} market has "
         f"<strong>{total_population:,} total residents</strong>."
         "<br><br>"
         f"{density_line}"
         "<br><br>"
         "Upgrade to the Strategic Code Report for complete market opportunity analysis."
+    )
+
+    _top_cpt_descs = [row.desc for row in cpt_rows[:5] if row.desc]
+
+    analysis_text = await generate_market_analysis(
+        data=MarketAnalysisInput(
+            city=payload.city,
+            state=payload.state,
+            specialty=payload.specialty_name,
+            miles_radius=payload.miles_radius,
+            total_population=total_population,
+            relevant_pop=relevant_pop,
+            population_label=population_label,
+            peer_providers_count=peer_providers_count,
+            expected_providers=expected_providers,
+            provider_gap=provider_gap,
+            target_density=target_density,
+            total_market_services=total_market_services,
+            provider_shares=provider_shares,
+            top_cpt_descriptions=_top_cpt_descs,
+            verdict_type=verdict_type,
+        ),
+        fallback_text=_fallback_analysis,
     )
 
     show_relevant_population = relevant_pop != total_population

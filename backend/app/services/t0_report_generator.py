@@ -301,6 +301,23 @@ async def run_t0_report(
 
     _top_cpt_descs = [row.desc for row in cpt_rows[:5] if row.desc]
 
+    # ── Geographic distribution of competitors (drive time) ───────────────
+    # drive_time_minutes is set by generate_map() via the Matrix API; fall back
+    # to None if the map step was skipped or a provider had no valid route.
+    competitor_drive_times = sorted(
+        p.drive_time_minutes
+        for p in providers_in_radius
+        if p.drive_time_minutes is not None
+    )
+    _nearest_competitor_drive_min: float | None = competitor_drive_times[0] if competitor_drive_times else None
+    _median_competitor_drive_min: float | None = (
+        competitor_drive_times[len(competitor_drive_times) // 2] if competitor_drive_times else None
+    )
+    _providers_within_10_min: int | None = (
+        sum(1 for t in competitor_drive_times if t <= 10)
+        if competitor_drive_times else None
+    )
+
     analysis_text = await generate_market_analysis(
         data=MarketAnalysisInput(
             city=payload.city,
@@ -318,6 +335,9 @@ async def run_t0_report(
             provider_shares=provider_shares,
             top_cpt_descriptions=_top_cpt_descs,
             verdict_type=verdict_type,
+            nearest_competitor_drive_min=_nearest_competitor_drive_min,
+            median_competitor_drive_min=_median_competitor_drive_min,
+            providers_within_10_min=_providers_within_10_min,
         ),
         fallback_text=_fallback_analysis,
     )

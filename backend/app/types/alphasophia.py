@@ -90,6 +90,7 @@ class Provider(BaseModel):
     latitude: float | None = None  # Not in Alphasophia output
     longitude: float | None = None  # Not in Alphasophia output
     distance_from_source_miles: float | None = None  # Not in Alphasophia output
+    drive_time_minutes: float | None = None  # Drive time from source; set by generate_map()
     cpt_list: list[CPT] = []  # Not in Alphasophia output
     cpt_total_services: int = 0  # Sum of totalServices across report CPT codes; set during report generation
 

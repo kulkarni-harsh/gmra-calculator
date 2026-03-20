@@ -46,6 +46,10 @@ class MarketAnalysisInput:
     # Top CPT procedure descriptions
     top_cpt_descriptions: list[str] = field(default_factory=list)
     verdict_type: str = "caution"  # "opportunity" | "avoid" | "caution"
+    # Geographic distribution of competitors (drive time)
+    nearest_competitor_drive_min: float | None = None
+    median_competitor_drive_min: float | None = None
+    providers_within_10_min: int | None = None
 
 
 def _build_prompt(d: MarketAnalysisInput) -> str:
@@ -80,10 +84,31 @@ def _build_prompt(d: MarketAnalysisInput) -> str:
     # ── CPT procedure mix ─────────────────────────────────────────────────
     if d.top_cpt_descriptions:
         cpt_context = "Top procedures by volume in this market:\n" + "\n".join(
-            f"  {i + 1}. {desc}" for i, desc in enumerate(d.top_cpt_descriptions[:5])
+            f"  {i + 1}. {desc}" for i, desc in enumerate(d.top_cpt_descriptions[:10])
         )
     else:
         cpt_context = "Procedure mix data not available."
+
+    # ── Geographic distribution of competitors (drive time) ──────────────
+    if d.nearest_competitor_drive_min is not None:
+        within_10_line = ""
+        if d.providers_within_10_min is not None and d.peer_providers_count > 0:
+            pct = round(d.providers_within_10_min / d.peer_providers_count * 100)
+            within_10_line = (
+                f"- {d.providers_within_10_min} of {d.peer_providers_count} providers "
+                f"({pct}%) are within a 10-minute drive\n"
+            )
+        median_line = (
+            f"- Median competitor drive time: {d.median_competitor_drive_min:.0f} min\n"
+            if d.median_competitor_drive_min is not None else ""
+        )
+        geo_context = (
+            f"- Nearest competitor: {d.nearest_competitor_drive_min:.0f} min drive from proposed location\n"
+            f"{median_line}"
+            f"{within_10_line}"
+        )
+    else:
+        geo_context = "- Competitor drive-time data not available\n"
 
     # ── Relevant population note ──────────────────────────────────────────
     pop_note = ""
@@ -104,10 +129,12 @@ def _build_prompt(d: MarketAnalysisInput) -> str:
         "The three paragraphs must cover:\n"
         "1. Market Overview — Population size, total annual patient visits, and "
         "what this implies about raw demand in the market.\n"
-        "2. Provider Density & Real Estate Opportunity — Compare active providers "
-        "to the benchmark, state whether this market is underserved/saturated/neutral, "
-        "and from a real estate / site-selection perspective whether this is a "
-        "favorable market to open or expand a practice.\n"
+        "2. Provider Density & Location Advantage — Compare active providers "
+        "to the benchmark, state whether this market is underserved/saturated/neutral. "
+        "Comment on drive-time competition: if the nearest competitor is within "
+        "5–10 minutes, note direct proximity risk; if most competitors are 15+ minutes "
+        "away, highlight the location's drive-time catchment advantage. "
+        "Give a clear site-selection opinion.\n"
         "3. Market Concentration & Procedure Mix — How concentrated is provider "
         "volume (dominant players vs distributed market), and which procedure types "
         "dominate — what this means for a new entrant's positioning.\n\n"
@@ -129,6 +156,7 @@ def _build_prompt(d: MarketAnalysisInput) -> str:
         f"Annual patient visits (CPT services across all providers): {d.total_market_services:,}\n"
         f"Market verdict: {d.verdict_type.upper()}\n\n"
         f"Provider Density:\n{density_context}\n"
+        f"Competitor Geographic Distribution:\n{geo_context}\n"
         f"Market Concentration:\n{concentration_context}\n"
         f"{cpt_context}\n"
         "---\n\n"
@@ -153,7 +181,7 @@ async def generate_market_analysis(
             region_name=settings.AWS_DEFAULT_REGION or "us-east-1",
             endpoint_url=settings.BEDROCK_ENDPOINT_URL or None,
             temperature=0.4,
-            max_tokens=600,
+            max_tokens=500,
         )
         prompt = _build_prompt(data)
 

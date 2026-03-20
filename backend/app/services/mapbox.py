@@ -133,14 +133,13 @@ def calculate_contour_minutes(
     providers: list[tuple[float, float]],
     token: str,
     profile: str = "driving",
-) -> list[int]:
+) -> tuple[list[int], dict[tuple[float, float], float]]:
     """
-    Automatically calculate isochrone contour intervals based on the
-    drive time from source to the furthest provider.
+    Calculate isochrone contour intervals and exact drive times to each provider.
 
     - Calls the Mapbox Matrix API to get driving durations to all providers.
     - Finds the maximum duration and rounds up to the nearest 5 minutes.
-    - Returns a list of [5, 10, 15, ..., max_rounded] in 5-minute steps.
+    - Returns contour list AND a {(lat, lon): drive_minutes} dict.
 
     Args:
         source_lat/lon: Origin point.
@@ -149,7 +148,8 @@ def calculate_contour_minutes(
         profile:        Routing profile: "driving" | "walking" | "cycling".
 
     Returns:
-        List of int, e.g. [5, 10, 15, 20] for a 17-minute furthest provider.
+        (contours, provider_drive_times) where contours is e.g. [5, 10, 15, 20]
+        and provider_drive_times maps each (lat, lon) to drive minutes from source.
     """
     # Mapbox Matrix API accepts max 25 coordinates total (1 source + N destinations)
     # For larger provider lists, batch into chunks of 24
@@ -157,9 +157,11 @@ def calculate_contour_minutes(
 
     coordinates = [(source_lon, source_lat)] + [(lon, lat) for lat, lon in providers]
     max_duration_seconds = 0
+    provider_drive_times: dict[tuple[float, float], float] = {}
 
     for i in range(1, len(coordinates), MAX_DESTINATIONS):
         batch = [coordinates[0]] + coordinates[i:i + MAX_DESTINATIONS]
+        batch_providers = providers[i - 1: i - 1 + MAX_DESTINATIONS]
         coords_str = ";".join(f"{lon},{lat}" for lon, lat in batch)
         sources_str = "0"
         destinations_str = ";".join(str(j) for j in range(1, len(batch)))
@@ -178,6 +180,9 @@ def calculate_contour_minutes(
         valid = [d for d in durations if d is not None]
         if valid:
             max_duration_seconds = max(max_duration_seconds, max(valid))
+        for j, latlon in enumerate(batch_providers):
+            if j < len(durations) and durations[j] is not None:
+                provider_drive_times[latlon] = durations[j] / 60  # seconds → minutes
 
     if max_duration_seconds == 0:
         raise ValueError("Matrix API returned no valid durations.")
@@ -197,7 +202,49 @@ def calculate_contour_minutes(
         f"Furthest provider: {max_minutes} min → rounded to {max_rounded} min. "
         f"Contours: {contours}"
     )
+    return contours, provider_drive_times
+
+
+def _contours_from_drive_times(drive_times_minutes: list[float]) -> list[int]:
+    """
+    Compute isochrone contour intervals from pre-computed drive times.
+    Mirrors the rounding logic inside calculate_contour_minutes().
+    """
+    max_minutes = math.ceil(max(drive_times_minutes))
+    max_rounded = math.ceil(max_minutes / 5) * 5
+    max_rounded = min(max_rounded, 60)
+    contours = list(range(5, max_rounded + 1, 5))
+    if len(contours) > 4:
+        contours.pop(1)
     return contours
+
+
+def stamp_provider_drive_times(
+    source_lat: float,
+    source_lon: float,
+    providers: "list[Provider]",
+    token: str,
+    profile: str = "driving",
+) -> None:
+    """
+    Stamp drive_time_minutes onto each Provider via the Mapbox Matrix API.
+    Skips providers without valid lat/lon. Mutates providers in-place.
+    Call this before filtering providers by drive time.
+    """
+    provider_coords: list[tuple[float, float]] = [
+        (p.latitude, p.longitude)
+        for p in providers
+        if p.latitude is not None and p.longitude is not None
+    ]
+    if not provider_coords:
+        return
+    _, provider_drive_times = calculate_contour_minutes(
+        source_lat, source_lon, provider_coords, token, profile=profile
+    )
+    for p in providers:
+        if p.latitude is not None and p.longitude is not None:
+            p.drive_time_minutes = provider_drive_times.get((p.latitude, p.longitude))
+
 
 # ── Isochrone fetching ────────────────────────────────────────────────────────
 
@@ -594,9 +641,33 @@ def generate_map(
     if not provider_coords:
         raise ValueError("No providers with valid latitude/longitude coordinates.")
 
-    contour_minutes = calculate_contour_minutes(
-        source_lat, source_lon, provider_coords, token, profile=profile
+    # If all providers already have drive times stamped (from stamp_provider_drive_times),
+    # skip the Matrix API call and derive contours from the known times.
+    pre_stamped = all(
+        p.drive_time_minutes is not None
+        for p in providers
+        if p.latitude is not None and p.longitude is not None
     )
+    if pre_stamped:
+        drive_times = [
+            p.drive_time_minutes
+            for p in providers
+            if p.drive_time_minutes is not None
+        ]
+        contour_minutes = _contours_from_drive_times(drive_times)
+        provider_drive_times: dict[tuple[float, float], float] = {
+            (p.latitude, p.longitude): p.drive_time_minutes  # type: ignore[assignment]
+            for p in providers
+            if p.latitude is not None and p.longitude is not None
+        }
+    else:
+        contour_minutes, provider_drive_times = calculate_contour_minutes(
+            source_lat, source_lon, provider_coords, token, profile=profile
+        )
+        for p in providers:
+            if p.latitude is not None and p.longitude is not None:
+                p.drive_time_minutes = provider_drive_times.get((p.latitude, p.longitude))
+
     isochrones = fetch_isochrones(source_lat, source_lon, token, minutes=contour_minutes, profile=profile)
 
     logger.info(f"    Received {len(isochrones)} contour(s): {sorted(isochrones.keys())} min")

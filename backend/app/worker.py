@@ -49,7 +49,7 @@ async def process_job(job_id: str, state: ReportState) -> None:
             html, debug_excel_bytes = await run_report(t1_payload, state, job_id=job_id)
 
         html_url = upload_report(job_id, html)
-        pdf_bytes = html_to_pdf(html)
+        pdf_bytes = await html_to_pdf(html)
         pdf_url = upload_report_pdf(job_id, pdf_bytes)
 
         update_job(
@@ -76,8 +76,9 @@ async def process_job(job_id: str, state: ReportState) -> None:
                 job_id=job_id,
                 provider_name=provider_label,
                 html_content=html,
-                report_url=html_url,
-                attachment_format="html",
+                pdf_bytes=pdf_bytes,
+                html_url=html_url or "",
+                pdf_url=pdf_url or "",
                 debug_excel_bytes=debug_excel_bytes,
             )
 

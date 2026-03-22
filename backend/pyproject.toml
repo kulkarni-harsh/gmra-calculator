@@ -41,6 +41,7 @@ dependencies = [
   "pillow>=12.1.1",
   "loguru>=0.7.3",
   "polyline>=2.0.4",
+  "playwright>=1.44.0",
 ]
 
 [tool.uv]

@@ -17,7 +17,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY pyproject.toml /app/
-RUN uv sync --no-dev
+RUN uv sync --no-dev \
+ && uv run playwright install chromium --with-deps
 
 COPY . /app
 

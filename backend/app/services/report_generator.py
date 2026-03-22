@@ -25,14 +25,20 @@ from app.services.fee_schedule import get_medicare_rate
 from app.services.html_imputers.v2_imputer import replace_data_block_v2
 from app.services.s3 import upload_debug_excel
 from app.types.alphasophia import CPT, Provider
-from app.types.baseline_report_template import CptRowV2, ProviderProfileV2, ProviderShareEntry, ReportTemplateDataV2, Upgrade
+from app.types.baseline_report_template import (
+    CptRowV2,
+    ProviderProfileV2,
+    ProviderShareEntry,
+    ReportTemplateDataV2,
+    Upgrade,
+)
 from app.utils.common import (
     generate_tags,
     get_anchor_cpt_codes,
     get_anchor_cpt_patient_type_map,
+    get_density_scope,
     get_geriatric_population,
     get_pediatric_population,
-    get_density_scope,
     get_provider_density,
     get_source_tabs,
     get_taxonomy_codes,
@@ -413,7 +419,9 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
     elif provider_gap > 1:
         verdict_type = "green"
         verdict_value = "GO"
-        verdict_sub = f"Underserved — {provider_gap:.1f} provider-equivalent gap vs. {density_scope.lower()} density baseline."
+        verdict_sub = (
+            f"Underserved — {provider_gap:.1f} provider-equivalent gap vs. {density_scope.lower()} density baseline."
+        )
     elif provider_gap < -1:
         verdict_type = "red"
         verdict_value = "AVOID"

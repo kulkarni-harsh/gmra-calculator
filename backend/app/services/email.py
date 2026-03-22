@@ -23,8 +23,8 @@ from app.core.config import settings
 _FROM = "no-reply@tryingmybest.site"
 
 # ── Delivery toggles — change ONE line to adjust what gets sent ───────────────
-_ATTACH_HTML: bool = True   # False → skip HTML attachment, send PDF + Excel only
-_LINK_HTML:   bool = True   # False → show only the PDF download link in the body
+_ATTACH_HTML: bool = True  # False → skip HTML attachment, send PDF + Excel only
+_LINK_HTML: bool = True  # False → show only the PDF download link in the body
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -112,15 +112,19 @@ def send_report_ready(
         }
     ]
     if _ATTACH_HTML and html_content:
-        attachments.append({
-            "filename": f"MERC_Report_{job_id}.html",
-            "content": base64.b64encode(html_content.encode("utf-8")).decode("ascii"),
-        })
+        attachments.append(
+            {
+                "filename": f"MERC_Report_{job_id}.html",
+                "content": base64.b64encode(html_content.encode("utf-8")).decode("ascii"),
+            }
+        )
     if debug_excel_bytes:
-        attachments.append({
-            "filename": f"MERC_Debug_Providers_{job_id}.xlsx",
-            "content": base64.b64encode(debug_excel_bytes).decode("ascii"),
-        })
+        attachments.append(
+            {
+                "filename": f"MERC_Debug_Providers_{job_id}.xlsx",
+                "content": base64.b64encode(debug_excel_bytes).decode("ascii"),
+            }
+        )
 
     # ── Body ─────────────────────────────────────────────────────────────────
     attach_desc = "PDF" + (" and HTML" if _ATTACH_HTML and html_content else "")
@@ -131,14 +135,10 @@ def send_report_ready(
 
     if pdf_url:
         body_lines.append(
-            f'<p><a href="{pdf_url}" style="font-weight:bold;">Download PDF report</a>'
-            " (link valid for 7 days)</p>"
+            f'<p><a href="{pdf_url}" style="font-weight:bold;">Download PDF report</a> (link valid for 7 days)</p>'
         )
     if _LINK_HTML and html_url:
-        body_lines.append(
-            f'<p><a href="{html_url}">Download interactive HTML report</a>'
-            " (link valid for 7 days)</p>"
-        )
+        body_lines.append(f'<p><a href="{html_url}">Download interactive HTML report</a> (link valid for 7 days)</p>')
 
     body_lines.append(f"<p style='color:#888;font-size:12px;'>Job reference: {job_id}</p>")
 
@@ -154,7 +154,10 @@ def send_report_ready(
         r = resend.Emails.send(params)
         logging.info(
             "Report email sent to %s — id=%s  attach_html=%s  link_html=%s",
-            to, r.get("id"), _ATTACH_HTML, _LINK_HTML,
+            to,
+            r.get("id"),
+            _ATTACH_HTML,
+            _LINK_HTML,
         )
         return True
     except Exception as exc:

@@ -15,6 +15,7 @@ from langchain_aws import ChatBedrockConverse
 from langchain_core.messages import HumanMessage
 
 from app.core.config import settings
+from app.types.baseline_report_template import ProviderShareEntry
 
 log = logging.getLogger(__name__)
 
@@ -41,8 +42,8 @@ class MarketAnalysisInput:
     provider_gap: float
     target_density: float | None
     total_market_services: int
-    # Sorted descending — e.g. [34, 22, 15, 10, 8, ...] (percent shares)
-    provider_shares: list[int] = field(default_factory=list)
+    # Sorted descending by share percentage
+    provider_shares: list[ProviderShareEntry] = field(default_factory=list)
     # Top CPT procedure descriptions
     top_cpt_descriptions: list[str] = field(default_factory=list)
     verdict_type: str = "caution"  # "opportunity" | "avoid" | "caution"
@@ -74,8 +75,12 @@ def _build_prompt(d: MarketAnalysisInput) -> str:
 
     # ── Market concentration ───────────────────────────────────────────────
     if d.provider_shares:
-        top_share = d.provider_shares[0]
-        top3_share = sum(d.provider_shares[:3]) if len(d.provider_shares) >= 3 else sum(d.provider_shares)
+        top_share = d.provider_shares[0].share
+        top3_share = (
+            sum(e.share for e in d.provider_shares[:3])
+            if len(d.provider_shares) >= 3
+            else sum(e.share for e in d.provider_shares)
+        )
         concentration_context = (
             f"- Top provider CPT volume share: {top_share}%\n"
             f"- Top 3 providers combined share: {top3_share}%\n"

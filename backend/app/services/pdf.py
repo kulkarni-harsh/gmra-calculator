@@ -23,9 +23,7 @@ _PX_PER_INCH: float = 96.0
 
 async def html_to_pdf(html: str) -> bytes:
     """Render an HTML string to a single-page PDF. Returns raw PDF bytes."""
-    with tempfile.NamedTemporaryFile(
-        suffix=".html", mode="w", encoding="utf-8", delete=False
-    ) as fh:
+    with tempfile.NamedTemporaryFile(suffix=".html", mode="w", encoding="utf-8", delete=False) as fh:
         fh.write(html)
         tmp = Path(fh.name)
     try:
@@ -35,6 +33,7 @@ async def html_to_pdf(html: str) -> bytes:
 
 
 # ── internal ──────────────────────────────────────────────────────────────────
+
 
 async def _measure(page) -> tuple[float, float]:
     """Return (width_in, height_in) of the fully-rendered page."""
@@ -61,11 +60,13 @@ async def _measure(page) -> tuple[float, float]:
 
 async def _render(url: str) -> bytes:
     async with async_playwright() as pw:
-        browser = await pw.chromium.launch(args=[
-            "--no-sandbox",             # required when running as root in ECS
-            "--disable-dev-shm-usage",  # ECS tasks have a small /dev/shm by default
-            "--disable-gpu",
-        ])
+        browser = await pw.chromium.launch(
+            args=[
+                "--no-sandbox",  # required when running as root in ECS
+                "--disable-dev-shm-usage",  # ECS tasks have a small /dev/shm by default
+                "--disable-gpu",
+            ]
+        )
         page = await browser.new_page(viewport={"width": 1280, "height": 900})
         await page.goto(url, wait_until="networkidle")
         await page.wait_for_timeout(_SETTLE_MS)

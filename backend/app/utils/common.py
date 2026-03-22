@@ -76,8 +76,16 @@ def get_provider_density(specialty_lookup: dict, specialty_name: str, state: str
     for val in specialty_lookup.values():
         if val["description"].strip().lower() == specialty_name.strip().lower():
             states: dict = val.get("states", {})
-            return states.get(state.strip().upper())
+            return states.get(state.strip().upper()) or states.get("US")
     return None
+
+
+def get_density_scope(specialty_lookup: dict, specialty_name: str, state: str) -> str:
+    """Return 'State' if state-level density data exists for the given state, else 'National (US Avg.)'."""
+    for val in specialty_lookup.values():
+        if val["description"].strip().lower() == specialty_name.strip().lower():
+            return "State" if state.strip().upper() in val.get("states", {}) else "National (US Avg.)"
+    return "National (US Avg.)"
 
 
 def get_taxonomy_codes(specialty_lookup: dict, specialty_name: str) -> list[str]:

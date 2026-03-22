@@ -93,6 +93,13 @@ class ProviderProfileV2:
 
 
 @dataclass(slots=True)
+class ProviderShareEntry:
+    share: int  # % of total market CPT services (0–100)
+    taxonomy: str  # taxonomy description, e.g. "Family Medicine"
+    drive_time_minutes: float | None = None  # drive time from source
+
+
+@dataclass(slots=True)
 class ReportTemplateDataV2:
     reportId: str
     dateIssued: str
@@ -129,6 +136,9 @@ class ReportTemplateDataV2:
     # Sorted descending list of each provider's % share of total market CPT services (0–100).
     # Anonymous — no names or NPIs. For T1+ reports, the client provider is included as one entry.
     # For T0 (Market Entry) reports, only peer providers are included (no named client).
-    providerShares: list[int] | None = None
+    providerShares: list[ProviderShareEntry] | None = None
     # Map image: base64 data URI ("data:image/png;base64,...") or None to hide the map section.
     mapImageSrc: str | None = None
+    # "State" when state-level density data exists; "National (US Avg.)" when falling back to
+    # the national benchmark because the state has no data in specialty_lookup.
+    densityScope: str = "State"

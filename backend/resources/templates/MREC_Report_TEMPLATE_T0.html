@@ -715,7 +715,7 @@ body {
 
 .prov-bar-row {
   display: grid;
-  grid-template-columns: 72px 1fr 36px;
+  grid-template-columns: 100px 1fr 36px;
   align-items: center;
   gap: 8px;
 }
@@ -724,6 +724,28 @@ body {
   font-weight: 600;
   color: var(--muted);
   text-align: right;
+  line-height: 1.3;
+}
+.prov-bar-sublabel {
+  font-size: 8px;
+  font-weight: 400;
+  color: var(--muted);
+  opacity: 0.7;
+}
+.tax-summary-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+.tax-summary-chip {
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--navy);
+  background: var(--ice);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 6px;
   white-space: nowrap;
 }
 .prov-bar-track {
@@ -1101,7 +1123,15 @@ const DATA = {
   currentProviders:   38,
   targetDensity:      55.2,
   // Each entry = one anonymous provider's % share of total market CPT services, sorted desc.
-  providerShares: [34, 22, 18, 11, 7, 5, 3],
+  providerShares: [
+    { share: 34, taxonomy: "Family Medicine",   drive_time_minutes: 5  },
+    { share: 22, taxonomy: "General Practice",  drive_time_minutes: 8  },
+    { share: 18, taxonomy: "Family Medicine",   drive_time_minutes: 12 },
+    { share: 11, taxonomy: "Family Medicine",   drive_time_minutes: 15 },
+    { share:  7, taxonomy: "Internal Medicine", drive_time_minutes: 18 },
+    { share:  5, taxonomy: "General Practice",  drive_time_minutes: 23 },
+    { share:  3, taxonomy: "Family Medicine",   drive_time_minutes: 28 },
+  ],
 
   // ── Section 2: CPT Table ──────────────────────────────────
   // totalVolume = market total for this location; medicareRate = CMS 2026 PFS office-setting rate, state-adjusted
@@ -1217,11 +1247,18 @@ const DATA = {
   const gaugeDash = Math.round(157 * (1 - densityBarPct / 100));
 
   // Provider CPT distribution bars (Section 03)
-  const providerShareBars = (D.providerShares || []).map((share, i) => {
+  const providerShareBars = (D.providerShares || []).map((entry, i) => {
+    const share = entry.share ?? entry;
+    const taxonomy = entry.taxonomy || '';
+    const dt = entry.drive_time_minutes != null ? Math.round(entry.drive_time_minutes) : null;
     const opacity = Math.max(0.25, 1 - i * 0.1);
+    const subLabel = [taxonomy, dt != null ? `${dt} min` : null].filter(Boolean).join(' · ');
     return `
       <div class="prov-bar-row">
-        <div class="prov-bar-label">Provider ${i + 1}</div>
+        <div class="prov-bar-label">
+          <div>Provider ${i + 1}</div>
+          ${subLabel ? `<div class="prov-bar-sublabel">${subLabel}</div>` : ''}
+        </div>
         <div class="prov-bar-track">
           <div class="prov-bar-fill" style="width:${share}%;opacity:${opacity.toFixed(2)}"></div>
         </div>
@@ -1229,6 +1266,17 @@ const DATA = {
       </div>
     `;
   }).join('');
+
+  // Taxonomy composition summary (group + count)
+  const _taxCounts = {};
+  (D.providerShares || []).forEach(entry => {
+    const tax = ((entry.taxonomy || 'Unknown')).trim();
+    _taxCounts[tax] = (_taxCounts[tax] || 0) + 1;
+  });
+  const taxonomySummaryHtml = Object.entries(_taxCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([tax, count]) => `<span class="tax-summary-chip">${tax} <strong>${count}</strong></span>`)
+    .join('');
 
   const fmtCurrency = (n) => Number.isFinite(n) ? '$' + Math.round(n).toLocaleString('en-US') : '—';
   const marketRevenueTotal = cptNormalizedRows.reduce(
@@ -1369,9 +1417,9 @@ const DATA = {
         <div class="metric-sub">Serving this market</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">State Density Baseline</div>
+        <div class="metric-label">${D.densityScope} Density Baseline</div>
         <div class="metric-value green">${D.targetDensity}</div>
-        <div class="metric-sub">State physician density (2023), per 100k</div>
+        <div class="metric-sub">${D.densityScope} physician density (2023), per 100k</div>
       </div>
     </div>
 
@@ -1465,7 +1513,8 @@ const DATA = {
       <!-- Right: CPT volume distribution bars -->
       <div class="saturation-right">
         <div class="prov-dist-title">CPT Volume Distribution</div>
-        <div class="prov-dist-sub">Share of total market services per provider &nbsp;·&nbsp; anonymous, ranked</div>
+        <div class="prov-dist-sub">Share of total market services per provider &nbsp;·&nbsp; taxonomy shown &nbsp;·&nbsp; anonymous, ranked</div>
+        <div class="tax-summary-strip">${taxonomySummaryHtml}</div>
         <div class="prov-dist-chart">${providerShareBars}</div>
         <div class="prov-dist-note">
           Based on services count for all procedures listed in Section 02 across ${(D.providerShares || []).length} providers.

@@ -221,3 +221,4 @@ backend/test.ipynb
 
 # Git worktrees
 .worktrees/
+docs/superpowers/*

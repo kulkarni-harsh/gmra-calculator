@@ -28,13 +28,14 @@ from app.services.mapbox import generate_map, stamp_provider_drive_times
 from app.services.report_generator import ReportState
 from app.services.s3 import upload_debug_excel
 from app.types.alphasophia import CPT, Provider
-from app.types.baseline_report_template import CptRowV2, ProviderProfileV2, ReportTemplateDataV2, Upgrade
+from app.types.baseline_report_template import CptRowV2, ProviderProfileV2, ProviderShareEntry, ReportTemplateDataV2, Upgrade
 from app.utils.common import (
     generate_tags,
     get_anchor_cpt_codes,
     get_anchor_cpt_patient_type_map,
     get_geriatric_population,
     get_pediatric_population,
+    get_density_scope,
     get_provider_density,
     get_source_tabs,
     get_taxonomy_codes,
@@ -221,17 +222,21 @@ async def run_t0_report(
     peer_providers_count = max(len(providers_in_radius), 1)
 
     # Provider share distribution (all peers, no client)
-    provider_raw_totals: list[int] = []
+    provider_raw_totals: list[tuple[int, str, float | None]] = []
     for p in providers_in_radius:
         total = sum(
             (p.get_cpt_profile(code).totalServices or 0) for code in relevant_cpt_codes_list if p.get_cpt_profile(code)
         )
         p.cpt_total_services = total
-        provider_raw_totals.append(total)
+        provider_raw_totals.append((total, p.taxonomy.description or "Unknown", p.drive_time_minutes))
 
-    _share_denom = sum(provider_raw_totals) or 1
-    provider_shares: list[int] = sorted(
-        [round(t / _share_denom * 100) for t in provider_raw_totals],
+    _share_denom = sum(t for t, _, _ in provider_raw_totals) or 1
+    provider_shares: list[ProviderShareEntry] = sorted(
+        [
+            ProviderShareEntry(share=round(t / _share_denom * 100), taxonomy=tax, drive_time_minutes=dt)
+            for t, tax, dt in provider_raw_totals
+        ],
+        key=lambda e: e.share,
         reverse=True,
     )
 
@@ -319,6 +324,7 @@ async def run_t0_report(
         relevant_pop = total_population
         population_label = "General Population"
 
+    density_scope = get_density_scope(state.specialty_lookup, payload.specialty_name, provider_state)
     target_density = get_provider_density(state.specialty_lookup, payload.specialty_name, provider_state)
     if target_density is not None and relevant_pop > 0:
         expected_providers = (relevant_pop / 100_000) * target_density
@@ -329,21 +335,21 @@ async def run_t0_report(
 
     if target_density is None:
         verdict_type, verdict_value = "caution", "N/A"
-        verdict_sub = "No state-level density data available for this specialty/state."
+        verdict_sub = "No density data available for this specialty/state."
     elif provider_gap > 1:
         verdict_type, verdict_value = "opportunity", "GO"
-        verdict_sub = f"Underserved — {provider_gap:.1f} provider-equivalent gap vs. state density baseline."
+        verdict_sub = f"Underserved — {provider_gap:.1f} provider-equivalent gap vs. {density_scope.lower()} density baseline."
     elif provider_gap < -1:
         verdict_type, verdict_value = "avoid", "AVOID"
-        verdict_sub = f"Saturated — {abs(provider_gap):.1f} providers above state density baseline."
+        verdict_sub = f"Saturated — {abs(provider_gap):.1f} providers above {density_scope.lower()} density baseline."
     else:
         verdict_type, verdict_value = "caution", "CAUTION"
-        verdict_sub = "Market is near state density baseline — limited opportunity."
+        verdict_sub = f"Market is near {density_scope.lower()} density baseline — limited opportunity."
 
     report_id = job_id or f"MERC-{ulid.ulid()}"
 
     density_line = (
-        f"The 2023 state-level physician density for <strong>{payload.specialty_name}</strong> in "
+        f"The 2023 {density_scope.lower()} physician density for <strong>{payload.specialty_name}</strong> in "
         f"<strong>{provider_state}</strong> is "
         f"<strong>{target_density:.1f} providers per 100k residents</strong>, "
         f"implying <strong>{expected_providers:.1f} expected providers</strong> in this market. "
@@ -351,7 +357,7 @@ async def run_t0_report(
         f"within {payload.drive_time_minutes} min drive, "
         f"leaving a gap of <strong>{provider_gap:+.1f} providers</strong>."
         if target_density is not None
-        else f"No state-level density data is available for <strong>{payload.specialty_name}</strong>"
+        else f"No density data is available for <strong>{payload.specialty_name}</strong>"
         f" in <strong>{provider_state}</strong>."
     )
     _fallback_analysis = (
@@ -464,6 +470,7 @@ async def run_t0_report(
         peerNpis=[p.npi for p in providers_in_radius if p.npi],
         providerShares=provider_shares,
         mapImageSrc=map_image_src,
+        densityScope=density_scope,
     )
 
     template_html = (settings.TEMPLATES_DIR / "MREC_Report_TEMPLATE_T0.html").read_text(encoding="utf-8")

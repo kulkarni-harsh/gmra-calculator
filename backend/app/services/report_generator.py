@@ -25,13 +25,14 @@ from app.services.fee_schedule import get_medicare_rate
 from app.services.html_imputers.v2_imputer import replace_data_block_v2
 from app.services.s3 import upload_debug_excel
 from app.types.alphasophia import CPT, Provider
-from app.types.baseline_report_template import CptRowV2, ProviderProfileV2, ReportTemplateDataV2, Upgrade
+from app.types.baseline_report_template import CptRowV2, ProviderProfileV2, ProviderShareEntry, ReportTemplateDataV2, Upgrade
 from app.utils.common import (
     generate_tags,
     get_anchor_cpt_codes,
     get_anchor_cpt_patient_type_map,
     get_geriatric_population,
     get_pediatric_population,
+    get_density_scope,
     get_provider_density,
     get_source_tabs,
     get_taxonomy_codes,
@@ -272,7 +273,7 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
     # Include client provider + all in-radius peers. Sum totalServices for each
     # provider across the relevant CPT codes, then express as % of market total.
     all_providers_for_share = [payload.client_provider] + list(providers_in_radius)
-    provider_raw_totals: list[int] = []
+    provider_raw_totals: list[tuple[int, str, float | None]] = []
     for _p in all_providers_for_share:
         _p_total = sum(
             (_p.get_cpt_profile(code).totalServices or 0)
@@ -280,15 +281,19 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
             if _p.get_cpt_profile(code)
         )
         _p.cpt_total_services = _p_total
-        provider_raw_totals.append(_p_total)
+        provider_raw_totals.append((_p_total, _p.taxonomy.description or "Unknown", _p.drive_time_minutes))
 
-    _share_denominator = sum(provider_raw_totals) or 1
-    provider_shares: list[int] = sorted(
-        [round(t / _share_denominator * 100) for t in provider_raw_totals],
+    _share_denominator = sum(t for t, _, _ in provider_raw_totals) or 1
+    provider_shares: list[ProviderShareEntry] = sorted(
+        [
+            ProviderShareEntry(share=round(t / _share_denominator * 100), taxonomy=tax, drive_time_minutes=dt)
+            for t, tax, dt in provider_raw_totals
+        ],
+        key=lambda e: e.share,
         reverse=True,
     )
     # TODO: Drop zero-share entries (providers with no matching CPT data)
-    # provider_shares = [s for s in provider_shares if s > 0]
+    # provider_shares = [e for e in provider_shares if e.share > 0]
 
     # Create a triplet of [competitor CPT, client CPT, medicare rate for that CPT]
     cpt_triples: list[tuple[CPT, CPT, float | None]] = []
@@ -391,6 +396,7 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
         population_label = "General Population"
         relevant_pop = total_population
 
+    density_scope = get_density_scope(state.specialty_lookup, payload.specialty_name, provider_state)
     target_density = get_provider_density(state.specialty_lookup, payload.specialty_name, provider_state)
 
     if target_density is not None and relevant_pop > 0:
@@ -403,19 +409,19 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
     if target_density is None:
         verdict_type = "caution"
         verdict_value = "N/A"
-        verdict_sub = "No state-level density data available for this specialty/state."
+        verdict_sub = "No density data available for this specialty/state."
     elif provider_gap > 1:
         verdict_type = "green"
         verdict_value = "GO"
-        verdict_sub = f"Underserved — {provider_gap:.1f} provider-equivalent gap vs. state density baseline."
+        verdict_sub = f"Underserved — {provider_gap:.1f} provider-equivalent gap vs. {density_scope.lower()} density baseline."
     elif provider_gap < -1:
         verdict_type = "red"
         verdict_value = "AVOID"
-        verdict_sub = f"Saturated — {abs(provider_gap):.1f} providers above state density baseline."
+        verdict_sub = f"Saturated — {abs(provider_gap):.1f} providers above {density_scope.lower()} density baseline."
     else:
         verdict_type = "caution"
         verdict_value = "CAUTION"
-        verdict_sub = "Market is near state density baseline — limited opportunity."
+        verdict_sub = f"Market is near {density_scope.lower()} density baseline — limited opportunity."
 
     log.info(
         "[9/10] Verdict: %s — density=%.2f/100k, expected=%.1f, current=%d, gap=%.1f",
@@ -437,7 +443,7 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
     ).strip()
 
     density_line = (
-        f"The 2023 state-level physician density for <strong>{payload.specialty_name}</strong> in "
+        f"The 2023 {density_scope.lower()} physician density for <strong>{payload.specialty_name}</strong> in "
         f"<strong>{provider_state}</strong> is "
         f"<strong>{target_density:.1f} providers per 100k residents</strong>, "
         f"implying <strong>{expected_providers:.1f} expected providers</strong> in this market. "
@@ -446,7 +452,7 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
         f"leaving a gap of <strong>{provider_gap:+.1f} providers</strong>."
         if target_density is not None
         else (
-            f"No state-level density data is available for <strong>{payload.specialty_name}</strong>"
+            f"No density data is available for <strong>{payload.specialty_name}</strong>"
             f" in <strong>{provider_state}</strong>."
         )
     )
@@ -511,6 +517,7 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
         sourceTabs=source_tabs,
         peerNpis=[p.npi for p in providers_in_radius if p.npi],
         providerShares=provider_shares,
+        densityScope=density_scope,
     )
 
     template_html = (settings.TEMPLATES_DIR / "MREC_Report_TEMPLATE_T1.html").read_text(encoding="utf-8")

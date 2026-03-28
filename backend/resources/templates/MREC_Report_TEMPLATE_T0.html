@@ -1295,8 +1295,12 @@ const DATA = {
   ).join('');
 
   // Appendix chips
+  // ZIP strings are formatted as "78746 (72%)" for partial ZIPs and "78749 (100%)" for full ones.
   const zipChipsHtml = (D.searchedZipCodes || [])
-    .map(z => `<span class="appendix-chip">${z}</span>`)
+    .map(z => {
+      const partial = z.includes('(') && !z.includes('(100%)');
+      return `<span class="appendix-chip" style="${partial ? 'opacity:0.55;' : ''}" title="${partial ? 'Partial overlap — population scaled proportionally' : 'Fully within drive-time area'}">${z}</span>`;
+    })
     .join('');
   const taxChipsHtml = (D.taxonomyCodes || [])
     .map(t => `<span class="appendix-chip">${t}</span>`)
@@ -1558,7 +1562,7 @@ const DATA = {
   <div class="appendix">
     <div class="appendix-title">Data Coverage &amp; Methodology</div>
     <div class="appendix-block">
-      <div class="appendix-block-label">ZIP Codes Searched — ${(D.searchedZipCodes || []).length} ZIP codes within ${D.radius}</div>
+      <div class="appendix-block-label">ZIP Codes Searched — ${(D.searchedZipCodes || []).length} ZIP codes within ${D.radius} · % = share of ZIP area inside drive-time boundary · partial ZIPs are population-weighted</div>
       <div class="appendix-chips">${zipChipsHtml || '<span style="font-size:9px;color:var(--muted)">—</span>'}</div>
     </div>
     <div class="appendix-block">

@@ -8,23 +8,24 @@ No provider NPI lookup — market-level aggregate only.
 import asyncio
 import base64
 import logging
-from functools import reduce
 from io import BytesIO
 
 import pandas as pd
 import ulid
 from geopy.distance import geodesic
+from shapely.geometry import Point, shape
 
 from app.core.config import settings
 from app.core.types import SexAgeCounts
 from app.schemas.address_report_request import AddressReportRequest
+from app.services import mapbox
 from app.services.alphasophia import get_hcp_data
 from app.services.bedrock_llm import MarketAnalysisInput, generate_market_analysis
-from app.services.census import combine_demographics, get_zip_demographics
+from app.services.census import get_population_in_polygon
 from app.services.fee_schedule import get_medicare_rate
 from app.services.geocoder import geocode_address
 from app.services.html_imputers.v3_imputer import replace_data_block_v3
-from app.services.mapbox import generate_map, stamp_provider_drive_times
+from app.services.mapbox import fetch_isochrones, generate_map, stamp_provider_drive_times_by_isochrone
 from app.services.report_generator import ReportState
 from app.services.s3 import upload_debug_excel
 from app.types.alphasophia import CPT, Provider
@@ -139,13 +140,15 @@ async def run_t0_report(
     log.info("[5/10] Done — addresses resolved")
 
     log.info("[5.5/10] Stamping drive times from source to %d enriched providers", len(providers_list))
+    iso_features: dict = {}
     try:
-        await asyncio.to_thread(
-            stamp_provider_drive_times,
+        iso_features = await asyncio.to_thread(
+            stamp_provider_drive_times_by_isochrone,
             source_lat,
             source_lon,
             providers_list,
             settings.MAPBOX_API_KEY,
+            payload.drive_time_minutes,
         )
         log.info("[5.5/10] Done — drive times stamped")
     except Exception as exc:
@@ -161,17 +164,56 @@ async def run_t0_report(
             providers_in_radius.append(p)
     log.info("[6/10] Done — %d providers within %d min drive", len(providers_in_radius), payload.drive_time_minutes)
 
+    # Re-stamp using only the in-radius subset so the isochrone band selection
+    # (which filters out bands with no unique providers) uses the exact same
+    # provider list that generate_map will use. Raw polygons are cached so no
+    # extra Mapbox API call is made — only the post-fetch band filtering differs.
+    if providers_in_radius:
+        try:
+            iso_features = await asyncio.to_thread(
+                stamp_provider_drive_times_by_isochrone,
+                source_lat,
+                source_lon,
+                providers_in_radius,
+                settings.MAPBOX_API_KEY,
+                payload.drive_time_minutes,
+            )
+            # Re-filter: a provider whose zone shifted outside the limit is removed.
+            providers_in_radius = [
+                p
+                for p in providers_in_radius
+                if p.drive_time_minutes is not None and p.drive_time_minutes <= payload.drive_time_minutes
+            ]
+            log.info("[6.5/10] Re-stamp complete — %d providers after reconciliation", len(providers_in_radius))
+        except Exception as exc:
+            log.warning("[6.5/10] Re-stamp failed — using initial stamp values: %s", exc)
+
     log.info("[7/10] Generating map image")
     map_image_src: str | None = None
     try:
-        map_bytes = await asyncio.to_thread(
+        provider_coords = [
+            (p.latitude, p.longitude) for p in providers_in_radius if p.latitude is not None and p.longitude is not None
+        ]
+        result = await asyncio.to_thread(
             generate_map,
             token=settings.MAPBOX_API_KEY,
             source_lat=source_lat,
             source_lon=source_lon,
-            providers=providers_in_radius,
+            providers=provider_coords,
+            isochrones=list(mapbox._MAP_ISOCHRONES),
         )
+        map_bytes = result["map_bytes"]
         map_image_src = f"data:image/png;base64,{base64.b64encode(map_bytes).decode()}"
+        # Overwrite drive times with the exact values used to color map dots —
+        # guarantees bar chart and map are sourced from the identical classification.
+        provider_zones: dict = result.get("provider_zones", {})
+        for p in providers_in_radius:
+            if p.latitude is not None and p.longitude is not None:
+                zone = provider_zones.get((p.latitude, p.longitude))
+                if zone is not None:
+                    p.drive_time_minutes = zone
+        # Capture map isochrones as canonical source for ZIP filtering.
+        iso_features = result.get("isochrones", iso_features)
         log.info("[7/10] Map image generated (%d bytes)", len(map_bytes))
     except Exception as exc:
         log.warning("[7/10] Map generation failed — report will render without map: %s", exc)
@@ -279,46 +321,71 @@ async def run_t0_report(
     log.info("[9/10] Done — %d CPT rows, market total: %d", len(cpt_rows), total_market_services)
 
     log.info("[10/10] Fetching census demographics + rendering report")
-    _farthest_provider = max(
-        (p for p in providers_in_radius if isinstance(p.distance_from_source_miles, float)),
-        key=lambda p: p.drive_time_minutes if p.drive_time_minutes is not None else 0,
-        default=None,
-    )
-    if not isinstance(_farthest_provider, Provider):
-        raise ValueError("Could not find farthest provider")
-    if not isinstance(_farthest_provider.distance_from_source_miles, float):
-        raise ValueError("Could not find farthest provider distance")
 
-    # Actual ZIPs = ZIPs found in nearby providers + ZIPs close than the farthest provider
-    actual_zips_df = zip_centroids_df[
-        (zip_centroids_df["zip"].astype(str).isin([str(p.location.zip_code) for p in providers_in_radius]))
-        | (
-            zip_centroids_df["distance_from_source_miles"].round(2)
-            <= round(_farthest_provider.distance_from_source_miles, 2)
+    # Build the population polygon from a provider-independent isochrone fetch.
+    # We intentionally do NOT use iso_features (which has bands filtered by which
+    # providers happen to be present) — that would make population vary between
+    # runs as the provider list shifts. Instead we call fetch_isochrones with no
+    # providers argument so only (source_lat, source_lon, minutes) determine the
+    # polygon. The raw Mapbox response is already cached by _fetch_isochrones_raw
+    # so this costs zero extra API calls.
+    _snapped_minutes = min(round(payload.drive_time_minutes / 5) * 5, 60)
+    _iso_polygon = None
+    try:
+        _pop_iso = fetch_isochrones(
+            lat=source_lat,
+            lon=source_lon,
+            token=settings.MAPBOX_API_KEY,
+            minutes=[_snapped_minutes],
+            providers=(),  # no provider filtering — polygon must be stable across runs
         )
-    ]
+        if _snapped_minutes in _pop_iso:
+            _iso_polygon = shape(_pop_iso[_snapped_minutes]["geometry"])
+        elif _pop_iso:
+            _iso_polygon = shape(_pop_iso[max(_pop_iso)]["geometry"])
+    except Exception as exc:
+        log.warning("[10/10] Population isochrone fetch failed — will use centroid fallback: %s", exc)
+
+    # Population — proportional ZIP area weighting via Census TIGERweb boundaries.
+    # Each ZIP contributes (intersection_area / zcta_area) × its population, so
+    # large ZIPs straddling the isochrone boundary are correctly fractioned instead
+    # of being fully included or excluded by a centroid test.
+    total_population = 0
+    combined_demo: SexAgeCounts = {"M": {}, "F": {}, "Total": 0}
+    zip_overlap_fractions: dict[str, float] = {}
+    zip_scaled_populations: dict[str, int] = {}
+    try:
+        combined_demo, zip_overlap_fractions, zip_scaled_populations = get_population_in_polygon(
+            iso_polygon=_iso_polygon,
+            candidate_zips=tuple(expanded_zips_df["zip"].astype(str).values),
+            api_key=settings.CENSUS_API_KEY,
+        )
+        total_population = combined_demo["Total"]
+        log.info(
+            "[10/10] Population via proportional ZIP weighting: %d across %d ZIPs",
+            total_population,
+            len(zip_overlap_fractions),
+        )
+    except Exception as exc:
+        log.error("[10/10] Census demographics failed: %s", exc)
+
+    # Searched ZIPs for the report footer — centroid-in-polygon (display only).
+    if _iso_polygon is not None:
+        actual_zips_df = expanded_zips_df[
+            expanded_zips_df.apply(
+                lambda row: _iso_polygon.contains(Point(row["lon"], row["lat"])),
+                axis=1,
+            )
+        ]
+    else:
+        actual_zips_df = expanded_zips_df[
+            expanded_zips_df["zip"].astype(str).isin([str(p.location.zip_code) for p in providers_in_radius])
+        ]
 
     if actual_zips_df.empty:
         actual_zips_df = pd.DataFrame(
-            {
-                "zip": [payload.zip_code],
-                "lat": [source_lat],
-                "lon": [source_lon],
-                "distance_from_source_miles": [0.0],
-            }
+            {"zip": [payload.zip_code], "lat": [source_lat], "lon": [source_lon], "distance_from_source_miles": [0.0]}
         )
-
-    total_population = 0
-    try:
-        zip_demo_dict = get_zip_demographics(
-            tuple(actual_zips_df["zip"].astype(str).values),
-            settings.CENSUS_API_KEY,
-        )
-        combined_demo: SexAgeCounts = reduce(combine_demographics, zip_demo_dict.values())
-        total_population = combined_demo["Total"]
-    except Exception as exc:
-        log.error("[10/10] Census demographics failed: %s", exc)
-        combined_demo = SexAgeCounts({"M": {}, "F": {}, "Total": 0})
 
     if "geriatric" in payload.specialty_name.lower():
         relevant_pop = get_geriatric_population(combined_demo)
@@ -473,7 +540,12 @@ async def run_t0_report(
         competitorCount=peer_providers_count,
         showRelevantPopulation=show_relevant_population,
         taxonomyCodes=taxonomy_codes,
-        searchedZipCodes=actual_zips_df["zip"].astype(str).tolist(),
+        searchedZipCodes=[
+            f"{z} ({round(zip_overlap_fractions[z] * 100)}% · {zip_scaled_populations.get(z, 0):,} pop)"
+            if z in zip_overlap_fractions
+            else z
+            for z in sorted(zip_overlap_fractions) or actual_zips_df["zip"].astype(str).tolist()
+        ],
         sourceTabs=source_tabs,
         peerNpis=[p.npi for p in providers_in_radius if p.npi],
         providerShares=provider_shares,

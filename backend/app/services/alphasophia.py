@@ -39,7 +39,7 @@ async def _fetch_hcp_page(
     page: int,
 ) -> list[Provider]:
     url = "/v1/search/hcp"
-    params: dict[str, str | int] = {"order-by": "ap-volume", "time": "last-year", "page": page, "pageSize": page_size}
+    params: dict[str, str | int] = {"order-by": "ap-volume", "time": "2024", "page": page, "pageSize": page_size}
     if zip_codes_list:
         params["zip5"] = ", ".join([f"+{code}" for code in zip_codes_list])
     if taxonomy_codes_list:
@@ -173,7 +173,7 @@ async def get_npi_address(npi: str | None) -> tuple[str | None, str | None, str 
 )
 async def _fetch_hcp_procedure(hcp_id: int, page: int, code: str | None) -> list[CPT]:
     url = "/v1/profile/hcp/procedure/"
-    params: dict[str, str | int | bool] = {"id": hcp_id, "all-payor": "true", "page": page, "pageSize": 15}
+    params: dict[str, str | int | bool] = {"id": hcp_id, "all-payor": "true", "page": page, "pageSize": 15, "time": "2024"}
     if code:
         params["code"] = code
     headers = {

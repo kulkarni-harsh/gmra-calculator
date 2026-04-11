@@ -8,8 +8,8 @@ Template selection
 Use ``render_report(tier, data)`` as the single call-site for rendering.
 It reads the right template for the tier and injects *data* in one step.
 
-    render_report("T0", report_data)   # market-entry / address-only report
-    render_report("T1", report_data)   # provider NPI report
+    render_report("T1", report_data)   # active — market-entry / address-only report
+    render_report("A1", report_data)   # archived — provider NPI report
 
 Adding a new tier only requires adding one entry to ``_TIER_TEMPLATES``.
 """
@@ -29,8 +29,8 @@ from app.types.baseline_report_template import ReportTemplateData, ReportTemplat
 # the file on disk is resolved in one place.
 
 _TIER_TEMPLATES: dict[str, str] = {
-    "T0": "MREC_Report_TEMPLATE_T0.html",
-    "T1": "MREC_Report_TEMPLATE_T1.html",
+    "T1": "MREC_Report_TEMPLATE_T1.html",  # active — market-entry / address-only report
+    "A1": "MREC_Report_TEMPLATE_A1.html",  # archived — provider NPI report
 }
 
 # ── Core regex ────────────────────────────────────────────────────────────────
@@ -93,7 +93,7 @@ def inject_data_patch(template_html: str, patch: TemplateDataInput) -> str:
 def render_report(tier: str, data: TemplateDataInput) -> str:
     """Read the template for *tier* and inject *data*.  One-stop rendering call.
 
-    ``tier`` must be a key in ``_TIER_TEMPLATES`` (e.g. ``"T0"``, ``"T1"``).
+    ``tier`` must be a key in ``_TIER_TEMPLATES`` (e.g. ``"T1"``, ``"A1"``).
     Raises ``ValueError`` with a clear message for unknown tiers.
     """
     if tier not in _TIER_TEMPLATES:

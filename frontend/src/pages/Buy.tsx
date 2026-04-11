@@ -3,8 +3,8 @@ import { useSpecialties } from '@/hooks/useSpecialties'
 import { useProviderSearch } from '@/hooks/useProviderSearch'
 import { useReportGeneration } from '@/hooks/useReportGeneration'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
-import type { Provider, RadiusOption, DriveTimeOption, T0Location } from '@/types/api'
-import { createPaymentIntent, createT0PaymentIntent, generateReport, generateT0Report } from '@/lib/api'
+import type { Provider, RadiusOption, DriveTimeOption, T1Location } from '@/types/api'
+import { createPaymentIntent, createT1PaymentIntent, generateReport, generateT1Report } from '@/lib/api'
 
 import TierSelection from '@/components/buy/TierSelection'
 import StepIndicator from '@/components/buy/StepIndicator'
@@ -25,7 +25,7 @@ interface BuyFormState {
   milesRadius: RadiusOption
   driveTimeMinutes: DriveTimeOption
   selectedProvider: Provider | null
-  t0Location: T0Location
+  t1Location: T1Location
   email: string
   phone: string
   currentStep: 1 | 2 | 3 | 4 | 5
@@ -42,7 +42,7 @@ const INITIAL_STATE: BuyFormState = {
   milesRadius: 5,
   driveTimeMinutes: 30,
   selectedProvider: null,
-  t0Location: { address_line_1: '', address_line_2: '', city: '', state: '', zip_code: '' },
+  t1Location: { address_line_1: '', address_line_2: '', city: '', state: '', zip_code: '' },
   email: '',
   phone: '',
   currentStep: 1,
@@ -92,10 +92,10 @@ export default function Buy() {
     try {
       let result: { client_secret: string; job_id: string }
       if (state.selectedTierId === 0) {
-        result = await createT0PaymentIntent({
+        result = await createT1PaymentIntent({
           customer_email: state.email,
           specialty_name: state.specialtyName,
-          ...state.t0Location,
+          ...state.t1Location,
           drive_time_minutes: state.driveTimeMinutes,
         })
       } else {
@@ -118,9 +118,9 @@ export default function Buy() {
   const handlePaymentSuccess = (paymentIntentId: string) => {
     setState((prev) => ({ ...prev, paymentIntentId }))
     if (state.selectedTierId === 0) {
-      generate(() => generateT0Report({
+      generate(() => generateT1Report({
         specialty_name: state.specialtyName,
-        ...state.t0Location,
+        ...state.t1Location,
         drive_time_minutes: state.driveTimeMinutes,
         customer_email: state.email,
         payment_intent_id: paymentIntentId,
@@ -140,9 +140,9 @@ export default function Buy() {
   const handleRetryGeneration = () => {
     if (!state.paymentIntentId) { resetGen(); return }
     if (state.selectedTierId === 0) {
-      generate(() => generateT0Report({
+      generate(() => generateT1Report({
         specialty_name: state.specialtyName,
-        ...state.t0Location,
+        ...state.t1Location,
         drive_time_minutes: state.driveTimeMinutes,
         customer_email: state.email,
         payment_intent_id: state.paymentIntentId!,
@@ -167,7 +167,7 @@ export default function Buy() {
           <GeneratingScreen
             providerName={
               state.selectedTierId === 0
-                ? `${state.t0Location.address_line_1}, ${state.t0Location.city} ${state.t0Location.state}`
+                ? `${state.t1Location.address_line_1}, ${state.t1Location.city} ${state.t1Location.state}`
                 : (state.selectedProvider?.name ?? null)
             }
             email={state.email}
@@ -186,7 +186,7 @@ export default function Buy() {
           <ConfirmationScreen
             providerName={
               state.selectedTierId === 0
-                ? `${state.t0Location.address_line_1}, ${state.t0Location.city} ${state.t0Location.state}`
+                ? `${state.t1Location.address_line_1}, ${state.t1Location.city} ${state.t1Location.state}`
                 : (state.selectedProvider?.name ?? null)
             }
             email={state.email}
@@ -221,7 +221,7 @@ export default function Buy() {
                   selectedProvider={state.selectedProvider}
                   radiusLabel={radiusLabel}
                   email={state.email}
-                  t0Location={state.selectedTierId === 0 ? state.t0Location : undefined}
+                  t1Location={state.selectedTierId === 0 ? state.t1Location : undefined}
                   tierLabel={state.selectedTierId === 0 ? 'Market Entry Report' : 'Through-the-Door Codes Report'}
                   price={state.selectedTierId === 0 ? '$399' : '$500'}
                 />
@@ -240,7 +240,7 @@ export default function Buy() {
                   radiusLabel={radiusLabel}
                   email={state.email}
                   compact
-                  t0Location={state.selectedTierId === 0 ? state.t0Location : undefined}
+                  t1Location={state.selectedTierId === 0 ? state.t1Location : undefined}
                   tierLabel={state.selectedTierId === 0 ? 'Market Entry Report' : 'Through-the-Door Codes Report'}
                   price={state.selectedTierId === 0 ? '$399' : '$500'}
                 />
@@ -267,9 +267,9 @@ export default function Buy() {
 
               {state.currentStep === 2 && state.selectedTierId === 0 && (
                 <StepAddress
-                  location={state.t0Location}
+                  location={state.t1Location}
                   driveTimeMinutes={state.driveTimeMinutes}
-                  onLocationChange={(loc) => setState((prev) => ({ ...prev, t0Location: loc }))}
+                  onLocationChange={(loc) => setState((prev) => ({ ...prev, t1Location: loc }))}
                   onDriveTimeChange={(v) => setState((prev) => ({ ...prev, driveTimeMinutes: v }))}
                   onNext={advance}
                   onBack={back}
@@ -321,7 +321,7 @@ export default function Buy() {
                     onProceedToPayment={handleProceedToPayment}
                     onBack={back}
                     isLoading={state.isCreatingIntent}
-                    t0Location={state.selectedTierId === 0 ? state.t0Location : undefined}
+                    t1Location={state.selectedTierId === 0 ? state.t1Location : undefined}
                     tierName={state.selectedTierId === 0 ? 'Market Entry Report' : 'Through-the-Door Codes Report'}
                     price={state.selectedTierId === 0 ? '$399' : '$500'}
                   />

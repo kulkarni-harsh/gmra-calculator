@@ -8,7 +8,7 @@ export function useReportGeneration() {
   const [htmlContent, setHtmlContent] = useState<string | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
 
-  // Accept any async function that returns a GenerateResult — works for both T0 and T1
+  // Accept any async function that returns a GenerateResult — works for both T1 and A1
   const generate = (generateFn: () => Promise<GenerateResult>) => {
     setIsGenerating(true)
     setIsComplete(false)

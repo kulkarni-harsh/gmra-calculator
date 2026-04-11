@@ -1,5 +1,5 @@
 """
-Bedrock LLM service — generates market analysis prose for T0 reports.
+Bedrock LLM service — generates market analysis prose for T1 reports.
 
 Uses langchain-aws ChatBedrockConverse.  Falls back to `fallback_text`
 on any error so the report pipeline is never blocked by LLM failures.

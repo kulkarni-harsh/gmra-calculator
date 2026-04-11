@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FormField, StyledInput } from '@/components/buy/FormField'
-import type { T0Location, DriveTimeOption } from '@/types/api'
+import type { T1Location, DriveTimeOption } from '@/types/api'
 
 const DRIVE_TIME_OPTIONS: { value: DriveTimeOption; label: string }[] = [
   { value: 5, label: '5 min drive' },
@@ -21,9 +21,9 @@ const US_STATES = [
 ]
 
 interface StepAddressProps {
-  location: T0Location
+  location: T1Location
   driveTimeMinutes: DriveTimeOption
-  onLocationChange: (loc: T0Location) => void
+  onLocationChange: (loc: T1Location) => void
   onDriveTimeChange: (v: DriveTimeOption) => void
   onNext: () => void
   onBack: () => void
@@ -39,7 +39,7 @@ export default function StepAddress({
 }: StepAddressProps) {
   const [touched, setTouched] = useState(false)
 
-  const set = (key: keyof T0Location, value: string) =>
+  const set = (key: keyof T1Location, value: string) =>
     onLocationChange({ ...location, [key]: value })
 
   const isValid =

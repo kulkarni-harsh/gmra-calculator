@@ -11,7 +11,7 @@ class CreatePaymentIntentRequest(BaseModel):
     miles_radius: int
 
 
-class CreateT0PaymentIntentRequest(BaseModel):
+class CreateT1PaymentIntentRequest(BaseModel):
     customer_email: EmailStr
     specialty_name: str
     address_line_1: str

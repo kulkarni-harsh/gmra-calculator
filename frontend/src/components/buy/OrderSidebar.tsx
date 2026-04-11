@@ -1,6 +1,6 @@
 import { Separator } from '@/components/ui/separator'
 import { CheckCircle2, Shield, Flag, Calendar } from 'lucide-react'
-import type { Provider, T0Location } from '@/types/api'
+import type { Provider, T1Location } from '@/types/api'
 
 interface OrderSidebarProps {
   specialtyName: string
@@ -8,7 +8,7 @@ interface OrderSidebarProps {
   radiusLabel: string
   email: string
   compact?: boolean
-  t0Location?: T0Location
+  t1Location?: T1Location
   tierLabel?: string
   price?: string
 }
@@ -27,14 +27,14 @@ export default function OrderSidebar({
   radiusLabel,
   email,
   compact = false,
-  t0Location,
+  t1Location,
   tierLabel,
   price,
 }: OrderSidebarProps) {
-  const locationDisplay = t0Location
-    ? `${t0Location.address_line_1}, ${t0Location.city} ${t0Location.state}`
+  const locationDisplay = t1Location
+    ? `${t1Location.address_line_1}, ${t1Location.city} ${t1Location.state}`
     : (selectedProvider?.name ?? '—')
-  const locationLabel = t0Location ? 'Location' : 'Practice'
+  const locationLabel = t1Location ? 'Location' : 'Practice'
   const specialtyDisplay = specialtyName || '—'
   const radiusDisplay = radiusLabel || '—'
   const emailDisplay = email || '—'

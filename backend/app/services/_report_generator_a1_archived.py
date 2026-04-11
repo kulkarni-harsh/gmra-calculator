@@ -1,8 +1,8 @@
 """
-Core report generation logic, decoupled from the HTTP request/response layer.
+ARCHIVED — A1 (provider NPI) report generator.
 
-Both the HTTP endpoint (for future sync use) and the async worker call run_report().
-State is loaded once at startup and passed in — no global singletons.
+This file is kept for reference only. Active report generation uses
+t1_report_generator.py (T1). ReportState and load_state live there.
 """
 
 import asyncio
@@ -23,6 +23,7 @@ from app.services.alphasophia import get_hcp_data
 from app.services.census import combine_demographics, get_zip_demographics
 from app.services.fee_schedule import get_medicare_rate
 from app.services.html_imputers import render_report
+from app.services.t1_report_generator import ReportState  # noqa: F401 — shared state now lives in main generator
 from app.services.s3 import upload_debug_excel
 from app.types.alphasophia import CPT, Provider
 from app.types.baseline_report_template import (
@@ -46,40 +47,6 @@ from app.utils.common import (
 )
 from app.utils.validator import validate_speciality_master_df
 
-
-@dataclass
-class ReportState:
-    specialty_lookup: dict
-    anchor_cpt_lookup: dict
-    zip_centroids_df: pd.DataFrame
-    cpt_lookup_df: pd.DataFrame
-    specialty_master_df: pd.DataFrame
-    rvu_table: dict
-    gpci_table: dict
-
-
-def load_state() -> ReportState:
-    """Load all lookup data from disk. Call once at startup."""
-    from opencage.geocoder import OpenCageGeocode  # noqa: F401 — imported for side-effects in alphasophia
-
-    specialty_lookup = json.load(open(settings.LOOKUP_DIR / "specialty_lookup.json"))
-    anchor_cpt_lookup = json.load(open(settings.LOOKUP_DIR / "anchor_cpt_lookup.json"))
-    zip_centroids_df = pd.read_csv(settings.LOOKUP_DIR / "zip_centroids.csv")
-    cpt_lookup_df = pd.read_csv(settings.LOOKUP_DIR / "cpt_lookup.csv")
-    specialty_master_df = pd.read_excel(settings.LOOKUP_DIR / "Specialty Master Sheet.xlsx")
-    validate_speciality_master_df(specialty_master_df)
-    rvu_table, gpci_table = load_fee_schedule_tables()
-
-    logging.info("ReportState loaded successfully.")
-    return ReportState(
-        specialty_lookup=specialty_lookup,
-        anchor_cpt_lookup=anchor_cpt_lookup,
-        zip_centroids_df=zip_centroids_df,
-        cpt_lookup_df=cpt_lookup_df,
-        specialty_master_df=specialty_master_df,
-        rvu_table=rvu_table,
-        gpci_table=gpci_table,
-    )
 
 
 async def run_report(payload: ProviderRequest, state: ReportState, job_id: str = "") -> tuple[str, bytes | None]:
@@ -417,13 +384,13 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
         verdict_value = "N/A"
         verdict_sub = "No density data available for this specialty/state."
     elif provider_gap > 1:
-        verdict_type = "green"
+        verdict_type = "opportunity"
         verdict_value = "GO"
         verdict_sub = (
             f"Underserved — {provider_gap:.1f} provider-equivalent gap vs. {density_scope.lower()} density baseline."
         )
     elif provider_gap < -1:
-        verdict_type = "red"
+        verdict_type = "avoid"
         verdict_value = "AVOID"
         verdict_sub = f"Saturated — {abs(provider_gap):.1f} providers above {density_scope.lower()} density baseline."
     else:
@@ -528,6 +495,6 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
         densityScope=density_scope,
     )
 
-    html = render_report("T1", report_template_data)
+    html = render_report("A1", report_template_data)
     log.info("[10/10] Done — report '%s' rendered (%d bytes)", report_id, len(html))
     return html, debug_excel_bytes

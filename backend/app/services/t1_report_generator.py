@@ -7,6 +7,7 @@ No provider NPI lookup — market-level aggregate only.
 
 import asyncio
 import base64
+import json
 import logging
 from dataclasses import dataclass
 from io import BytesIO
@@ -27,7 +28,6 @@ from app.services.fee_schedule import get_medicare_rate
 from app.services.geocoder import geocode_address
 from app.services.html_imputers import render_report
 from app.services.mapbox import fetch_isochrones, generate_map, stamp_provider_drive_times_by_isochrone
-from app.services.report_generator import ReportState
 from app.services.s3 import upload_debug_excel
 from app.types.alphasophia import CPT, Provider
 from app.types.baseline_report_template import (
@@ -47,11 +47,50 @@ from app.utils.common import (
     get_provider_density,
     get_source_tabs,
     get_taxonomy_codes,
+    load_fee_schedule_tables,
 )
+from app.utils.validator import validate_speciality_master_df
 
 # Max drive-time option is 60 min. At ~50 mph average, 60 min ≈ 50 miles.
 # Fetch providers within this fixed radius; drive-time filter happens after stamping.
 _DRIVE_TIME_FETCH_MILES: float = 50.0
+
+
+# ── Shared state (loaded once at worker startup, passed into every report run) ─
+
+
+@dataclass
+class ReportState:
+    specialty_lookup: dict
+    anchor_cpt_lookup: dict
+    zip_centroids_df: pd.DataFrame
+    cpt_lookup_df: pd.DataFrame
+    specialty_master_df: pd.DataFrame
+    rvu_table: dict
+    gpci_table: dict
+
+
+def load_state() -> ReportState:
+    """Load all lookup data from disk. Call once at startup."""
+    from opencage.geocoder import OpenCageGeocode  # noqa: F401 — side-effect import required by alphasophia
+
+    specialty_lookup = json.load(open(settings.LOOKUP_DIR / "specialty_lookup.json"))
+    anchor_cpt_lookup = json.load(open(settings.LOOKUP_DIR / "anchor_cpt_lookup.json"))
+    zip_centroids_df = pd.read_csv(settings.LOOKUP_DIR / "zip_centroids.csv")
+    cpt_lookup_df = pd.read_csv(settings.LOOKUP_DIR / "cpt_lookup.csv")
+    specialty_master_df = pd.read_excel(settings.LOOKUP_DIR / "Specialty Master Sheet.xlsx")
+    validate_speciality_master_df(specialty_master_df)
+    rvu_table, gpci_table = load_fee_schedule_tables()
+    logging.info("ReportState loaded successfully.")
+    return ReportState(
+        specialty_lookup=specialty_lookup,
+        anchor_cpt_lookup=anchor_cpt_lookup,
+        zip_centroids_df=zip_centroids_df,
+        cpt_lookup_df=cpt_lookup_df,
+        specialty_master_df=specialty_master_df,
+        rvu_table=rvu_table,
+        gpci_table=gpci_table,
+    )
 
 
 # ── Return-type containers ────────────────────────────────────────────────────
@@ -525,7 +564,7 @@ def _build_debug_excel(
 # ── Public entry point ────────────────────────────────────────────────────────
 
 
-async def run_t0_report(
+async def run_t1_report(
     payload: AddressReportRequest,
     state: ReportState,
     job_id: str = "",
@@ -724,6 +763,6 @@ async def run_t0_report(
         densityScope=density_scope,
     )
 
-    html = render_report("T0", report_data)
-    log.info("[10] Done — T0 report '%s' rendered (%d bytes)", report_id, len(html))
+    html = render_report("T1", report_data)
+    log.info("[10] Done — T1 report '%s' rendered (%d bytes)", report_id, len(html))
     return html, debug_excel_bytes

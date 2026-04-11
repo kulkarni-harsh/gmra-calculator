@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { FileText } from 'lucide-react'
-import type { Provider, T0Location } from '@/types/api'
+import type { Provider, T1Location } from '@/types/api'
 
 interface StepConfirmProps {
   specialtyName: string
@@ -12,7 +12,7 @@ interface StepConfirmProps {
   onProceedToPayment: () => void
   onBack: () => void
   isLoading?: boolean
-  t0Location?: T0Location
+  t1Location?: T1Location
   tierName: string
   price: string
 }
@@ -26,12 +26,12 @@ export default function StepConfirm({
   onProceedToPayment,
   onBack,
   isLoading = false,
-  t0Location,
+  t1Location,
   tierName,
   price,
 }: StepConfirmProps) {
-  const addressDisplay = t0Location
-    ? [t0Location.address_line_1, t0Location.city, t0Location.state, t0Location.zip_code]
+  const addressDisplay = t1Location
+    ? [t1Location.address_line_1, t1Location.city, t1Location.state, t1Location.zip_code]
         .filter(Boolean)
         .join(', ')
     : selectedProvider
@@ -48,7 +48,7 @@ export default function StepConfirm({
   const rows = [
     { label: 'Report', value: `${tierName} (${price})` },
     { label: 'Specialty', value: specialtyName || '—' },
-    ...(!t0Location ? [{ label: 'Practice', value: selectedProvider?.name ?? '—' }] : []),
+    ...(!t1Location ? [{ label: 'Practice', value: selectedProvider?.name ?? '—' }] : []),
     { label: 'Address', value: addressDisplay },
     { label: 'Radius', value: radiusLabel },
     { label: 'Email', value: email || '—' },

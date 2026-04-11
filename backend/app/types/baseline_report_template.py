@@ -135,7 +135,7 @@ class ReportTemplateDataV2:
     peerNpis: list[str]  # NPIs of peer providers within the exact radius
     # Sorted descending list of each provider's % share of total market CPT services (0–100).
     # Anonymous — no names or NPIs. For T1+ reports, the client provider is included as one entry.
-    # For T0 (Market Entry) reports, only peer providers are included (no named client).
+    # For T1 (Market Entry) reports, only peer providers are included (no named client).
     providerShares: list[ProviderShareEntry] | None = None
     # Map image: base64 data URI ("data:image/png;base64,...") or None to hide the map section.
     mapImageSrc: str | None = None

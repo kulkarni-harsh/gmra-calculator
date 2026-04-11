@@ -6,10 +6,10 @@ import ulid
 from fastapi import APIRouter, HTTPException, Request
 
 from app.core.config import settings
-from app.schemas.payment import CreatePaymentIntentRequest, CreateT0PaymentIntentRequest
+from app.schemas.payment import CreatePaymentIntentRequest, CreateT1PaymentIntentRequest
 from app.services.email import send_request_confirmation
 from app.services.job_store import JobAlreadyExistsError, claim_job_for_generation, create_job_awaiting_payment
-from app.services.payment import create_payment_intent, create_t0_payment_intent
+from app.services.payment import create_payment_intent, create_t1_payment_intent
 from app.services.queue import send_job
 
 router = APIRouter()
@@ -98,8 +98,8 @@ async def stripe_webhook(request: Request):
         try:
             stored = json.loads(payload_json)
             customer_email = stored.get("customer_email", "")
-            # T0 stores address instead of client_provider
-            if stored.get("report_type") == "t0":
+            # T1 stores address instead of client_provider; A1 stores client_provider
+            if stored.get("report_type") == "t1":
                 provider_name = (
                     f"{stored.get('address_line_1', '')}, {stored.get('city', '')} {stored.get('state', '')}"
                 )
@@ -119,26 +119,26 @@ async def stripe_webhook(request: Request):
     return {"received": True}
 
 
-@router.post("/create-t0-payment-intent")
-async def create_t0_payment_intent_endpoint(payload: CreateT0PaymentIntentRequest):
-    """Pre-generate job_id, create Stripe PaymentIntent for $399, store T0 job in DynamoDB."""
+@router.post("/create-t1-payment-intent")
+async def create_t1_payment_intent_endpoint(payload: CreateT1PaymentIntentRequest):
+    """Pre-generate job_id, create Stripe PaymentIntent for $399, store T1 job in DynamoDB."""
     job_id = f"MERC-{ulid.ulid()}"
     address_label = f"{payload.address_line_1}, {payload.city} {payload.state} {payload.zip_code}"
 
     try:
-        client_secret = create_t0_payment_intent(
+        client_secret = create_t1_payment_intent(
             job_id=job_id,
             customer_email=str(payload.customer_email),
             specialty_name=payload.specialty_name,
             address_label=address_label,
         )
     except Exception as exc:
-        logging.error("Failed to create T0 Stripe PaymentIntent: %s", exc)
+        logging.error("Failed to create T1 Stripe PaymentIntent: %s", exc)
         raise HTTPException(status_code=502, detail="Failed to create payment session") from exc
 
     pre_payload_json = json.dumps(
         {
-            "report_type": "t0",
+            "report_type": "t1",
             "specialty_name": payload.specialty_name,
             "address_line_1": payload.address_line_1,
             "address_line_2": payload.address_line_2,
@@ -159,7 +159,7 @@ async def create_t0_payment_intent_endpoint(payload: CreateT0PaymentIntentReques
             provider_name=address_label,
         )
     except JobAlreadyExistsError:
-        logging.error("job_id collision at T0 intent creation: %s", job_id)
+        logging.error("job_id collision at T1 intent creation: %s", job_id)
         raise HTTPException(status_code=500, detail="Failed to initialize job") from None
 
     return {"client_secret": client_secret, "job_id": job_id}

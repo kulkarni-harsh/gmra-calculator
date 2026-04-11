@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 REPORT_AMOUNT_CENTS = 50_000  # $500.00
-T0_REPORT_AMOUNT_CENTS = 39_900  # $399.00 — change here to adjust Tier 0 price
+T1_REPORT_AMOUNT_CENTS = 39_900  # $399.00 — change here to adjust T1 price
 
 
 def create_payment_intent(
@@ -34,23 +34,23 @@ def create_payment_intent(
     return intent.client_secret  # type: ignore[return-value]
 
 
-def create_t0_payment_intent(
+def create_t1_payment_intent(
     *,
     job_id: str,
     customer_email: str,
     specialty_name: str,
     address_label: str,  # e.g. "123 Main St, Austin TX 78701"
 ) -> str:
-    """Create a Stripe PaymentIntent for the Tier 0 Market Entry Report ($399). Returns client_secret."""
+    """Create a Stripe PaymentIntent for the T1 Market Entry Report ($399). Returns client_secret."""
     intent = stripe.PaymentIntent.create(
-        amount=T0_REPORT_AMOUNT_CENTS,
+        amount=T1_REPORT_AMOUNT_CENTS,
         currency="usd",
         receipt_email=customer_email,
         payment_method_types=["card"],
         metadata={
             "job_id": job_id,
             "customer_email": customer_email,
-            "report_type": "t0",
+            "report_type": "t1",
             "provider_name": address_label,
             "specialty_name": specialty_name,
         },
@@ -62,7 +62,7 @@ def verify_payment_intent(
     *,
     payment_intent_id: str,
     expected_email: str,
-    expected_amount: int = REPORT_AMOUNT_CENTS,  # caller passes T0_REPORT_AMOUNT_CENTS for Tier 0
+    expected_amount: int = REPORT_AMOUNT_CENTS,  # caller passes T1_REPORT_AMOUNT_CENTS for T1
 ) -> str:
     """
     Retrieve and verify the PaymentIntent.

@@ -18,16 +18,16 @@ from app.core.logging import configure_logging
 from app.services.email import send_report_ready
 from app.services.job_store import get_job, update_job
 from app.services.queue import delete_message, receive_jobs
-from app.services.report_generator import ReportState, load_state
+from app.services.t1_report_generator import ReportState, load_state
 
 
 async def process_job(job_id: str, state: ReportState) -> None:
     from app.schemas.address_report_request import AddressReportRequest
     from app.schemas.provider_request import ProviderRequest
     from app.services.pdf import html_to_pdf
-    from app.services.report_generator import run_report
+    from app.services._report_generator_a1_archived import run_report
     from app.services.s3 import upload_report, upload_report_pdf
-    from app.services.t0_report_generator import run_t0_report
+    from app.services.t1_report_generator import run_t1_report
 
     job = get_job(job_id)
     if not job:
@@ -39,14 +39,14 @@ async def process_job(job_id: str, state: ReportState) -> None:
 
     try:
         raw = json.loads(job["payload"])
-        report_type = raw.get("report_type", "t0")
+        report_type = raw.get("report_type", "a1")
 
-        if report_type == "t0":
-            t0_payload = AddressReportRequest.model_validate(raw)
-            html, debug_excel_bytes = await run_t0_report(t0_payload, state, job_id=job_id)
+        if report_type == "t1":
+            t1_payload = AddressReportRequest.model_validate(raw)
+            html, debug_excel_bytes = await run_t1_report(t1_payload, state, job_id=job_id)
         else:
-            t1_payload = ProviderRequest.model_validate(raw)
-            html, debug_excel_bytes = await run_report(t1_payload, state, job_id=job_id)
+            a1_payload = ProviderRequest.model_validate(raw)
+            html, debug_excel_bytes = await run_report(a1_payload, state, job_id=job_id)
 
         html_url = upload_report(job_id, html)
         pdf_bytes = await html_to_pdf(html)
@@ -63,12 +63,12 @@ async def process_job(job_id: str, state: ReportState) -> None:
         )
 
         # Build email context from whichever payload branch was taken — avoids unbound variable refs.
-        if report_type == "t0":
-            email_to = str(t0_payload.customer_email)
-            provider_label = f"{t0_payload.address_line_1}, {t0_payload.city}"
-        else:
+        if report_type == "t1":
             email_to = str(t1_payload.customer_email)
-            provider_label = str(t1_payload.client_provider.name)
+            provider_label = f"{t1_payload.address_line_1}, {t1_payload.city}"
+        else:
+            email_to = str(a1_payload.customer_email)
+            provider_label = str(a1_payload.client_provider.name)
 
         if email_to:
             send_report_ready(

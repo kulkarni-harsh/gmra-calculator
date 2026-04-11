@@ -229,14 +229,11 @@ body {
 
 .title-left {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
 }
 
 .tier-pill {
   display: inline-flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 6px;
   background: var(--ice);
   border: 1px solid var(--sky);
@@ -249,8 +246,6 @@ body {
   width: 6px; height: 6px;
   border-radius: 50%;
   background: var(--sky);
-  flex-shrink: 0;
-  margin-top: 2px;
 }
 
 .tier-pill-text {
@@ -278,7 +273,6 @@ body {
 }
 
 .verdict-box {
-  width: 30%;
   min-width: 180px;
   padding: 16px 20px;
   border-radius: 3px;
@@ -286,8 +280,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  overflow-wrap: anywhere;
-  word-break: break-word;
 }
 
 .verdict-box.opportunity {
@@ -318,7 +310,6 @@ body {
   font-size: 26px;
   letter-spacing: 2px;
   line-height: 1;
-  white-space: normal;
 }
 
 .verdict-box.opportunity .verdict-value { color: var(--green); }
@@ -330,7 +321,6 @@ body {
   font-weight: 600;
   color: var(--muted);
   letter-spacing: 1px;
-  white-space: normal;
 }
 
 /* ══════════════════════════════════
@@ -561,13 +551,22 @@ body {
 }
 
 /* right-align headers for all numeric columns to match data cell alignment */
-.comparison-table thead th:nth-child(n+3) {
+.comparison-table thead th:nth-child(n+2) {
   text-align: right;
 }
 
 .comparison-table td:nth-child(3),
 .comparison-table td:nth-child(4),
-.comparison-table td:nth-child(5) {
+.comparison-table td:nth-child(5),
+.comparison-table td:nth-child(6),
+.comparison-table td:nth-child(7),
+.comparison-table td:nth-child(8),
+.comparison-table td:nth-child(9) {
+  text-align: right;
+}
+
+/* right-align Medicare Rate td (col 2) */
+.comparison-table td:nth-child(2) {
   text-align: right;
 }
 
@@ -591,189 +590,98 @@ body {
   font-style: italic;
 }
 
-.comparison-table tfoot td:nth-child(n+2) {
-  text-align: right;
-}
-
 .comparison-footnote {
   font-size: 9px;
   color: var(--muted);
   margin-bottom: 14px;
 }
 
-.gauge-wrap {
-  position: relative;
-  width: 130px;
-  height: 95px;
-  flex-shrink: 0;
-}
 
-/* ══════════════════════════════════
-   SECTION 03 — SATURATION PANEL
-══════════════════════════════════ */
-.saturation-panel {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 20px;
+/* Provider density position strip */
+.density-compare {
+  background: var(--light);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  padding: 12px 16px;
   margin-bottom: 20px;
-  align-items: start;
 }
 
-.saturation-left {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.saturation-verdict {
-  width: 100%;
-  padding: 8px 14px;
-  border-radius: 3px;
-  text-align: center;
-}
-.saturation-verdict.green { background: var(--green-bg); border: 2px solid var(--green); }
-.saturation-verdict.sky   { background: var(--ice);      border: 2px solid var(--sky);   }
-.saturation-verdict.red   { background: var(--red-bg);   border: 2px solid var(--red);   }
-
-.saturation-verdict-label {
+.density-compare-title {
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: 2px;
-}
-.saturation-verdict-value {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 18px;
-  letter-spacing: 2px;
-  color: var(--navy);
-}
-.saturation-verdict.green .saturation-verdict-value { color: var(--green); }
-.saturation-verdict.red   .saturation-verdict-value { color: var(--red);   }
-.saturation-verdict.sky   .saturation-verdict-value { color: var(--blue);  }
-
-.saturation-stats {
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-}
-.sat-stat {
-  background: var(--light);
-  border: 1px solid var(--border);
-  padding: 7px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  text-align: center;
-}
-.sat-stat-label {
-  font-size: 7px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.sat-stat-val {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 16px;
-  color: var(--navy);
-  line-height: 1;
-}
-.sat-stat-val.muted { color: var(--muted); }
-
-.saturation-right {
-  padding: 16px 20px;
-  background: var(--light);
-  border: 1px solid var(--border);
-  border-top: 3px solid var(--navy);
-}
-
-.prov-dist-title {
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 2px;
-}
-.prov-dist-sub {
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--muted);
-  margin-bottom: 14px;
-}
-
-.prov-dist-chart {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
   margin-bottom: 12px;
 }
 
-.prov-bar-row {
-  display: grid;
-  grid-template-columns: 100px 1fr 36px;
-  align-items: center;
-  gap: 8px;
-}
-.prov-bar-label {
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--muted);
-  text-align: right;
-  line-height: 1.3;
-}
-.prov-bar-sublabel {
-  font-size: 8px;
-  font-weight: 400;
-  color: var(--muted);
-  opacity: 0.7;
-}
-.tax-summary-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-bottom: 12px;
-}
-.tax-summary-chip {
-  font-size: 8px;
-  font-weight: 600;
-  color: var(--navy);
-  background: var(--ice);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 2px 6px;
-  white-space: nowrap;
-}
-.prov-bar-track {
+.density-bar-wrap {
+  position: relative;
   height: 10px;
   background: var(--border);
   border-radius: 2px;
-  overflow: hidden;
-}
-.prov-bar-fill {
-  height: 100%;
-  background: var(--navy);
-  border-radius: 2px;
-}
-.prov-bar-pct {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 14px;
-  color: var(--navy);
-  line-height: 1;
-  text-align: right;
+  margin-bottom: 10px;
 }
 
-.prov-dist-note {
+.density-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--navy), var(--blue));
+}
+
+.density-bar-fill.saturated {
+  background: linear-gradient(90deg, var(--red), #c53030);
+}
+
+.density-bar-marker {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: calc(100% + 8px);
+  background: var(--sky);
+  border-radius: 1px;
+}
+
+.density-bar-marker::after {
+  content: attr(data-label);
+  position: absolute;
+  top: -13px;
+  left: 5px;
   font-size: 8px;
-  font-weight: 500;
+  font-weight: 700;
+  color: var(--sky);
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+}
+
+.density-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  font-weight: 600;
   color: var(--muted);
-  line-height: 1.5;
-  border-top: 1px solid var(--border);
-  padding-top: 8px;
+}
+
+.density-legend .dl-hi { color: var(--navy); font-weight: 700; }
+.density-legend .dl-gap-pos { color: var(--green); font-weight: 700; }
+.density-legend .dl-gap-neg { color: var(--red); font-weight: 700; }
+
+/* Capacity gauge */
+.capacity-section {
+  background: var(--light);
+  border: 1px solid var(--border);
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.gauge-wrap {
+  position: relative;
+  width: 130px;
+  height: 70px;
+  flex-shrink: 0;
 }
 
 .gauge-svg {
@@ -783,10 +691,9 @@ body {
 
 .gauge-label {
   position: absolute;
-  bottom: 20%; left: 30%;
-  transform: translateX(-20%);
+  bottom: -20%; left: 50%;
+  transform: translateX(-50%);
   text-align: center;
-  white-space: nowrap;
 }
 
 .gauge-pct {
@@ -804,6 +711,50 @@ body {
   text-transform: uppercase;
   color: var(--muted);
 }
+
+.capacity-detail {
+  flex: 1;
+}
+
+.capacity-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 2px;
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+
+.capacity-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.cap-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cap-item-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cap-item-val {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.cap-item-val.blue  { color: var(--blue); }
+.cap-item-val.sky   { color: var(--sky); }
+.cap-item-val.green { color: var(--green); }
+.cap-item-val.red   { color: var(--red); }
+.cap-item-val.muted { color: var(--muted); }
 
 /* Analysis narrative */
 .analysis-box {
@@ -846,25 +797,6 @@ body {
 .analysis-text strong {
   font-weight: 600;
   color: white;
-}
-
-/* Map section */
-.map-section {
-  padding: 0 40px 20px 40px;
-}
-
-.map-image {
-  width: 100%;
-  display: block;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-}
-
-.map-caption {
-  margin-top: 6px;
-  font-size: 9px;
-  letter-spacing: 0.5px;
-  color: var(--muted);
 }
 
 /* Upgrade section */
@@ -1092,8 +1024,15 @@ const DATA = {
   radius:      "7 mi",
   reportTier:  "$399 Baseline",   // shown in badge + ID strip
 
-  // ── Location ───────────────────────────────────────────────
+  // ── Client / Location ─────────────────────────────────────
   address:     "5757 Warren Pkwy Suite 240, Frisco TX 75034",
+  clientName:  "Dr. [Client Name]",
+  // Optional: used for client position summary cards
+  providerProfile: {
+    annualVisits:  "13,960",
+  },
+  // Optional: count of peer providers used for normalized peer averages
+  competitorCount: 10,
   // false hides the Relevant Population card (use for Family Med, Internal Med, etc.)
   showRelevantPopulation: false,
 
@@ -1114,7 +1053,7 @@ const DATA = {
   // verdictType: "opportunity" (green) | "caution" (amber) | "avoid" (red)
   verdictType:  "opportunity",
   verdictValue: "GO",
-  verdictSub:   "Underserved — 3.0 provider-equivalent gap vs. state density baseline.",
+  verdictSub:   "Strong Opportunity",
 
   // ── Section 1: Population & Provider Density ──────────────
   totalPopulation:    "503,447",
@@ -1122,47 +1061,37 @@ const DATA = {
   populationLabel:    "All ages (Family Med)",   // e.g. "Ages 65+ (Cardiology)"
   currentProviders:   38,
   targetDensity:      55.2,
-  // Each entry = one anonymous provider's % share of total market CPT services, sorted desc.
-  providerShares: [
-    { share: 34, taxonomy: "Family Medicine",   drive_time_minutes: 5  },
-    { share: 22, taxonomy: "General Practice",  drive_time_minutes: 8  },
-    { share: 18, taxonomy: "Family Medicine",   drive_time_minutes: 12 },
-    { share: 11, taxonomy: "Family Medicine",   drive_time_minutes: 15 },
-    { share:  7, taxonomy: "Internal Medicine", drive_time_minutes: 18 },
-    { share:  5, taxonomy: "General Practice",  drive_time_minutes: 23 },
-    { share:  3, taxonomy: "Family Medicine",   drive_time_minutes: 28 },
-  ],
+  providerGap:        17.2,
 
   // ── Section 2: CPT Table ──────────────────────────────────
-  // totalVolume = market total for this location; medicareRate = CMS 2026 PFS office-setting rate, state-adjusted
   cptRows: [
-    { code: "99202", patientType: "New Patient",  desc: "Office visit — straightforward",      totalVolume: "14,220",  medicareRate: "$93.41"  },
-    { code: "99203", patientType: "New Patient",  desc: "Office visit — low complexity",       totalVolume: "18,840",  medicareRate: "$133.95" },
-    { code: "99204", patientType: "New Patient",  desc: "Office visit — moderate complexity",  totalVolume: "11,650",  medicareRate: "$196.99" },
-    { code: "99205", patientType: "New Patient",  desc: "Office visit — high complexity",      totalVolume: "4,210",   medicareRate: "$262.89" },
-    { code: "99211", patientType: "Established",  desc: "Office visit — nurse visit",          totalVolume: "9,330",   medicareRate: "$25.53"  },
-    { code: "99212", patientType: "Established",  desc: "Office visit — straightforward",      totalVolume: "22,140",  medicareRate: "$57.54"  },
-    { code: "99213", patientType: "Established",  desc: "Office visit — low complexity",       totalVolume: "48,920",  medicareRate: "$115.28" },
-    { code: "99214", patientType: "Established",  desc: "Office visit — moderate complexity",  totalVolume: "36,780",  medicareRate: "$171.85" },
-    { code: "99215", patientType: "Established",  desc: "Office visit — high complexity",      totalVolume: "12,440",  medicareRate: "$234.00" },
+    // totalVolume = market total (peers + client); clientVolume = this practice; peerAvgVolume = per-peer avg
+    // medicareRate = CMS 2026 PFS office-setting rate, state-adjusted
+    { code: "99202", desc: "New patient — straightforward",       totalVolume: "14,220",  clientVolume: "1,120", medicareRate: "$93.41"  },
+    { code: "99203", desc: "New patient — low complexity",        totalVolume: "18,840",  clientVolume: "1,540" },
+    { code: "99204", desc: "New patient — moderate complexity",   totalVolume: "11,650",  clientVolume: "920"   },
+    { code: "99205", desc: "New patient — high complexity",       totalVolume: "4,210",   clientVolume: "280"   },
+    { code: "99211", desc: "Established — nurse visit",           totalVolume: "9,330",   clientVolume: "680"   },
+    { code: "99212", desc: "Established — straightforward",       totalVolume: "22,140",  clientVolume: "1,760" },
+    { code: "99213", desc: "Established — low complexity",        totalVolume: "48,920",  clientVolume: "3,980" },
+    { code: "99214", desc: "Established — moderate complexity",   totalVolume: "36,780",  clientVolume: "2,810" },
+    { code: "99215", desc: "Established — high complexity",       totalVolume: "12,440",  clientVolume: "870"   },
   ],
-  cptTotalVisits:   "178,530",
+  cptTotalVisits:  "178,530",
 
   // ── Section 4: Analysis Narrative (HTML allowed) ──────────
   analysisText: `
-    The Frisco, TX market presents a <strong>clear opportunity for a new or expanding Family Medicine provider.</strong>
-    With 503,447 residents and only 38 active providers against a benchmark target of 55.2, this location is operating
-    at <strong>69% of benchmark provider density</strong> — indicating strong demand headroom for an additional practice.<br><br>
+    The Frisco, TX market presents a <strong>clear opportunity for an independent Family Medicine practice.</strong>
+    With 503,447 residents and only 38 active providers against a benchmark target of 55.2, this market is operating
+    at <strong>69% of benchmark provider capacity</strong> — indicating meaningful growth headroom for the existing practice.<br><br>
     The "through the door" CPT baseline confirms demand is real: <strong>178,530 annual patient visits</strong> are
-    processed across the active provider base. Provider distribution analysis shows the market is moderately concentrated —
-    the top provider handles approximately 34% of area CPT volume, with meaningful share available to a well-positioned entrant.<br><br>
-    <strong>Recommended next step:</strong> commission a deeper CPT strategic model to evaluate provider capacity needs,
-    optimal service mix, and revenue opportunity for this location.
+    being processed by existing providers, yet market capacity supports 262,500 — leaving an <strong>83,970-visit
+    gap</strong>. This baseline analysis uses universal
+    E&amp;M codes (99202–99215) common to all office-based practices, confirming fundamental market demand
+    <strong>before</strong> accounting for specialty-specific procedures.<br><br>
+    <strong>Recommended next step:</strong> move to a code-level strategic model to decide whether to defend share,
+    expand provider capacity, or adjust service mix in this location.
   `,
-
-  // ── Map image (base64 data URI or relative path for local preview) ───────
-  // Set to null to hide the map section entirely.
-  mapImageSrc: "./map_coords_TX_outdoors.png",
 
   // ── Section 5: Upgrade Options ────────────────────────────
   upgrades: [
@@ -1204,103 +1133,131 @@ const DATA = {
   const classForDelta = (n) => !Number.isFinite(n) ? 'neutral' : (n >= 0 ? 'up' : 'down');
   const sumNums = (arr) => arr.reduce((acc, n) => acc + (Number.isFinite(n) ? n : 0), 0);
 
+  const competitorCount = Math.max(1, Math.round(toNum(D.competitorCount)) || Math.max((toNum(D.currentProviders) || 2) - 1, 1));
+
   // Tags HTML
   const tagsHtml = D.tags.map(t =>
     `<span class="tag${t.color ? ' ' + t.color : ''}">${t.text}</span>`
   ).join(' ');
 
-  // CPT rows: market baseline with revenue calculation
+  // CPT rows: market baseline + normalized client-vs-peer comparisons
   const cptNormalizedRows = D.cptRows.map(r => {
     const marketVolume = toNum(r.totalVolume);
-    const rate = toNum(r.medicareRate);
-    const revenue = (Number.isFinite(marketVolume) && Number.isFinite(rate)) ? marketVolume * rate : NaN;
-    return { ...r, marketVolume, revenue };
+    const clientVolumeRaw = toNum(r.clientVolume);
+    const hasClientVolume = Number.isFinite(clientVolumeRaw);
+
+    const peerAvgVolume = Number.isFinite(toNum(r.peerAvgVolume))
+      ? toNum(r.peerAvgVolume)
+      : (Number.isFinite(marketVolume)
+          ? (hasClientVolume
+              ? Math.max(marketVolume - clientVolumeRaw, 0) / competitorCount
+              : marketVolume / Math.max(competitorCount + 1, 1))
+          : NaN);
+
+    const volDeltaPct = (hasClientVolume && Number.isFinite(peerAvgVolume) && peerAvgVolume > 0)
+      ? ((clientVolumeRaw / peerAvgVolume) - 1) * 100
+      : NaN;
+
+    const clientSharePct = (hasClientVolume && Number.isFinite(marketVolume) && marketVolume > 0)
+      ? (clientVolumeRaw / marketVolume) * 100
+      : NaN;
+
+    return {
+      ...r,
+      marketVolume,
+      clientVolume: hasClientVolume ? clientVolumeRaw : NaN,
+      peerAvgVolume,
+      volDeltaPct,
+      clientSharePct,
+    };
   });
+
+  const clientVisitsFromRows = sumNums(cptNormalizedRows.map(r => r.clientVolume));
+  const peerAvgVisitsFromRows  = sumNums(cptNormalizedRows.map(r => r.peerAvgVolume));
+
+  const profileVisits = toNum(D.providerProfile?.annualVisits);
+  const cleanClientName = (typeof D.clientName === 'string' ? D.clientName : '').trim();
+  const subjectLabel = (cleanClientName && !/\[client name\]/i.test(cleanClientName))
+    ? cleanClientName
+    : 'This Practice';
+  // Compact label for table headers / tight spaces
+  const shortLabel = subjectLabel.length > 18
+    ? subjectLabel.split(/\s+/).slice(-1)[0]
+    : subjectLabel;
+  const hasClientData = cptNormalizedRows.some(r => Number.isFinite(r.clientVolume))
+    || Number.isFinite(profileVisits);
 
   const marketVisitsInput = toNum(D.cptTotalVisits);
   const marketVisitsTotal = Number.isFinite(marketVisitsInput) ? marketVisitsInput : sumNums(cptNormalizedRows.map(r => r.marketVolume));
+  const clientVisits = Number.isFinite(profileVisits) ? profileVisits : (clientVisitsFromRows > 0 ? clientVisitsFromRows : NaN);
 
-  // Provider density & saturation (Section 03)
-  const currentProviders = toNum(D.currentProviders);
-  const targetProviders   = toNum(D.targetDensity);  // benchmark provider count for this market
-  const totalPop          = toNum(D.totalPopulation);
-  const providerDensityPct = (Number.isFinite(currentProviders) && Number.isFinite(targetProviders) && targetProviders > 0)
-    ? (currentProviders / targetProviders) * 100 : NaN;
-  const densityBarPct = Number.isFinite(providerDensityPct) ? Math.min(providerDensityPct, 100) : 0;
-  const isSaturated = Number.isFinite(providerDensityPct) && providerDensityPct >= 100;
+  const clientVisitSharePct = (Number.isFinite(clientVisits) && marketVisitsTotal > 0)
+    ? (clientVisits / marketVisitsTotal) * 100 : NaN;
+  const clientVsPeerVolPct = (Number.isFinite(clientVisits) && peerAvgVisitsFromRows > 0)
+    ? ((clientVisits / peerAvgVisitsFromRows) - 1) * 100 : NaN;
+  const volGapToPeer = (Number.isFinite(clientVisits) && Number.isFinite(peerAvgVisitsFromRows))
+    ? peerAvgVisitsFromRows - clientVisits : NaN;
+  // Fair share pct — used in S03 for visit-share colour coding
+  const fairSharePct = (1 / (competitorCount + 1)) * 100;
+  // Gauge dashoffset (arc = 157 = π × r50) driven by actual CPT market share
+  const gaugeDash = Math.round(157 * (1 - (Number.isFinite(clientVisitSharePct) ? clientVisitSharePct : 0) / 100));
 
-  const patientsPerProvider = (Number.isFinite(totalPop) && Number.isFinite(currentProviders) && currentProviders > 0)
-    ? totalPop / currentProviders : NaN;
+  const topUnderIndexedCodes = cptNormalizedRows
+    .map(r => ({
+      code: r.code,
+      gapToPeer: (Number.isFinite(r.clientVolume) && Number.isFinite(r.peerAvgVolume))
+        ? (r.peerAvgVolume - r.clientVolume)
+        : NaN,
+    }))
+    .filter(r => Number.isFinite(r.gapToPeer) && r.gapToPeer > 0)
+    .sort((a, b) => b.gapToPeer - a.gapToPeer)
+    .slice(0, 3)
+    .map(r => r.code)
+    .join(', ');
+  const positionLabel = !hasClientData
+    ? 'Awaiting client data'
+    : (Number.isFinite(clientVsPeerVolPct)
+        ? (clientVsPeerVolPct >= 15 ? 'Above avg peer provider' : (clientVsPeerVolPct <= -15 ? 'Below avg peer provider' : 'Near avg peer provider'))
+        : 'Partial data available');
 
-  const saturationLabel = !Number.isFinite(providerDensityPct) ? '—'
-    : providerDensityPct >= 110 ? 'Overserved'
-    : providerDensityPct >= 100 ? 'Overcrowded'
-    : providerDensityPct >= 85  ? 'Near Capacity'
-    : providerDensityPct >= 70  ? 'Moderate'
-    : 'Underserved';
-  const saturationClass = !Number.isFinite(providerDensityPct) ? ''
-    : providerDensityPct >= 85  ? 'red'
-    : providerDensityPct >= 70  ? 'sky'
-    : 'green';
-
-  // Gauge dashoffset (arc = 157 = π × r50) driven by provider density % of benchmark
-  const gaugeDash = Math.round(157 * (1 - densityBarPct / 100));
-
-  // Provider CPT distribution bars (Section 03)
-  const providerShareBars = (D.providerShares || []).map((entry, i) => {
-    const share = entry.share ?? entry;
-    const taxonomy = entry.taxonomy || '';
-    const dt = entry.drive_time_minutes != null ? Math.round(entry.drive_time_minutes) : null;
-    const opacity = Math.max(0.25, 1 - i * 0.1);
-    const subLabel = [taxonomy, dt != null ? `${dt} min` : null].filter(Boolean).join(' · ');
-    return `
-      <div class="prov-bar-row">
-        <div class="prov-bar-label">
-          <div>Provider ${i + 1}</div>
-          ${subLabel ? `<div class="prov-bar-sublabel">${subLabel}</div>` : ''}
-        </div>
-        <div class="prov-bar-track">
-          <div class="prov-bar-fill" style="width:${share}%;opacity:${opacity.toFixed(2)}"></div>
-        </div>
-        <div class="prov-bar-pct">${share}%</div>
-      </div>
-    `;
-  }).join('');
-
-  // Taxonomy composition summary (group + count)
-  const _taxCounts = {};
-  (D.providerShares || []).forEach(entry => {
-    const tax = ((entry.taxonomy || 'Unknown')).trim();
-    _taxCounts[tax] = (_taxCounts[tax] || 0) + 1;
-  });
-  const taxonomySummaryHtml = Object.entries(_taxCounts)
-    .sort((a, b) => b[1] - a[1])
-    .map(([tax, count]) => `<span class="tax-summary-chip">${tax} <strong>${count}</strong></span>`)
-    .join('');
-
-  const fmtCurrency = (n) => Number.isFinite(n) ? '$' + Math.round(n).toLocaleString('en-US') : '—';
-  const marketRevenueTotal = cptNormalizedRows.reduce(
-    (sum, r) => sum + (Number.isFinite(r.revenue) ? r.revenue : 0),
-    0
-  );
+  const knowCardsHtml = `
+    <div class="know-card">
+      <div class="know-card-label">${subjectLabel} Annual Visits</div>
+      <div class="know-card-value neutral">${Number.isFinite(clientVisits) ? fmtInt(clientVisits) : 'Not Supplied'}</div>
+      <div class="know-card-sub">${Number.isFinite(clientVisits) ? 'Across listed CPT basket' : 'Add providerProfile.annualVisits or CPT-level clientVolume'}</div>
+    </div>
+    <div class="know-card">
+      <div class="know-card-label">CPT Basket Procedures</div>
+      <div class="know-card-value neutral">${fmtInt(marketVisitsTotal)}</div>
+      <div class="know-card-sub">Market total &nbsp;·&nbsp; Peer avg: ${fmtInt(peerAvgVisitsFromRows)} / yr</div>
+    </div>
+    <div class="know-card">
+      <div class="know-card-label">${subjectLabel} Visit Market Share</div>
+      <div class="know-card-value ${classForDelta(clientVisitSharePct)}">${fmtShare(clientVisitSharePct)}</div>
+      <div class="know-card-sub">Share of CPT basket visits</div>
+    </div>
+    <div class="know-card">
+      <div class="know-card-label">${subjectLabel} vs Avg Peer</div>
+      <div class="know-card-value ${classForDelta(clientVsPeerVolPct)}">${fmtDelta(clientVsPeerVolPct)}</div>
+      <div class="know-card-sub">${positionLabel}</div>
+    </div>
+  `;
 
   const cptScoreRowsHtml = cptNormalizedRows.map(r => `
     <tr>
       <td>${r.code}</td>
-      <td>${r.patientType || '—'}</td>
-      <td>${fmtInt(r.marketVolume)}</td>
       <td class="medicare-rate-col" title="CMS 2026 Physician Fee Schedule — office-setting rate, state-adjusted">${r.medicareRate || '—'}</td>
-      <td>${fmtCurrency(r.revenue)}</td>
+      <td>${fmtInt(r.marketVolume)}</td>
+      <td class="client-col">${Number.isFinite(r.clientVolume) ? fmtInt(r.clientVolume) : 'N/A'}</td>
+      <td>${fmtShare(r.clientSharePct)}</td>
+      <td>${Number.isFinite(r.peerAvgVolume) ? fmtInt(r.peerAvgVolume) : '—'}</td>
+      <td class="${Number.isFinite(r.volDeltaPct) ? (r.volDeltaPct >= 0 ? 'delta-pos' : 'delta-neg') : ''}">${fmtDelta(r.volDeltaPct)}</td>
     </tr>`
   ).join('');
 
   // Appendix chips
-  // ZIP strings are formatted as "78746 (72%)" for partial ZIPs and "78749 (100%)" for full ones.
   const zipChipsHtml = (D.searchedZipCodes || [])
-    .map(z => {
-      const partial = z.includes('(') && !z.includes('(100%)');
-      return `<span class="appendix-chip" style="${partial ? 'opacity:0.55;' : ''}" title="${partial ? 'Partial overlap — population scaled proportionally' : 'Fully within drive-time area'}">${z}</span>`;
-    })
+    .map(z => `<span class="appendix-chip">${z}</span>`)
     .join('');
   const taxChipsHtml = (D.taxonomyCodes || [])
     .map(t => `<span class="appendix-chip">${t}</span>`)
@@ -1379,10 +1336,10 @@ const DATA = {
     <div class="title-left">
       <div class="tier-pill">
         <div class="tier-pill-dot"></div>
-        <div class="tier-pill-text">Location Survey — Market Baseline Report</div>
+        <div class="tier-pill-text">Tier 1 — Practice Growth Baseline Report</div>
       </div>
-      <div class="report-main-title">Clinical Demand &amp;<br>Market Saturation Analysis</div>
-      <div class="report-subtitle">${D.address} &nbsp;·&nbsp; ${D.market} Location Survey</div>
+      <div class="report-main-title">Clinical Demand &amp;<br>Practice Growth Outlook</div>
+      <div class="report-subtitle">${D.address} &nbsp;·&nbsp; Prepared for: ${D.clientName}</div>
       <div style="margin-top:10px;">${tagsHtml}</div>
     </div>
     <div class="verdict-box ${D.verdictType}">
@@ -1398,14 +1355,14 @@ const DATA = {
     <!-- SECTION 01 -->
     <div class="section-header">
       <div class="section-num">01</div>
-      <div class="section-title">Population &amp; <em>Provider Density Gap</em></div>
+      <div class="section-title">Demand Base &amp; <em>Growth Headroom</em></div>
     </div>
 
     <div class="metric-row ${D.showRelevantPopulation === false ? 'three-col' : ''}">
       <div class="metric-card">
         <div class="metric-label">Total Population</div>
         <div class="metric-value blue">${D.totalPopulation}</div>
-        <div class="metric-sub">Within ${D.radius}</div>
+        <div class="metric-sub">Within ${D.radius} radius</div>
         <div class="metric-sub">Based on 2024 ACS data</div>
       </div>
       ${D.showRelevantPopulation === false ? '' : `
@@ -1430,123 +1387,112 @@ const DATA = {
     <!-- SECTION 02 -->
     <div class="section-header">
       <div class="section-num">02</div>
-      <div class="section-title">"Through the Door" <em>CPT Baseline Volume</em></div>
+      <div class="section-title">"Through the Door" <em>Practice Positioning vs Peers</em></div>
     </div>
 
     <div class="section-note">
-      <strong>Market baseline:</strong> Annual visit volumes processed by all active providers within ${D.radius} of ${D.address}.
-      These codes represent the universal "through the door" demand that any office-based practice in this location would encounter.
+      <strong>Comparison logic:</strong> ${subjectLabel} is compared against the
+      <strong>average single peer provider</strong>, not against the sum of all peer providers.
+      Peer averages are normalized using ${competitorCount} peer provider${competitorCount === 1 ? '' : 's'} inside ${D.radius}.
     </div>
+
+    <div class="know-title">Practice Position Snapshot</div>
+    <div class="know-grid">${knowCardsHtml}</div>
 
     <table class="data-table comparison-table">
       <thead>
         <tr>
           <th>CPT</th>
-          <th>Patient Type</th>
-          <th>Market Volume / Yr</th>
-          <th title="CMS 2026 Physician Fee Schedule — office-setting rate, state-adjusted">Medicare Rate</th>
-          <th title="Estimated based on CMS 2026 Medicare fee schedule — actual reimbursement will vary">Est. Market Revenue *</th>
+          <th title="CMS 2026 Physician Fee Schedule — office-setting rate, state-adjusted">Medicare Approved Rate</th>
+          <th>Market Volume</th><th>${shortLabel} Vol. / Yr</th><th>% Mkt Share</th><th>Peer Avg Volume</th><th>% vs Peer Avg</th>
         </tr>
       </thead>
       <tbody>${cptScoreRowsHtml}</tbody>
       <tfoot>
         <tr>
-          <td colspan="2">Total (CPT Basket)</td>
-          <td>${fmtInt(marketVisitsTotal)}</td>
+          <td>Total (CPT Basket)</td>
           <td>—</td>
-          <td>${fmtCurrency(marketRevenueTotal)}</td>
+          <td>${fmtInt(marketVisitsTotal)}</td>
+          <td class="client-col">${Number.isFinite(clientVisits) ? fmtInt(clientVisits) : '—'}</td>
+          <td>${fmtShare(clientVisitSharePct)}</td>
+          <td>${fmtInt(peerAvgVisitsFromRows)}</td>
+          <td class="${Number.isFinite(clientVsPeerVolPct) ? (clientVsPeerVolPct >= 0 ? 'delta-pos' : 'delta-neg') : ''}">${fmtDelta(clientVsPeerVolPct)}</td>
         </tr>
       </tfoot>
     </table>
     <div class="comparison-footnote">
-      <div><strong>Market baseline:</strong> Volumes reflect 2025 claims data for the searched ZIP codes and taxonomy codes.</div>
-      <div><strong>Medicare Rate:</strong> CMS 2026 Physician Fee Schedule — office-setting rate, state-adjusted.</div>
-      <div><strong>* Est. Market Revenue:</strong> Projected using the CMS 2026 Medicare Physician Fee Schedule (office-setting, state-adjusted). Actual reimbursement varies by payer mix, contract rates, and coding — use as a directional estimate only.</div>
+      Where client CPT data is unavailable, the practice column shows "N/A" while market and peer averages remain visible.
+      <em>Medicare Rate</em> = CMS 2026 Physician Fee Schedule — office-setting rate, state-adjusted.
     </div>
 
     <!-- SECTION 03 -->
     <div class="section-header">
       <div class="section-num">03</div>
-      <div class="section-title">Provider Density &amp; <em>CPT Volume Distribution</em></div>
+      <div class="section-title">Utilisation &amp; <em>Market Pool Analysis</em></div>
     </div>
 
     <div class="section-note">
-      <strong>Market share breakdown:</strong> anonymous provider ranking by share of total CPT services
-      for the codes listed above. No provider names or NPIs are disclosed.
+      <strong>Interpretation:</strong> how much of the available procedure market is ${subjectLabel} capturing, and where are the volume gaps?
+      Upside comes from share capture and closing the CPT mix gap to peer-average volume.
     </div>
 
-    <div class="saturation-panel">
-
-      <!-- Left: gauge + status -->
-      <div class="saturation-left">
-        <div class="gauge-wrap">
-          <svg class="gauge-svg" viewBox="0 0 130 70">
-            <path d="M 15 65 A 50 50 0 0 1 115 65" stroke="#dce8f4" stroke-width="10" fill="none" stroke-linecap="round"/>
-            <path d="M 15 65 A 50 50 0 0 1 115 65" stroke="url(#gaugeGrad)" stroke-width="10" fill="none" stroke-linecap="round"
-                  stroke-dasharray="157" stroke-dashoffset="${gaugeDash}"/>
-            <defs>
-              <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" style="stop-color:#0d1f3c"/>
-                <stop offset="100%" style="stop-color:#2d9cdb"/>
-              </linearGradient>
-            </defs>
-          </svg>
-          <div class="gauge-label">
-            <div class="gauge-pct">${fmtShare(providerDensityPct)}</div>
-            <div class="gauge-sub">of Benchmark</div>
-          </div>
+    <div class="capacity-section">
+      <div class="gauge-wrap">
+        <svg class="gauge-svg" viewBox="0 0 130 70">
+          <path d="M 15 65 A 50 50 0 0 1 115 65" stroke="#dce8f4" stroke-width="10" fill="none" stroke-linecap="round"/>
+          <path d="M 15 65 A 50 50 0 0 1 115 65" stroke="url(#gaugeGrad)" stroke-width="10" fill="none" stroke-linecap="round"
+                stroke-dasharray="157" stroke-dashoffset="${gaugeDash}"/>
+          <defs>
+            <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#0d1f3c"/>
+              <stop offset="100%" style="stop-color:#2d9cdb"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="gauge-label">
+          <div class="gauge-pct">${fmtShare(clientVisitSharePct)}</div>
+          <div class="gauge-sub">CPT Market Share</div>
         </div>
-
-        <div class="saturation-verdict ${saturationClass}">
-          <div class="saturation-verdict-label">Market Status</div>
-          <div class="saturation-verdict-value">${saturationLabel}</div>
-        </div>
-
-        <div class="saturation-stats">
-          <div class="sat-stat">
-            <div class="sat-stat-label">Active Providers</div>
-            <div class="sat-stat-val">${Number.isFinite(currentProviders) ? Math.round(currentProviders) : '—'}</div>
+      </div>
+      <div class="capacity-detail">
+        <div class="capacity-title">Volume Capture: Share &amp; CPT Mix Gap Analysis</div>
+        <div class="capacity-grid">
+          <div class="cap-item">
+            <div class="cap-item-label">Market Procedure Pool (CPT Basket)</div>
+            <div class="cap-item-val blue">${fmtInt(marketVisitsTotal)} visits / yr</div>
           </div>
-          <div class="sat-stat">
-            <div class="sat-stat-label">Benchmark Target</div>
-            <div class="sat-stat-val muted">${Number.isFinite(targetProviders) ? targetProviders.toFixed(1) : '—'}</div>
+          <div class="cap-item">
+            <div class="cap-item-label">${subjectLabel} Visit Volume</div>
+            <div class="cap-item-val">${Number.isFinite(clientVisits) ? fmtInt(clientVisits) + ' visits / yr' : '—'}</div>
+          </div>
+          <div class="cap-item">
+            <div class="cap-item-label">${subjectLabel} Market Share</div>
+            <div class="cap-item-val ${Number.isFinite(clientVisitSharePct) ? (clientVisitSharePct >= fairSharePct ? 'green' : 'sky') : ''}">${fmtShare(clientVisitSharePct)}</div>
+          </div>
+          <div class="cap-item">
+            <div class="cap-item-label">Avg Peer Visit Volume</div>
+            <div class="cap-item-val blue">${fmtInt(peerAvgVisitsFromRows)} visits / yr</div>
+          </div>
+          <div class="cap-item">
+            <div class="cap-item-label">Volume Gap to Peer Avg</div>
+            <div class="cap-item-val ${Number.isFinite(volGapToPeer) ? (volGapToPeer > 0 ? 'red' : 'green') : ''}">${Number.isFinite(volGapToPeer) ? (volGapToPeer > 0 ? '+' : '') + fmtInt(volGapToPeer) + ' visits' : '—'}</div>
+          </div>
+          <div class="cap-item">
+            <div class="cap-item-label">Top Under-Indexed CPT Codes</div>
+            <div class="cap-item-val blue">${topUnderIndexedCodes || '—'}</div>
           </div>
         </div>
       </div>
-
-      <!-- Right: CPT volume distribution bars -->
-      <div class="saturation-right">
-        <div class="prov-dist-title">CPT Volume Distribution</div>
-        <div class="prov-dist-sub">Share of total market services per provider &nbsp;·&nbsp; taxonomy shown &nbsp;·&nbsp; anonymous, ranked</div>
-        <div class="tax-summary-strip">${taxonomySummaryHtml}</div>
-        <div class="prov-dist-chart">${providerShareBars}</div>
-        <div class="prov-dist-note">
-          Based on services count for all procedures listed in Section 02 across ${(D.providerShares || []).length} providers.
-          Individual provider volume breakdowns are not disclosed — market share distribution is shown in aggregate only.
-        </div>
-      </div>
-
     </div>
-
-    <!-- MAP SECTION -->
-    ${D.mapImageSrc ? `
-    <div class="section-header">
-      <div class="section-num">MAP</div>
-      <div class="section-title">Geographic <em>Market Coverage</em></div>
-    </div>
-    <div class="map-section">
-      <img class="map-image" src="${D.mapImageSrc}" alt="Market coverage map" />
-      <div class="map-caption">Drive-time isochrones from ${D.address} &nbsp;·&nbsp; Peer Providers marked</div>
-    </div>` : ''}
 
     <!-- SECTION 04 -->
     <div class="section-header">
       <div class="section-num">04</div>
-      <div class="section-title">Clinical <em>Analysis Summary</em></div>
+      <div class="section-title">Action <em>Summary</em></div>
     </div>
 
     <div class="analysis-box">
-      <div class="analysis-label">Analyst Interpretation — Location Survey</div>
+      <div class="analysis-label">What This Means for ${subjectLabel}</div>
       <div class="analysis-text">${D.analysisText}</div>
     </div>
 
@@ -1562,7 +1508,7 @@ const DATA = {
   <div class="appendix">
     <div class="appendix-title">Data Coverage &amp; Methodology</div>
     <div class="appendix-block">
-      <div class="appendix-block-label">ZIP Codes Searched — ${(D.searchedZipCodes || []).length} ZIP codes within ${D.radius} · % = share of ZIP area inside drive-time boundary · partial ZIPs are population-weighted</div>
+      <div class="appendix-block-label">ZIP Codes Searched — ${(D.searchedZipCodes || []).length} ZIP codes within ${D.radius}</div>
       <div class="appendix-chips">${zipChipsHtml || '<span style="font-size:9px;color:var(--muted)">—</span>'}</div>
     </div>
     <div class="appendix-block">
@@ -1573,6 +1519,11 @@ const DATA = {
     <div class="appendix-block">
       <div class="appendix-block-label">Physician Density Source — US Physician Workforce Data Dashboard, 2023 Physician Density by State &amp; Specialty</div>
       <div class="appendix-chips">${sourceTabsHtml}</div>
+    </div>` : ''}
+    ${(D.peerNpis || []).length > 0 ? `
+    <div class="appendix-block">
+      <div class="appendix-block-label">Peer Provider NPIs — ${(D.peerNpis || []).length} providers within ${D.radius}</div>
+      <div class="appendix-chips">${peerNpisHtml}</div>
     </div>` : ''}
   </div>
 
@@ -1585,10 +1536,6 @@ const DATA = {
         MCREC Reports LLC acts solely as commercial facilitator. This report does not constitute legal, financial, or investment advice.
         © 2026 MCREC Reports LLC. All rights reserved.
       </div>
-      ${(D.peerNpis || []).length > 0 ? `
-      <div style="margin-top:8px;font-size:8px;font-weight:600;letter-spacing:1px;color:rgba(255,255,255,0.35);">
-        ACTIVE PROVIDER NPIs (${D.radius}) &nbsp;·&nbsp; ${(D.peerNpis || []).join(' &nbsp;·&nbsp; ')}
-      </div>` : ''}
     </div>
     <div class="footer-right">
       <div class="footer-codes">CPT<span>·</span>DRG<span>·</span>ICD-10</div>

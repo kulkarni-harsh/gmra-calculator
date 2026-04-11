@@ -69,8 +69,8 @@ export interface GenerateReportRequest {
 export type RadiusOption = 5 | 10 | 25 | 50
 export type DriveTimeOption = 5 | 10 | 15 | 30 | 45 | 60
 
-// T0 address-only report types
-export interface T0Location {
+// T1 address-only report types
+export interface T1Location {
   address_line_1: string
   address_line_2?: string
   city: string
@@ -78,7 +78,7 @@ export interface T0Location {
   zip_code: string
 }
 
-export interface GenerateT0ReportRequest {
+export interface GenerateT1ReportRequest {
   specialty_name: string
   address_line_1: string
   address_line_2?: string
@@ -90,7 +90,7 @@ export interface GenerateT0ReportRequest {
   payment_intent_id: string
 }
 
-export interface CreateT0PaymentIntentPayload {
+export interface CreateT1PaymentIntentPayload {
   customer_email: string
   specialty_name: string
   address_line_1: string

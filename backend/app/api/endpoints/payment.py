@@ -6,10 +6,10 @@ import ulid
 from fastapi import APIRouter, HTTPException, Request
 
 from app.core.config import settings
-from app.schemas.payment import CreatePaymentIntentRequest, CreateT1PaymentIntentRequest
+from app.schemas.payment import CreatePaymentIntentRequest, CreateT1PaymentIntentRequest, CreateT2PaymentIntentRequest
 from app.services.email import send_request_confirmation
 from app.services.job_store import JobAlreadyExistsError, claim_job_for_generation, create_job_awaiting_payment
-from app.services.payment import create_payment_intent, create_t1_payment_intent
+from app.services.payment import create_payment_intent, create_t1_payment_intent, create_t2_payment_intent, T2_REPORT_AMOUNT_CENTS
 from app.services.queue import send_job
 
 router = APIRouter()
@@ -99,7 +99,7 @@ async def stripe_webhook(request: Request):
             stored = json.loads(payload_json)
             customer_email = stored.get("customer_email", "")
             # T1 stores address instead of client_provider; A1 stores client_provider
-            if stored.get("report_type") == "t1":
+            if stored.get("report_type") in ("t1", "t2"):
                 provider_name = (
                     f"{stored.get('address_line_1', '')}, {stored.get('city', '')} {stored.get('state', '')}"
                 )
@@ -160,6 +160,53 @@ async def create_t1_payment_intent_endpoint(payload: CreateT1PaymentIntentReques
         )
     except JobAlreadyExistsError:
         logging.error("job_id collision at T1 intent creation: %s", job_id)
+        raise HTTPException(status_code=500, detail="Failed to initialize job") from None
+
+    return {"client_secret": client_secret, "job_id": job_id}
+
+
+@router.post("/create-t2-payment-intent")
+async def create_t2_payment_intent_endpoint(payload: CreateT2PaymentIntentRequest):
+    """Pre-generate job_id, create Stripe PaymentIntent for $599, store T2 job in DynamoDB."""
+    job_id = f"MERC-{ulid.ulid()}"
+    address_label = f"{payload.address_line_1}, {payload.city} {payload.state} {payload.zip_code}"
+
+    try:
+        client_secret = create_t2_payment_intent(
+            job_id=job_id,
+            customer_email=str(payload.customer_email),
+            specialty_name=payload.specialty_name,
+            address_label=address_label,
+        )
+    except Exception as exc:
+        logging.error("Failed to create T2 Stripe PaymentIntent: %s", exc)
+        raise HTTPException(status_code=502, detail="Failed to create payment session") from exc
+
+    pre_payload_json = json.dumps(
+        {
+            "report_type": "t2",
+            "specialty_name": payload.specialty_name,
+            "address_line_1": payload.address_line_1,
+            "address_line_2": payload.address_line_2,
+            "city": payload.city,
+            "state": payload.state,
+            "zip_code": payload.zip_code,
+            "drive_time_minutes": payload.drive_time_minutes,
+            "customer_email": str(payload.customer_email),
+            "payment_intent_id": "pending",
+            "cpt_codes": payload.cpt_codes,
+        }
+    )
+
+    try:
+        create_job_awaiting_payment(
+            job_id=job_id,
+            payload_json=pre_payload_json,
+            specialty_name=payload.specialty_name,
+            provider_name=address_label,
+        )
+    except JobAlreadyExistsError:
+        logging.error("job_id collision at T2 intent creation: %s", job_id)
         raise HTTPException(status_code=500, detail="Failed to initialize job") from None
 
     return {"client_secret": client_secret, "job_id": job_id}

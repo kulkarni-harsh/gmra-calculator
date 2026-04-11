@@ -100,3 +100,29 @@ export interface CreateT1PaymentIntentPayload {
   zip_code: string
   drive_time_minutes: number
 }
+
+// T2 Through-the-Door Codes Report types
+export interface GenerateT2ReportRequest {
+  specialty_name: string
+  address_line_1: string
+  address_line_2?: string
+  city: string
+  state: string
+  zip_code: string
+  drive_time_minutes: number
+  cpt_codes: string[]        // 1–5 CPT codes
+  customer_email: string
+  payment_intent_id: string
+}
+
+export interface CreateT2PaymentIntentPayload {
+  customer_email: string
+  specialty_name: string
+  address_line_1: string
+  address_line_2?: string
+  city: string
+  state: string
+  zip_code: string
+  drive_time_minutes: number
+  cpt_codes: string[]        // 1–5 CPT codes
+}

@@ -1,7 +1,15 @@
 // All API calls are centralized here. Never call fetch() directly from components.
 // To switch from local to cloud hosting, update VITE_API_BASE_URL in .env.
 
-import type { CreateT1PaymentIntentPayload, GenerateReportRequest, GenerateT1ReportRequest, Provider, Specialty } from '@/types/api'
+import type {
+  CreateT1PaymentIntentPayload,
+  CreateT2PaymentIntentPayload,
+  GenerateReportRequest,
+  GenerateT1ReportRequest,
+  GenerateT2ReportRequest,
+  Provider,
+  Specialty,
+} from '@/types/api'
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8000'
 const API = `${BASE_URL}/api`
@@ -118,6 +126,35 @@ export async function generateT1Report(payload: GenerateT1ReportRequest): Promis
   if (!res.ok) {
     const text = await res.text().catch(() => '')
     throw new Error(`T1 job submission failed (${res.status}): ${text}`)
+  }
+  const { job_id } = (await res.json()) as { job_id: string }
+  return { htmlContent: null, jobId: job_id }
+}
+
+export async function createT2PaymentIntent(
+  payload: CreateT2PaymentIntentPayload,
+): Promise<CreatePaymentIntentResult> {
+  const res = await fetch(`${API}/payments/create-t2-payment-intent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`Failed to create T2 payment session (${res.status}): ${text}`)
+  }
+  return res.json() as Promise<CreatePaymentIntentResult>
+}
+
+export async function generateT2Report(payload: GenerateT2ReportRequest): Promise<GenerateResult> {
+  const res = await fetch(`${API}/reports/t2/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`T2 job submission failed (${res.status}): ${text}`)
   }
   const { job_id } = (await res.json()) as { job_id: string }
   return { htmlContent: null, jobId: job_id }

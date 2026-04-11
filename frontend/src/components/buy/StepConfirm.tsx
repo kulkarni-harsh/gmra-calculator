@@ -15,6 +15,7 @@ interface StepConfirmProps {
   t1Location?: T1Location
   tierName: string
   price: string
+  cptCodes?: string[]
 }
 
 export default function StepConfirm({
@@ -29,6 +30,7 @@ export default function StepConfirm({
   t1Location,
   tierName,
   price,
+  cptCodes,
 }: StepConfirmProps) {
   const addressDisplay = t1Location
     ? [t1Location.address_line_1, t1Location.city, t1Location.state, t1Location.zip_code]
@@ -51,6 +53,7 @@ export default function StepConfirm({
     ...(!t1Location ? [{ label: 'Practice', value: selectedProvider?.name ?? '—' }] : []),
     { label: 'Address', value: addressDisplay },
     { label: 'Radius', value: radiusLabel },
+    ...(cptCodes && cptCodes.length > 0 ? [{ label: 'CPT Codes', value: cptCodes.join(', ') }] : []),
     { label: 'Email', value: email || '—' },
     { label: 'Phone', value: phone || 'Not provided' },
   ]

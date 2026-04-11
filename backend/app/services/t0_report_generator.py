@@ -1,13 +1,14 @@
 """
 Tier 0 report generator.
 
-Generates the V3 market baseline report from an address + specialty alone.
+Generates the market baseline report from an address + specialty alone.
 No provider NPI lookup — market-level aggregate only.
 """
 
 import asyncio
 import base64
 import logging
+from dataclasses import dataclass
 from io import BytesIO
 
 import pandas as pd
@@ -24,7 +25,7 @@ from app.services.bedrock_llm import MarketAnalysisInput, generate_market_analys
 from app.services.census import get_population_in_polygon
 from app.services.fee_schedule import get_medicare_rate
 from app.services.geocoder import geocode_address
-from app.services.html_imputers.v3_imputer import replace_data_block_v3
+from app.services.html_imputers import render_report
 from app.services.mapbox import fetch_isochrones, generate_map, stamp_provider_drive_times_by_isochrone
 from app.services.report_generator import ReportState
 from app.services.s3 import upload_debug_excel
@@ -48,36 +49,66 @@ from app.utils.common import (
     get_taxonomy_codes,
 )
 
-# ── Drive-time fetch constants ────────────────────────────────────────────────
 # Max drive-time option is 60 min. At ~50 mph average, 60 min ≈ 50 miles.
-# Always fetch providers within this fixed radius; drive-time filter happens after stamping.
+# Fetch providers within this fixed radius; drive-time filter happens after stamping.
 _DRIVE_TIME_FETCH_MILES: float = 50.0
-# Approximate miles per minute (50 mph average) — used to scale census ZIP radius.
-_APPROX_MILES_PER_MINUTE: float = 50.0 / 60.0
 
 
-async def run_t0_report(
-    payload: AddressReportRequest,
-    state: ReportState,
-    job_id: str = "",
-) -> tuple[str, bytes | None]:
-    """Generate the Tier 0 V3 HTML report from an address. Returns (html, debug_excel_bytes)."""
-    log = logging.getLogger(__name__)
+# ── Return-type containers ────────────────────────────────────────────────────
 
-    log.info("[1/10] Resolving CPT codes and taxonomy for specialty '%s'", payload.specialty_name)
-    relevant_cpt_codes_list = get_anchor_cpt_codes(state.anchor_cpt_lookup, payload.specialty_name)
-    cpt_patient_type_map = get_anchor_cpt_patient_type_map(state.anchor_cpt_lookup)
-    taxonomy_codes = get_taxonomy_codes(state.specialty_lookup, payload.specialty_name)
-    source_tabs = get_source_tabs(state.specialty_lookup, payload.specialty_name)
-    provider_state = payload.state
 
-    log.info(
-        "[2/10] Geocoding address: '%s %s, %s %s'",
-        payload.address_line_1,
-        payload.city,
-        payload.state,
-        payload.zip_code,
+@dataclass
+class _SpecialtyMeta:
+    cpt_codes: list[str]
+    cpt_patient_type_map: dict[str, str]
+    taxonomy_codes: list[str]
+    source_tabs: list[str]
+
+
+@dataclass
+class _CptAggregation:
+    cpt_rows: list[CptRowV2]
+    total_market_services: int
+    provider_shares: list[ProviderShareEntry]
+    share_denom: int  # sum of all provider CPT totals (denominator for share %)
+
+
+@dataclass
+class _PopulationData:
+    total_population: int
+    relevant_pop: int
+    population_label: str
+    combined_demo: SexAgeCounts
+    zip_overlap_fractions: dict[str, float]
+    zip_scaled_populations: dict[str, int]
+    actual_zips_df: pd.DataFrame
+
+
+@dataclass
+class _Verdict:
+    verdict_type: str
+    verdict_value: str
+    verdict_sub: str
+
+
+# ── Private helpers ───────────────────────────────────────────────────────────
+
+
+def _resolve_specialty_meta(state: ReportState, specialty_name: str) -> _SpecialtyMeta:
+    return _SpecialtyMeta(
+        cpt_codes=get_anchor_cpt_codes(state.anchor_cpt_lookup, specialty_name),
+        cpt_patient_type_map=get_anchor_cpt_patient_type_map(state.anchor_cpt_lookup),
+        taxonomy_codes=get_taxonomy_codes(state.specialty_lookup, specialty_name),
+        source_tabs=get_source_tabs(state.specialty_lookup, specialty_name),
     )
+
+
+async def _geocode_with_fallback(
+    payload: AddressReportRequest,
+    zip_centroids_df: pd.DataFrame,
+) -> tuple[float, float]:
+    """Return (lat, lon) for the request address, falling back to ZIP centroid."""
+    log = logging.getLogger(__name__)
     address_str = (
         f"{payload.address_line_1} "
         f"{payload.address_line_2 + ' ' if payload.address_line_2 else ''}"
@@ -85,114 +116,153 @@ async def run_t0_report(
     ).strip()
 
     coords = await geocode_address(address_str, settings.MAPBOX_API_KEY)
-    if coords is None:
-        # Fall back to ZIP centroid
-        zip_row = state.zip_centroids_df[state.zip_centroids_df["zip"].astype(str) == payload.zip_code]
-        if zip_row.empty:
-            raise ValueError(f"Could not geocode address and no ZIP centroid found for {payload.zip_code}")
-        source_lat = float(zip_row.iloc[0]["lat"])
-        source_lon = float(zip_row.iloc[0]["lon"])
-        log.warning("[2/10] Geocoding failed — fell back to ZIP centroid (%.4f, %.4f)", source_lat, source_lon)
-    else:
-        source_lat, source_lon = coords
-        log.info("[2/10] Geocoded to lat=%.4f, lon=%.4f", source_lat, source_lon)
+    if coords is not None:
+        log.info("Geocoded to lat=%.4f, lon=%.4f", *coords)
+        return coords
 
-    log.info("[3/10] Computing ZIP distances from geocoded location")
-    zip_centroids_df = state.zip_centroids_df.copy()
-    zip_centroids_df["distance_from_source_miles"] = zip_centroids_df.apply(
+    zip_row = zip_centroids_df[zip_centroids_df["zip"].astype(str) == payload.zip_code]
+    if zip_row.empty:
+        raise ValueError(f"Could not geocode address and no ZIP centroid found for {payload.zip_code}")
+    lat, lon = float(zip_row.iloc[0]["lat"]), float(zip_row.iloc[0]["lon"])
+    log.warning("Geocoding failed — fell back to ZIP centroid (%.4f, %.4f)", lat, lon)
+    return lat, lon
+
+
+def _compute_candidate_zips(
+    zip_centroids_df: pd.DataFrame,
+    source_lat: float,
+    source_lon: float,
+    fallback_zip: str,
+) -> pd.DataFrame:
+    """Return ZIP centroids within the fixed provider-fetch radius."""
+    df = zip_centroids_df.copy()
+    df["distance_from_source_miles"] = df.apply(
         lambda row: geodesic((source_lat, source_lon), (row["lat"], row["lon"])).miles,
         axis=1,
     )
+    nearby = df[df["distance_from_source_miles"] <= _DRIVE_TIME_FETCH_MILES]
+    if not nearby.empty:
+        return nearby
+    return pd.DataFrame(
+        {"zip": [fallback_zip], "lat": [source_lat], "lon": [source_lon], "distance_from_source_miles": [0.0]}
+    )
 
-    expanded_zips_df = zip_centroids_df[zip_centroids_df["distance_from_source_miles"] <= _DRIVE_TIME_FETCH_MILES]
-    if expanded_zips_df.empty:
-        expanded_zips_df = pd.DataFrame(
-            {
-                "zip": [payload.zip_code],
-                "lat": [source_lat],
-                "lon": [source_lon],
-                "distance_from_source_miles": [0.0],
-            }
-        )
-    log.info("[3/10] Done — %d ZIP codes within %.0f-mile fetch radius", len(expanded_zips_df), _DRIVE_TIME_FETCH_MILES)
 
-    log.info("[4/10] Fetching providers from AlphaSophia across %d ZIP codes", len(expanded_zips_df))
-    providers_list: list[Provider] = []
+async def _fetch_and_enrich_providers(
+    expanded_zips_df: pd.DataFrame,
+    taxonomy_codes: list[str],
+    cpt_codes: list[str],
+) -> list[Provider]:
+    """Fetch providers from AlphaSophia and enrich their addresses + coordinates."""
+    log = logging.getLogger(__name__)
+    providers: list[Provider] = []
     try:
-        providers_list = await get_hcp_data(
+        providers = await get_hcp_data(
             zip_codes_list=expanded_zips_df["zip"].dropna().astype(str).tolist(),
             taxonomy_codes_list=taxonomy_codes,
             npi_list=[],
-            cpt_codes_list=relevant_cpt_codes_list,
+            cpt_codes_list=cpt_codes,
             page_size=100,
         )
-        log.info("[4/10] Done — fetched %d providers from AlphaSophia", len(providers_list))
+        log.info("Fetched %d providers from AlphaSophia", len(providers))
     except Exception as exc:
-        log.error("[4/10] AlphaSophia fetch failed: %s", exc)
-
-    log.info("[5/10] Enriching %d provider addresses and coordinates", len(providers_list))
+        log.error("AlphaSophia fetch failed: %s", exc)
 
     async def _enrich(p: Provider) -> None:
         await p.update_address_and_zip()
         await p.update_lat_long()
 
-    await asyncio.gather(*[_enrich(p) for p in providers_list])
-    log.info("[5/10] Done — addresses resolved")
+    await asyncio.gather(*[_enrich(p) for p in providers])
+    return providers
 
-    log.info("[5.5/10] Stamping drive times from source to %d enriched providers", len(providers_list))
+
+async def _stamp_and_filter_providers(
+    providers: list[Provider],
+    source_lat: float,
+    source_lon: float,
+    drive_time_limit: int,
+) -> tuple[list[Provider], dict]:
+    """Stamp drive times, filter to limit, then re-stamp the surviving subset.
+
+    Two-pass stamping guarantees the isochrone band selection (which drops bands
+    with no unique providers) uses exactly the same provider list as generate_map.
+    Raw Mapbox polygons are cached, so the second pass costs no extra API calls.
+    """
+    log = logging.getLogger(__name__)
     iso_features: dict = {}
+
+    # Pass 1 — stamp all enriched providers.
     try:
         iso_features = await asyncio.to_thread(
             stamp_provider_drive_times_by_isochrone,
             source_lat,
             source_lon,
-            providers_list,
+            providers,
             settings.MAPBOX_API_KEY,
-            payload.drive_time_minutes,
+            drive_time_limit,
         )
-        log.info("[5.5/10] Done — drive times stamped")
     except Exception as exc:
-        log.warning("[5.5/10] Drive time stamping failed — drive-time filter will exclude all providers: %s", exc)
+        log.warning("Drive time stamping failed — filter will exclude all providers: %s", exc)
 
-    log.info("[6/10] Filtering providers to drive time <= %d min", payload.drive_time_minutes)
-    providers_in_radius: list[Provider] = []
-    for p in providers_list:
-        if p.latitude is None or p.longitude is None:
-            continue
-        p.distance_from_source_miles = geodesic((p.latitude, p.longitude), (source_lat, source_lon)).miles
-        if p.drive_time_minutes is not None and p.drive_time_minutes <= payload.drive_time_minutes:
-            providers_in_radius.append(p)
-    log.info("[6/10] Done — %d providers within %d min drive", len(providers_in_radius), payload.drive_time_minutes)
+    # Stamp geodesic distance on every provider that has valid coordinates —
+    # not just the in-radius subset — so the debug Excel contains accurate
+    # distances for all fetched providers, not only those that made the cut.
+    for p in providers:
+        if p.latitude is not None and p.longitude is not None:
+            p.distance_from_source_miles = geodesic(
+                (p.latitude, p.longitude), (source_lat, source_lon)
+            ).miles
 
-    # Re-stamp using only the in-radius subset so the isochrone band selection
-    # (which filters out bands with no unique providers) uses the exact same
-    # provider list that generate_map will use. Raw polygons are cached so no
-    # extra Mapbox API call is made — only the post-fetch band filtering differs.
-    if providers_in_radius:
+    in_radius = [
+        p
+        for p in providers
+        if p.latitude is not None
+        and p.longitude is not None
+        and p.drive_time_minutes is not None
+        and p.drive_time_minutes <= drive_time_limit
+    ]
+    log.info("%d providers within %d-min drive after pass 1", len(in_radius), drive_time_limit)
+
+    # Pass 2 — re-stamp the in-radius subset only.
+    if in_radius:
         try:
             iso_features = await asyncio.to_thread(
                 stamp_provider_drive_times_by_isochrone,
                 source_lat,
                 source_lon,
-                providers_in_radius,
+                in_radius,
                 settings.MAPBOX_API_KEY,
-                payload.drive_time_minutes,
+                drive_time_limit,
             )
-            # Re-filter: a provider whose zone shifted outside the limit is removed.
-            providers_in_radius = [
+            in_radius = [
                 p
-                for p in providers_in_radius
-                if p.drive_time_minutes is not None and p.drive_time_minutes <= payload.drive_time_minutes
+                for p in in_radius
+                if p.drive_time_minutes is not None and p.drive_time_minutes <= drive_time_limit
             ]
-            log.info("[6.5/10] Re-stamp complete — %d providers after reconciliation", len(providers_in_radius))
+            log.info("%d providers after re-stamp reconciliation", len(in_radius))
         except Exception as exc:
-            log.warning("[6.5/10] Re-stamp failed — using initial stamp values: %s", exc)
+            log.warning("Re-stamp failed — using pass-1 values: %s", exc)
 
-    log.info("[7/10] Generating map image")
-    map_image_src: str | None = None
+    return in_radius, iso_features
+
+
+async def _generate_map_image(
+    providers_in_radius: list[Provider],
+    source_lat: float,
+    source_lon: float,
+    iso_features: dict,
+) -> tuple[str | None, dict, list[Provider]]:
+    """Generate the map PNG and sync provider drive-time zones with map colouring.
+
+    Returns (map_image_src, iso_features, providers_in_radius) where drive_time_minutes
+    on each provider has been overwritten with the exact zone value used to colour its dot.
+    """
+    log = logging.getLogger(__name__)
     try:
         provider_coords = [
-            (p.latitude, p.longitude) for p in providers_in_radius if p.latitude is not None and p.longitude is not None
+            (p.latitude, p.longitude)
+            for p in providers_in_radius
+            if p.latitude is not None and p.longitude is not None
         ]
         result = await asyncio.to_thread(
             generate_map,
@@ -202,227 +272,341 @@ async def run_t0_report(
             providers=provider_coords,
             isochrones=list(mapbox._MAP_ISOCHRONES),
         )
-        map_bytes = result["map_bytes"]
-        map_image_src = f"data:image/png;base64,{base64.b64encode(map_bytes).decode()}"
-        # Overwrite drive times with the exact values used to color map dots —
-        # guarantees bar chart and map are sourced from the identical classification.
+        map_image_src = f"data:image/png;base64,{base64.b64encode(result['map_bytes']).decode()}"
         provider_zones: dict = result.get("provider_zones", {})
         for p in providers_in_radius:
             if p.latitude is not None and p.longitude is not None:
                 zone = provider_zones.get((p.latitude, p.longitude))
                 if zone is not None:
                     p.drive_time_minutes = zone
-        # Capture map isochrones as canonical source for ZIP filtering.
         iso_features = result.get("isochrones", iso_features)
-        log.info("[7/10] Map image generated (%d bytes)", len(map_bytes))
+        log.info("Map image generated (%d bytes)", len(result["map_bytes"]))
+        return map_image_src, iso_features, providers_in_radius
     except Exception as exc:
-        log.warning("[7/10] Map generation failed — report will render without map: %s", exc)
+        log.warning("Map generation failed — report will render without map: %s", exc)
+        return None, iso_features, providers_in_radius
 
-    log.info("[8/10] Fetching CPT profiles for %d in-radius providers", len(providers_in_radius))
-    await asyncio.gather(*[p.fetch_cpt_profiles(relevant_cpt_codes_list) for p in providers_in_radius])
-    log.info("[8/10] Done — CPT profiles fetched")
 
-    # ── Debug dump ────────────────────────────────────────────────────────────
-    debug_excel_bytes: bytes | None = None
-    if job_id:
-        in_radius_ids = {p.id for p in providers_in_radius}
-        try:
-
-            def _row(p: Provider) -> dict:
-                in_radius_value = p.id in in_radius_ids
-                row = {
-                    "npi": p.npi,
-                    "name": p.name,
-                    "id": p.id,
-                    "address_line_1": p.location.address_line_1,
-                    "address_line_2": p.location.address_line_2,
-                    "city": p.location.city,
-                    "state": p.location.state,
-                    "zip_code": p.location.zip_code,
-                    "taxonomy_code": p.taxonomy.code,
-                    "taxonomy_description": p.taxonomy.description,
-                    "latitude": p.latitude,
-                    "longitude": p.longitude,
-                    "distance_from_center_miles": round(p.distance_from_source_miles, 2)
-                    if p.distance_from_source_miles is not None
-                    else None,
-                    "drive_time_minutes": p.drive_time_minutes,
-                    "in_radius": in_radius_value,
-                }
-                for code in relevant_cpt_codes_list:
-                    cpt = p.get_cpt_profile(code)
-                    row[f"cpt_{code}"] = cpt.totalServices if cpt else None
-                return row
-
-            buf = BytesIO()
-            # Upload debug Excel with source and in-radius providers
-            pd.DataFrame(
-                [{"npi": "source", "latitude": source_lat, "longitude": source_lon, "distance_from_center_miles": 0}]
-                + [_row(p) for p in providers_list]
-            ).to_excel(buf, index=False, engine="openpyxl")
-            debug_excel_bytes = buf.getvalue()
-            upload_debug_excel(job_id, debug_excel_bytes)
-        except Exception as exc:
-            log.warning("[debug] Failed to upload Excel: %s", exc)
-    # ── end debug dump ────────────────────────────────────────────────────────
-
-    log.info("[9/10] Aggregating CPT data across %d providers", len(providers_in_radius))
-    peer_providers_count = max(len(providers_in_radius), 1)
-
-    # Provider share distribution (all peers, no client)
-    provider_raw_totals: list[tuple[int, str, float | None]] = []
+def _aggregate_cpt_data(
+    providers_in_radius: list[Provider],
+    cpt_codes: list[str],
+    cpt_patient_type_map: dict[str, str],
+    provider_state: str,
+    rvu_table: dict,
+    gpci_table: dict,
+) -> _CptAggregation:
+    """Aggregate CPT volume across all in-radius peers and build display rows."""
+    # Per-provider totals for share distribution
+    raw_totals: list[tuple[int, str, float | None]] = []
     for p in providers_in_radius:
         total = sum(
-            (p.get_cpt_profile(code).totalServices or 0) for code in relevant_cpt_codes_list if p.get_cpt_profile(code)
+            (p.get_cpt_profile(code).totalServices or 0)
+            for code in cpt_codes
+            if p.get_cpt_profile(code)
         )
         p.cpt_total_services = total
-        provider_raw_totals.append((total, p.taxonomy.description or "Unknown", p.drive_time_minutes))
+        raw_totals.append((total, p.taxonomy.description or "Unknown", p.drive_time_minutes))
 
-    _share_denom = sum(t for t, _, _ in provider_raw_totals) or 1
-    provider_shares: list[ProviderShareEntry] = sorted(
+    # Guard against divide-by-zero when no providers have any recorded services.
+    share_denom = sum(t for t, _, _ in raw_totals) or 1
+    provider_shares = sorted(
         [
-            ProviderShareEntry(share=round(t / _share_denom * 100), taxonomy=tax, drive_time_minutes=dt)
-            for t, tax, dt in provider_raw_totals
+            ProviderShareEntry(share=round(t / share_denom * 100), taxonomy=tax, drive_time_minutes=dt)
+            for t, tax, dt in raw_totals
         ],
         key=lambda e: e.share,
         reverse=True,
     )
 
-    # Aggregate CPT totals
-    agg_cpt_list: list[CPT] = []
-    for code in relevant_cpt_codes_list:
-        agg = CPT(code=code, totalServices=0, totalCharges=0.0)
-        for p in providers_in_radius:
+    # Market-wide CPT aggregates
+    agg_map: dict[str, CPT] = {code: CPT(code=code, totalServices=0, totalCharges=0.0) for code in cpt_codes}
+    for p in providers_in_radius:
+        for code in cpt_codes:
             cp = p.get_cpt_profile(code)
             if cp:
-                agg.totalServices += cp.totalServices if cp.totalServices > 0 else 0
-                agg.totalCharges += cp.totalCharges if cp.totalCharges > 0 else 0
-                agg.description = cp.description
-                agg.codeType = cp.codeType
-        agg_cpt_list.append(agg)
+                agg_map[code].totalServices += max(cp.totalServices, 0)
+                agg_map[code].totalCharges += max(cp.totalCharges, 0)
+                agg_map[code].description = cp.description
+                agg_map[code].codeType = cp.codeType
 
-    agg_cpt_list.sort(key=lambda c: c.totalServices, reverse=True)
-
+    sorted_agg = sorted(agg_map.values(), key=lambda c: c.totalServices, reverse=True)
     cpt_rows: list[CptRowV2] = []
     total_market_services = 0
-    for agg_cpt in agg_cpt_list:
-        vol = agg_cpt.totalServices if agg_cpt.totalServices > 0 else 0
+    for agg in sorted_agg:
+        vol = max(agg.totalServices, 0)
         total_market_services += vol
-        medicare_rate = get_medicare_rate(str(agg_cpt.code), provider_state, state.rvu_table, state.gpci_table)
+        rate = get_medicare_rate(str(agg.code), provider_state, rvu_table, gpci_table)
         cpt_rows.append(
             CptRowV2(
-                code=str(agg_cpt.code),
-                desc=agg_cpt.description,
-                patientType=cpt_patient_type_map.get(str(agg_cpt.code)),
-                medicareRate=f"${medicare_rate:,.2f}" if medicare_rate is not None else None,
+                code=str(agg.code),
+                desc=agg.description,
+                patientType=cpt_patient_type_map.get(str(agg.code)),
+                medicareRate=f"${rate:,.2f}" if rate is not None else None,
                 totalVolume=f"{vol:,}" if vol > 0 else None,
             )
         )
-    log.info("[9/10] Done — %d CPT rows, market total: %d", len(cpt_rows), total_market_services)
 
-    log.info("[10/10] Fetching census demographics + rendering report")
+    return _CptAggregation(
+        cpt_rows=cpt_rows,
+        total_market_services=total_market_services,
+        provider_shares=provider_shares,
+        share_denom=share_denom,
+    )
 
-    # Build the population polygon from a provider-independent isochrone fetch.
-    # We intentionally do NOT use iso_features (which has bands filtered by which
-    # providers happen to be present) — that would make population vary between
-    # runs as the provider list shifts. Instead we call fetch_isochrones with no
-    # providers argument so only (source_lat, source_lon, minutes) determine the
-    # polygon. The raw Mapbox response is already cached by _fetch_isochrones_raw
-    # so this costs zero extra API calls.
-    _snapped_minutes = min(round(payload.drive_time_minutes / 5) * 5, 60)
-    _iso_polygon = None
+
+def _fetch_population_data(
+    expanded_zips_df: pd.DataFrame,
+    source_lat: float,
+    source_lon: float,
+    drive_time_minutes: int,
+    providers_in_radius: list[Provider],
+    specialty_name: str,
+    fallback_zip: str,
+) -> _PopulationData:
+    """Fetch census demographics and compute relevant population for the specialty."""
+    log = logging.getLogger(__name__)
+
+    # Use a provider-independent isochrone so population is stable across runs.
+    # Raw Mapbox polygon is already cached — no extra API call.
+    snapped = min(round(drive_time_minutes / 5) * 5, 60)
+    iso_polygon = None
     try:
-        _pop_iso = fetch_isochrones(
+        pop_iso = fetch_isochrones(
             lat=source_lat,
             lon=source_lon,
             token=settings.MAPBOX_API_KEY,
-            minutes=[_snapped_minutes],
-            providers=(),  # no provider filtering — polygon must be stable across runs
+            minutes=[snapped],
+            providers=(),
         )
-        if _snapped_minutes in _pop_iso:
-            _iso_polygon = shape(_pop_iso[_snapped_minutes]["geometry"])
-        elif _pop_iso:
-            _iso_polygon = shape(_pop_iso[max(_pop_iso)]["geometry"])
+        if snapped in pop_iso:
+            iso_polygon = shape(pop_iso[snapped]["geometry"])
+        elif pop_iso:
+            iso_polygon = shape(pop_iso[max(pop_iso)]["geometry"])
     except Exception as exc:
-        log.warning("[10/10] Population isochrone fetch failed — will use centroid fallback: %s", exc)
+        log.warning("Population isochrone fetch failed — centroid fallback in use: %s", exc)
 
-    # Population — proportional ZIP area weighting via Census TIGERweb boundaries.
-    # Each ZIP contributes (intersection_area / zcta_area) × its population, so
-    # large ZIPs straddling the isochrone boundary are correctly fractioned instead
-    # of being fully included or excluded by a centroid test.
+    # Proportional ZIP area weighting: each ZIP contributes
+    # (intersection_area / zcta_area) × its population.
     total_population = 0
     combined_demo: SexAgeCounts = {"M": {}, "F": {}, "Total": 0}
     zip_overlap_fractions: dict[str, float] = {}
     zip_scaled_populations: dict[str, int] = {}
     try:
         combined_demo, zip_overlap_fractions, zip_scaled_populations = get_population_in_polygon(
-            iso_polygon=_iso_polygon,
+            iso_polygon=iso_polygon,
             candidate_zips=tuple(expanded_zips_df["zip"].astype(str).values),
             api_key=settings.CENSUS_API_KEY,
         )
         total_population = combined_demo["Total"]
-        log.info(
-            "[10/10] Population via proportional ZIP weighting: %d across %d ZIPs",
-            total_population,
-            len(zip_overlap_fractions),
-        )
+        log.info("Population: %d across %d ZIPs", total_population, len(zip_overlap_fractions))
     except Exception as exc:
-        log.error("[10/10] Census demographics failed: %s", exc)
+        log.error("Census demographics failed: %s", exc)
 
-    # Searched ZIPs for the report footer — centroid-in-polygon (display only).
-    if _iso_polygon is not None:
+    # Searched-ZIPs list for the report footer (centroid-in-polygon, display only).
+    if iso_polygon is not None:
         actual_zips_df = expanded_zips_df[
             expanded_zips_df.apply(
-                lambda row: _iso_polygon.contains(Point(row["lon"], row["lat"])),
-                axis=1,
+                lambda row: iso_polygon.contains(Point(row["lon"], row["lat"])), axis=1
             )
         ]
     else:
-        actual_zips_df = expanded_zips_df[
-            expanded_zips_df["zip"].astype(str).isin([str(p.location.zip_code) for p in providers_in_radius])
-        ]
+        in_radius_zips = {str(p.location.zip_code) for p in providers_in_radius}
+        actual_zips_df = expanded_zips_df[expanded_zips_df["zip"].astype(str).isin(in_radius_zips)]
 
     if actual_zips_df.empty:
         actual_zips_df = pd.DataFrame(
-            {"zip": [payload.zip_code], "lat": [source_lat], "lon": [source_lon], "distance_from_source_miles": [0.0]}
+            {"zip": [fallback_zip], "lat": [source_lat], "lon": [source_lon], "distance_from_source_miles": [0.0]}
         )
 
-    if "geriatric" in payload.specialty_name.lower():
+    # Specialty-specific population slice
+    name_lower = specialty_name.lower()
+    if "geriatric" in name_lower:
         relevant_pop = get_geriatric_population(combined_demo)
         population_label = "Geriatric (60+)"
-    elif "pediatric" in payload.specialty_name.lower():
+    elif "pediatric" in name_lower:
         relevant_pop = get_pediatric_population(combined_demo)
         population_label = "Pediatric (0-24)"
     else:
         relevant_pop = total_population
         population_label = "General Population"
 
+    return _PopulationData(
+        total_population=total_population,
+        relevant_pop=relevant_pop,
+        population_label=population_label,
+        combined_demo=combined_demo,
+        zip_overlap_fractions=zip_overlap_fractions,
+        zip_scaled_populations=zip_scaled_populations,
+        actual_zips_df=actual_zips_df,
+    )
+
+
+def _compute_verdict(
+    target_density: float | None,
+    provider_gap: float,
+    density_scope: str,
+) -> _Verdict:
+    """Map a provider gap to a GO / CAUTION / AVOID verdict.
+
+    Thresholds: gap > +1 → opportunity (market underserved by more than one FTE),
+    gap < -1 → avoid (market oversupplied by more than one FTE).
+    The ±1 buffer treats near-parity as caution rather than a hard boundary,
+    since density benchmarks themselves carry ~5–10 % margin of error.
+    """
+    if target_density is None:
+        return _Verdict("caution", "N/A", "No density data available for this specialty/state.")
+    if provider_gap > 1:
+        return _Verdict(
+            "opportunity", "GO",
+            f"Underserved — {provider_gap:.1f} provider-equivalent gap vs. {density_scope.lower()} density baseline.",
+        )
+    if provider_gap < -1:
+        return _Verdict(
+            "avoid", "AVOID",
+            f"Saturated — {abs(provider_gap):.1f} providers above {density_scope.lower()} density baseline.",
+        )
+    return _Verdict(
+        "caution", "CAUTION",
+        f"Market is near {density_scope.lower()} density baseline — limited opportunity.",
+    )
+
+
+def _build_debug_excel(
+    providers_list: list[Provider],
+    providers_in_radius: list[Provider],
+    source_lat: float,
+    source_lon: float,
+    cpt_codes: list[str],
+    job_id: str,
+) -> bytes | None:
+    """Upload a debug Excel to S3 and return the raw bytes, or None on failure."""
+    log = logging.getLogger(__name__)
+    in_radius_ids = {p.id for p in providers_in_radius}
+
+    def _row(p: Provider) -> dict:
+        row: dict = {
+            "npi": p.npi,
+            "name": p.name,
+            "id": p.id,
+            "address_line_1": p.location.address_line_1,
+            "address_line_2": p.location.address_line_2,
+            "city": p.location.city,
+            "state": p.location.state,
+            "zip_code": p.location.zip_code,
+            "taxonomy_code": p.taxonomy.code,
+            "taxonomy_description": p.taxonomy.description,
+            "latitude": p.latitude,
+            "longitude": p.longitude,
+            "distance_from_center_miles": round(p.distance_from_source_miles, 2)
+            if p.distance_from_source_miles is not None
+            else None,
+            "drive_time_minutes": p.drive_time_minutes,
+            "in_radius": p.id in in_radius_ids,
+        }
+        for code in cpt_codes:
+            cpt = p.get_cpt_profile(code)
+            row[f"cpt_{code}"] = cpt.totalServices if cpt else None
+        return row
+
+    try:
+        buf = BytesIO()
+        pd.DataFrame(
+            [{"npi": "source", "latitude": source_lat, "longitude": source_lon, "distance_from_center_miles": 0}]
+            + [_row(p) for p in providers_list]
+        ).to_excel(buf, index=False, engine="openpyxl")
+        excel_bytes = buf.getvalue()
+        upload_debug_excel(job_id, excel_bytes)
+        return excel_bytes
+    except Exception as exc:
+        log.warning("Failed to upload debug Excel: %s", exc)
+        return None
+
+
+# ── Public entry point ────────────────────────────────────────────────────────
+
+
+async def run_t0_report(
+    payload: AddressReportRequest,
+    state: ReportState,
+    job_id: str = "",
+) -> tuple[str, bytes | None]:
+    """Generate the Tier 0 HTML report from an address. Returns (html, debug_excel_bytes)."""
+    log = logging.getLogger(__name__)
+
+    # 1. Specialty metadata
+    log.info("[1] Resolving specialty meta for '%s'", payload.specialty_name)
+    meta = _resolve_specialty_meta(state, payload.specialty_name)
+    provider_state = payload.state
+
+    # 2. Geocode
+    log.info("[2] Geocoding address")
+    source_lat, source_lon = await _geocode_with_fallback(payload, state.zip_centroids_df)
+
+    # 3. Candidate ZIPs
+    log.info("[3] Computing candidate ZIPs within %.0f-mile fetch radius", _DRIVE_TIME_FETCH_MILES)
+    expanded_zips_df = _compute_candidate_zips(
+        state.zip_centroids_df, source_lat, source_lon, payload.zip_code
+    )
+    log.info("[3] %d candidate ZIPs", len(expanded_zips_df))
+
+    # 4+5. Fetch providers from AlphaSophia and enrich addresses/coords
+    log.info("[4] Fetching and enriching providers across %d ZIPs", len(expanded_zips_df))
+    providers_list = await _fetch_and_enrich_providers(
+        expanded_zips_df, meta.taxonomy_codes, meta.cpt_codes
+    )
+
+    # 5.5 + 6. Stamp drive times and filter to radius (two-pass)
+    log.info("[5] Stamping drive times and filtering to %d-min radius", payload.drive_time_minutes)
+    providers_in_radius, iso_features = await _stamp_and_filter_providers(
+        providers_list, source_lat, source_lon, payload.drive_time_minutes
+    )
+
+    # 7. Generate map
+    log.info("[6] Generating map image")
+    # iso_features is updated here with the canonical map isochrones and returned
+    # for potential future use (e.g. passing GeoJSON directly into the report).
+    map_image_src, iso_features, providers_in_radius = await _generate_map_image(
+        providers_in_radius, source_lat, source_lon, iso_features
+    )
+
+    # 8. CPT profiles + debug dump
+    log.info("[7] Fetching CPT profiles for %d in-radius providers", len(providers_in_radius))
+    await asyncio.gather(*[p.fetch_cpt_profiles(meta.cpt_codes) for p in providers_in_radius])
+
+    debug_excel_bytes: bytes | None = None
+    if job_id:
+        debug_excel_bytes = _build_debug_excel(
+            providers_list, providers_in_radius, source_lat, source_lon, meta.cpt_codes, job_id
+        )
+
+    # 9. Aggregate CPT data
+    log.info("[8] Aggregating CPT data across %d providers", len(providers_in_radius))
+    cpt_agg = _aggregate_cpt_data(
+        providers_in_radius, meta.cpt_codes, meta.cpt_patient_type_map,
+        provider_state, state.rvu_table, state.gpci_table,
+    )
+    log.info("[8] %d CPT rows, market total: %d", len(cpt_agg.cpt_rows), cpt_agg.total_market_services)
+
+    # 10. Population + demographics
+    log.info("[9] Fetching census demographics")
+    pop = _fetch_population_data(
+        expanded_zips_df, source_lat, source_lon, payload.drive_time_minutes,
+        providers_in_radius, payload.specialty_name, payload.zip_code,
+    )
+
+    # 11. Verdict + density gap
+    peer_providers_count = max(len(providers_in_radius), 1)
     density_scope = get_density_scope(state.specialty_lookup, payload.specialty_name, provider_state)
     target_density = get_provider_density(state.specialty_lookup, payload.specialty_name, provider_state)
-    if target_density is not None and relevant_pop > 0:
-        expected_providers = (relevant_pop / 100_000) * target_density
+    if target_density is not None and pop.relevant_pop > 0:
+        expected_providers = (pop.relevant_pop / 100_000) * target_density
         provider_gap = expected_providers - peer_providers_count
     else:
-        expected_providers = 0.0
-        provider_gap = 0.0
+        expected_providers, provider_gap = 0.0, 0.0
 
-    if target_density is None:
-        verdict_type, verdict_value = "caution", "N/A"
-        verdict_sub = "No density data available for this specialty/state."
-    elif provider_gap > 1:
-        verdict_type, verdict_value = "opportunity", "GO"
-        verdict_sub = (
-            f"Underserved — {provider_gap:.1f} provider-equivalent gap vs. {density_scope.lower()} density baseline."
-        )
-    elif provider_gap < -1:
-        verdict_type, verdict_value = "avoid", "AVOID"
-        verdict_sub = f"Saturated — {abs(provider_gap):.1f} providers above {density_scope.lower()} density baseline."
-    else:
-        verdict_type, verdict_value = "caution", "CAUTION"
-        verdict_sub = f"Market is near {density_scope.lower()} density baseline — limited opportunity."
+    verdict = _compute_verdict(target_density, provider_gap, density_scope)
 
-    report_id = job_id or f"MERC-{ulid.ulid()}"
-
+    # 12. LLM market analysis
     density_line = (
         f"The 2023 {density_scope.lower()} physician density for <strong>{payload.specialty_name}</strong> in "
         f"<strong>{provider_state}</strong> is "
@@ -435,67 +619,54 @@ async def run_t0_report(
         else f"No density data is available for <strong>{payload.specialty_name}</strong>"
         f" in <strong>{provider_state}</strong>."
     )
-    _fallback_analysis = (
+    fallback_analysis = (
         f"The {payload.city}, {payload.state} market has "
-        f"<strong>{total_population:,} total residents</strong>."
-        "<br><br>"
-        f"{density_line}"
-        "<br><br>"
+        f"<strong>{pop.total_population:,} total residents</strong>.<br><br>"
+        f"{density_line}<br><br>"
         "Upgrade to the Strategic Code Report for complete market opportunity analysis."
     )
 
-    _top_cpt_descs = [row.desc for row in cpt_rows[:5] if row.desc]
-
-    # ── Geographic distribution of competitors (drive time) ───────────────
-    # drive_time_minutes is set by generate_map() via the Matrix API; fall back
-    # to None if the map step was skipped or a provider had no valid route.
     competitor_drive_times = sorted(
         p.drive_time_minutes for p in providers_in_radius if p.drive_time_minutes is not None
     )
-    _nearest_competitor_drive_min: float | None = competitor_drive_times[0] if competitor_drive_times else None
-    _median_competitor_drive_min: float | None = (
-        competitor_drive_times[len(competitor_drive_times) // 2] if competitor_drive_times else None
-    )
-    _providers_within_10_min: int | None = (
-        sum(1 for t in competitor_drive_times if t <= 10) if competitor_drive_times else None
-    )
-
-    _provider_drive_vol_pairs: list[tuple[float, int]] = sorted(
-        [
-            (p.drive_time_minutes, round(p.cpt_total_services / _share_denom * 100))
-            for p in providers_in_radius
-            if p.drive_time_minutes is not None
-        ],
-        key=lambda x: x[0],
-    )
-
     analysis_text = await generate_market_analysis(
         data=MarketAnalysisInput(
             city=payload.city,
             state=payload.state,
             specialty=payload.specialty_name,
             drive_time_minutes=payload.drive_time_minutes,
-            total_population=total_population,
-            relevant_pop=relevant_pop,
-            population_label=population_label,
+            total_population=pop.total_population,
+            relevant_pop=pop.relevant_pop,
+            population_label=pop.population_label,
             peer_providers_count=peer_providers_count,
             expected_providers=expected_providers,
             provider_gap=provider_gap,
             target_density=target_density,
-            total_market_services=total_market_services,
-            provider_shares=provider_shares,
-            top_cpt_descriptions=_top_cpt_descs,
-            verdict_type=verdict_type,
-            nearest_competitor_drive_min=_nearest_competitor_drive_min,
-            median_competitor_drive_min=_median_competitor_drive_min,
-            providers_within_10_min=_providers_within_10_min,
-            provider_drive_volume_pairs=_provider_drive_vol_pairs,
+            total_market_services=cpt_agg.total_market_services,
+            provider_shares=cpt_agg.provider_shares,
+            top_cpt_descriptions=[r.desc for r in cpt_agg.cpt_rows[:5] if r.desc],
+            verdict_type=verdict.verdict_type,
+            nearest_competitor_drive_min=competitor_drive_times[0] if competitor_drive_times else None,
+            median_competitor_drive_min=competitor_drive_times[len(competitor_drive_times) // 2]
+            if competitor_drive_times
+            else None,
+            providers_within_10_min=sum(1 for t in competitor_drive_times if t <= 10)
+            if competitor_drive_times
+            else None,
+            provider_drive_volume_pairs=sorted(
+                [
+                    (p.drive_time_minutes, round(p.cpt_total_services / cpt_agg.share_denom * 100))
+                    for p in providers_in_radius
+                    if p.drive_time_minutes is not None
+                ],
+                key=lambda x: x[0],
+            ),
         ),
-        fallback_text=_fallback_analysis,
+        fallback_text=fallback_analysis,
     )
 
-    show_relevant_population = relevant_pop != total_population
-
+    # 13. Assemble and render report
+    report_id = job_id or f"MERC-{ulid.ulid()}"
     report_data = ReportTemplateDataV2(
         reportId=report_id,
         dateIssued=pd.Timestamp.now().strftime("%m/%d/%Y"),
@@ -504,19 +675,19 @@ async def run_t0_report(
         radius=f"{payload.drive_time_minutes} min drive",
         reportTier="Market Entry",
         address=f"{payload.address_line_1} {payload.address_line_2 if payload.address_line_2 else ''}",
-        clientName="",  # no named client for T0
-        tags=generate_tags(cpt_rows),
-        verdictType=verdict_type,
-        verdictValue=verdict_value,
-        verdictSub=verdict_sub,
-        totalPopulation=f"{total_population:,}" if total_population > 0 else "N/A",
-        relevantPopulation=f"{relevant_pop:,}" if relevant_pop > 0 else "N/A",
-        populationLabel=population_label,
+        clientName="",
+        tags=generate_tags(cpt_agg.cpt_rows),
+        verdictType=verdict.verdict_type,
+        verdictValue=verdict.verdict_value,
+        verdictSub=verdict.verdict_sub,
+        totalPopulation=f"{pop.total_population:,}" if pop.total_population > 0 else "N/A",
+        relevantPopulation=f"{pop.relevant_pop:,}" if pop.relevant_pop > 0 else "N/A",
+        populationLabel=pop.population_label,
         currentProviders=peer_providers_count,
         targetDensity=round(expected_providers, 1),
         providerGap=round(provider_gap, 1),
-        cptRows=cpt_rows,
-        cptTotalVisits=f"{total_market_services:,}",
+        cptRows=cpt_agg.cpt_rows,
+        cptTotalVisits=f"{cpt_agg.total_market_services:,}",
         analysisText=analysis_text,
         upgrades=[
             Upgrade(
@@ -538,22 +709,21 @@ async def run_t0_report(
         ],
         providerProfile=ProviderProfileV2(annualVisits=None),
         competitorCount=peer_providers_count,
-        showRelevantPopulation=show_relevant_population,
-        taxonomyCodes=taxonomy_codes,
+        showRelevantPopulation=pop.relevant_pop != pop.total_population,
+        taxonomyCodes=meta.taxonomy_codes,
         searchedZipCodes=[
-            f"{z} ({round(zip_overlap_fractions[z] * 100)}% · {zip_scaled_populations.get(z, 0):,} pop)"
-            if z in zip_overlap_fractions
+            f"{z} ({round(pop.zip_overlap_fractions[z] * 100)}% · {pop.zip_scaled_populations.get(z, 0):,} pop)"
+            if z in pop.zip_overlap_fractions
             else z
-            for z in sorted(zip_overlap_fractions) or actual_zips_df["zip"].astype(str).tolist()
+            for z in sorted(pop.zip_overlap_fractions) or pop.actual_zips_df["zip"].astype(str).tolist()
         ],
-        sourceTabs=source_tabs,
+        sourceTabs=meta.source_tabs,
         peerNpis=[p.npi for p in providers_in_radius if p.npi],
-        providerShares=provider_shares,
+        providerShares=cpt_agg.provider_shares,
         mapImageSrc=map_image_src,
         densityScope=density_scope,
     )
 
-    template_html = (settings.TEMPLATES_DIR / "MREC_Report_TEMPLATE_T0.html").read_text(encoding="utf-8")
-    html = replace_data_block_v3(template_html, report_data)
-    log.info("[10/10] Done — T0 report '%s' rendered (%d bytes)", report_id, len(html))
+    html = render_report("T0", report_data)
+    log.info("[10] Done — T0 report '%s' rendered (%d bytes)", report_id, len(html))
     return html, debug_excel_bytes

@@ -22,7 +22,7 @@ from app.schemas.provider_request import ProviderRequest
 from app.services.alphasophia import get_hcp_data
 from app.services.census import combine_demographics, get_zip_demographics
 from app.services.fee_schedule import get_medicare_rate
-from app.services.html_imputers.v2_imputer import replace_data_block_v2
+from app.services.html_imputers import render_report
 from app.services.s3 import upload_debug_excel
 from app.types.alphasophia import CPT, Provider
 from app.types.baseline_report_template import (
@@ -528,7 +528,6 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
         densityScope=density_scope,
     )
 
-    template_html = (settings.TEMPLATES_DIR / "MREC_Report_TEMPLATE_T1.html").read_text(encoding="utf-8")
-    html = replace_data_block_v2(template_html, report_template_data)
+    html = render_report("T1", report_template_data)
     log.info("[10/10] Done — report '%s' rendered (%d bytes)", report_id, len(html))
     return html, debug_excel_bytes

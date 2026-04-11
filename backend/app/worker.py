@@ -23,6 +23,7 @@ from backend.app.services.report_generator import ReportState, load_state
 
 async def process_job(job_id: str, state: ReportState) -> None:
     from app.schemas.address_report_request import AddressReportRequest
+    from app.schemas.t2_report_request import T2ReportRequest
     from app.schemas.provider_request import ProviderRequest
     from app.services.pdf import html_to_pdf
     from app.services._report_generator_a1_archived import run_report
@@ -41,7 +42,12 @@ async def process_job(job_id: str, state: ReportState) -> None:
         raw = json.loads(job["payload"])
         report_type = raw.get("report_type", "a1")
 
-        if report_type == "t1":
+        if report_type == "t2":
+            t2_payload = T2ReportRequest.model_validate(raw)
+            html, debug_excel_bytes = await run_html_report(
+                t2_payload, state, job_id=job_id, custom_cpt_codes=t2_payload.cpt_codes
+            )
+        elif report_type == "t1":
             t1_payload = AddressReportRequest.model_validate(raw)
             html, debug_excel_bytes = await run_html_report(t1_payload, state, job_id=job_id)
         else:
@@ -63,7 +69,10 @@ async def process_job(job_id: str, state: ReportState) -> None:
         )
 
         # Build email context from whichever payload branch was taken — avoids unbound variable refs.
-        if report_type == "t1":
+        if report_type == "t2":
+            email_to = str(t2_payload.customer_email)
+            provider_label = f"{t2_payload.address_line_1}, {t2_payload.city}"
+        elif report_type == "t1":
             email_to = str(t1_payload.customer_email)
             provider_label = f"{t1_payload.address_line_1}, {t1_payload.city}"
         else:

@@ -4,7 +4,8 @@ import { useProviderSearch } from '@/hooks/useProviderSearch'
 import { useReportGeneration } from '@/hooks/useReportGeneration'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import type { Provider, RadiusOption, DriveTimeOption, T1Location } from '@/types/api'
-import { createPaymentIntent, createT1PaymentIntent, generateReport, generateT1Report } from '@/lib/api'
+import { createPaymentIntent, createT1PaymentIntent, createT2PaymentIntent, generateReport, generateT1Report, generateT2Report } from '@/lib/api'
+import StepAddressWithCpt from '@/components/buy/StepAddressWithCpt'
 
 import TierSelection from '@/components/buy/TierSelection'
 import StepIndicator from '@/components/buy/StepIndicator'
@@ -26,6 +27,7 @@ interface BuyFormState {
   driveTimeMinutes: DriveTimeOption
   selectedProvider: Provider | null
   t1Location: T1Location
+  cptCodes: string[]
   email: string
   phone: string
   currentStep: 1 | 2 | 3 | 4 | 5
@@ -43,6 +45,7 @@ const INITIAL_STATE: BuyFormState = {
   driveTimeMinutes: 30,
   selectedProvider: null,
   t1Location: { address_line_1: '', address_line_2: '', city: '', state: '', zip_code: '' },
+  cptCodes: [''],
   email: '',
   phone: '',
   currentStep: 1,
@@ -98,6 +101,14 @@ export default function Buy() {
           ...state.t1Location,
           drive_time_minutes: state.driveTimeMinutes,
         })
+      } else if (state.selectedTierId === 1) {
+        result = await createT2PaymentIntent({
+          customer_email: state.email,
+          specialty_name: state.specialtyName,
+          ...state.t1Location,
+          drive_time_minutes: state.driveTimeMinutes,
+          cpt_codes: state.cptCodes.filter((c) => c.trim().length > 0),
+        })
       } else {
         if (!state.selectedProvider) return
         result = await createPaymentIntent({
@@ -125,6 +136,15 @@ export default function Buy() {
         customer_email: state.email,
         payment_intent_id: paymentIntentId,
       }))
+    } else if (state.selectedTierId === 1) {
+      generate(() => generateT2Report({
+        specialty_name: state.specialtyName,
+        ...state.t1Location,
+        drive_time_minutes: state.driveTimeMinutes,
+        cpt_codes: state.cptCodes.filter((c) => c.trim().length > 0),
+        customer_email: state.email,
+        payment_intent_id: paymentIntentId,
+      }))
     } else {
       if (!state.selectedProvider) return
       generate(() => generateReport({
@@ -147,6 +167,15 @@ export default function Buy() {
         customer_email: state.email,
         payment_intent_id: state.paymentIntentId!,
       }))
+    } else if (state.selectedTierId === 1) {
+      generate(() => generateT2Report({
+        specialty_name: state.specialtyName,
+        ...state.t1Location,
+        drive_time_minutes: state.driveTimeMinutes,
+        cpt_codes: state.cptCodes.filter((c) => c.trim().length > 0),
+        customer_email: state.email,
+        payment_intent_id: state.paymentIntentId!,
+      }))
     } else {
       if (!state.selectedProvider) { resetGen(); return }
       generate(() => generateReport({
@@ -166,7 +195,7 @@ export default function Buy() {
         <div className="mx-auto max-w-[1280px] px-6 py-12">
           <GeneratingScreen
             providerName={
-              state.selectedTierId === 0
+              state.selectedTierId <= 1
                 ? `${state.t1Location.address_line_1}, ${state.t1Location.city} ${state.t1Location.state}`
                 : (state.selectedProvider?.name ?? null)
             }
@@ -185,7 +214,7 @@ export default function Buy() {
         <div className="mx-auto max-w-[1280px] px-6 py-12">
           <ConfirmationScreen
             providerName={
-              state.selectedTierId === 0
+              state.selectedTierId <= 1
                 ? `${state.t1Location.address_line_1}, ${state.t1Location.city} ${state.t1Location.state}`
                 : (state.selectedProvider?.name ?? null)
             }
@@ -223,7 +252,7 @@ export default function Buy() {
                   email={state.email}
                   t1Location={state.selectedTierId === 0 ? state.t1Location : undefined}
                   tierLabel={state.selectedTierId === 0 ? 'Market Entry Report' : 'Through-the-Door Codes Report'}
-                  price={state.selectedTierId === 0 ? '$399' : '$500'}
+                  price={state.selectedTierId === 0 ? '$399' : state.selectedTierId === 1 ? '$599' : '$500'}
                 />
               </div>
             </aside>
@@ -242,7 +271,7 @@ export default function Buy() {
                   compact
                   t1Location={state.selectedTierId === 0 ? state.t1Location : undefined}
                   tierLabel={state.selectedTierId === 0 ? 'Market Entry Report' : 'Through-the-Door Codes Report'}
-                  price={state.selectedTierId === 0 ? '$399' : '$500'}
+                  price={state.selectedTierId === 0 ? '$399' : state.selectedTierId === 1 ? '$599' : '$500'}
                 />
               </div>
             )}
@@ -275,7 +304,19 @@ export default function Buy() {
                   onBack={back}
                 />
               )}
-              {state.currentStep === 2 && state.selectedTierId !== 0 && (
+              {state.currentStep === 2 && state.selectedTierId === 1 && (
+                <StepAddressWithCpt
+                  location={state.t1Location}
+                  driveTimeMinutes={state.driveTimeMinutes}
+                  cptCodes={state.cptCodes}
+                  onLocationChange={(loc) => setState((prev) => ({ ...prev, t1Location: loc }))}
+                  onDriveTimeChange={(v) => setState((prev) => ({ ...prev, driveTimeMinutes: v }))}
+                  onCptCodesChange={(codes) => setState((prev) => ({ ...prev, cptCodes: codes }))}
+                  onNext={advance}
+                  onBack={back}
+                />
+              )}
+              {state.currentStep === 2 && state.selectedTierId > 1 && (
                 <StepLocation
                   zipCode={state.zipCode}
                   milesRadius={state.milesRadius}
@@ -321,9 +362,10 @@ export default function Buy() {
                     onProceedToPayment={handleProceedToPayment}
                     onBack={back}
                     isLoading={state.isCreatingIntent}
-                    t1Location={state.selectedTierId === 0 ? state.t1Location : undefined}
-                    tierName={state.selectedTierId === 0 ? 'Market Entry Report' : 'Through-the-Door Codes Report'}
-                    price={state.selectedTierId === 0 ? '$399' : '$500'}
+                    t1Location={state.selectedTierId <= 1 ? state.t1Location : undefined}
+                    cptCodes={state.selectedTierId === 1 ? state.cptCodes.filter((c) => c.trim().length > 0) : undefined}
+                    tierName={state.selectedTierId === 0 ? 'Market Entry Report' : state.selectedTierId === 1 ? 'Through-the-Door Codes Report' : 'Through-the-Door Codes Report'}
+                    price={state.selectedTierId === 0 ? '$399' : state.selectedTierId === 1 ? '$599' : '$500'}
                   />
                 </>
               )}

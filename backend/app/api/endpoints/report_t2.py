@@ -37,14 +37,13 @@ async def submit_t2_report_job(payload: T2ReportRequest):
 
     send_job(job_id)
 
-    if payload.customer_email:
-        status_url = f"{settings.FRONTEND_URL}/status" if settings.FRONTEND_URL else ""
-        address_label = f"{payload.address_line_1}, {payload.city} {payload.state} {payload.zip_code}"
-        send_request_confirmation(
-            to=str(payload.customer_email),
-            job_id=job_id,
-            provider_name=address_label,
-            status_url=status_url,
-        )
+    status_url = f"{settings.FRONTEND_URL}/status" if settings.FRONTEND_URL else ""
+    address_label = f"{payload.address_line_1}, {payload.city} {payload.state} {payload.zip_code}"
+    send_request_confirmation(
+        to=str(payload.customer_email),
+        job_id=job_id,
+        provider_name=address_label,
+        status_url=status_url,
+    )
 
     return {"job_id": job_id, "status": "pending"}

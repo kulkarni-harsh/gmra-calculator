@@ -1,7 +1,9 @@
 """
-Tier 0 report generator.
+Tier 1 / Tier 2 report generator.
 
-Generates the market baseline report from an address + specialty alone.
+Generates market-level reports from an address + specialty.
+T1 (Market Entry) uses specialty-derived CPT codes.
+T2 (Through-the-Door Codes) uses caller-provided CPT codes (custom_cpt_codes param).
 No provider NPI lookup — market-level aggregate only.
 """
 

@@ -89,7 +89,7 @@ def verify_payment_intent(
     *,
     payment_intent_id: str,
     expected_email: str,
-    expected_amount: int = REPORT_AMOUNT_CENTS,  # caller passes T1_REPORT_AMOUNT_CENTS for T1
+    expected_amount: int = REPORT_AMOUNT_CENTS,  # caller passes T1_REPORT_AMOUNT_CENTS for T1, T2_REPORT_AMOUNT_CENTS for T2
 ) -> str:
     """
     Retrieve and verify the PaymentIntent.

@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 stripe.api_key = settings.STRIPE_SECRET_KEY
 REPORT_AMOUNT_CENTS = 50_000  # $500.00
 T1_REPORT_AMOUNT_CENTS = 39_900  # $399.00 — change here to adjust T1 price
+T2_REPORT_AMOUNT_CENTS = 59_900  # $599.00 — Through-the-Door Codes Report
 
 
 def create_payment_intent(
@@ -51,6 +52,30 @@ def create_t1_payment_intent(
             "job_id": job_id,
             "customer_email": customer_email,
             "report_type": "t1",
+            "provider_name": address_label,
+            "specialty_name": specialty_name,
+        },
+    )
+    return intent.client_secret  # type: ignore[return-value]
+
+
+def create_t2_payment_intent(
+    *,
+    job_id: str,
+    customer_email: str,
+    specialty_name: str,
+    address_label: str,
+) -> str:
+    """Create a Stripe PaymentIntent for the T2 Through-the-Door Codes Report ($599). Returns client_secret."""
+    intent = stripe.PaymentIntent.create(
+        amount=T2_REPORT_AMOUNT_CENTS,
+        currency="usd",
+        receipt_email=customer_email,
+        payment_method_types=["card"],
+        metadata={
+            "job_id": job_id,
+            "customer_email": customer_email,
+            "report_type": "t2",
             "provider_name": address_label,
             "specialty_name": specialty_name,
         },

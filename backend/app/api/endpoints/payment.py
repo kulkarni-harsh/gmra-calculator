@@ -177,6 +177,7 @@ async def create_t2_payment_intent_endpoint(payload: CreateT2PaymentIntentReques
             customer_email=str(payload.customer_email),
             specialty_name=payload.specialty_name,
             address_label=address_label,
+            cpt_codes=payload.cpt_codes,
         )
     except Exception as exc:
         logging.error("Failed to create T2 Stripe PaymentIntent: %s", exc)

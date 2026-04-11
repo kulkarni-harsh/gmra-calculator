@@ -65,6 +65,7 @@ def create_t2_payment_intent(
     customer_email: str,
     specialty_name: str,
     address_label: str,
+    cpt_codes: list[str] | None = None,
 ) -> str:
     """Create a Stripe PaymentIntent for the T2 Through-the-Door Codes Report ($599). Returns client_secret."""
     intent = stripe.PaymentIntent.create(
@@ -78,6 +79,7 @@ def create_t2_payment_intent(
             "report_type": "t2",
             "provider_name": address_label,
             "specialty_name": specialty_name,
+            "cpt_codes": ",".join(cpt_codes) if cpt_codes else "",
         },
     )
     return intent.client_secret  # type: ignore[return-value]

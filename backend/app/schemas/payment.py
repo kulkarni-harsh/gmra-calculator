@@ -52,3 +52,14 @@ class CreateT2PaymentIntentRequest(BaseModel):
         if value not in {5, 10, 15, 30, 45, 60}:
             raise ValueError("drive_time_minutes must be one of: 5, 10, 15, 30, 45, 60")
         return value
+
+    @field_validator("cpt_codes")
+    @classmethod
+    def validate_cpt_codes(cls, value: list[str]) -> list[str]:  # noqa: N805
+        if not (1 <= len(value) <= 5):
+            raise ValueError("cpt_codes must contain between 1 and 5 codes")
+        cleaned = [c.strip() for c in value]
+        for code in cleaned:
+            if not code:
+                raise ValueError("CPT code cannot be blank")
+        return cleaned

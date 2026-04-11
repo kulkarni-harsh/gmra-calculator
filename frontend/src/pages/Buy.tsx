@@ -251,7 +251,13 @@ export default function Buy() {
                   radiusLabel={radiusLabel}
                   email={state.email}
                   t1Location={state.selectedTierId === 0 ? state.t1Location : undefined}
-                  tierLabel={state.selectedTierId === 0 ? 'Market Entry Report' : 'Through-the-Door Codes Report'}
+                  tierLabel={
+                    state.selectedTierId === 0
+                      ? 'Market Entry Report'
+                      : state.selectedTierId === 1
+                        ? 'Through-the-Door Codes Report'
+                        : 'Legacy Report'
+                  }
                   price={state.selectedTierId === 0 ? '$399' : state.selectedTierId === 1 ? '$599' : '$500'}
                 />
               </div>
@@ -270,7 +276,13 @@ export default function Buy() {
                   email={state.email}
                   compact
                   t1Location={state.selectedTierId === 0 ? state.t1Location : undefined}
-                  tierLabel={state.selectedTierId === 0 ? 'Market Entry Report' : 'Through-the-Door Codes Report'}
+                  tierLabel={
+                    state.selectedTierId === 0
+                      ? 'Market Entry Report'
+                      : state.selectedTierId === 1
+                        ? 'Through-the-Door Codes Report'
+                        : 'Legacy Report'
+                  }
                   price={state.selectedTierId === 0 ? '$399' : state.selectedTierId === 1 ? '$599' : '$500'}
                 />
               </div>
@@ -364,7 +376,13 @@ export default function Buy() {
                     isLoading={state.isCreatingIntent}
                     t1Location={state.selectedTierId <= 1 ? state.t1Location : undefined}
                     cptCodes={state.selectedTierId === 1 ? state.cptCodes.filter((c) => c.trim().length > 0) : undefined}
-                    tierName={state.selectedTierId === 0 ? 'Market Entry Report' : state.selectedTierId === 1 ? 'Through-the-Door Codes Report' : 'Through-the-Door Codes Report'}
+                    tierName={
+                      state.selectedTierId === 0
+                        ? 'Market Entry Report'
+                        : state.selectedTierId === 1
+                          ? 'Through-the-Door Codes Report'
+                          : 'Legacy Report'
+                    }
                     price={state.selectedTierId === 0 ? '$399' : state.selectedTierId === 1 ? '$599' : '$500'}
                   />
                 </>

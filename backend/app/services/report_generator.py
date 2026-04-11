@@ -568,6 +568,7 @@ async def run_html_report(
     payload: AddressReportRequest,
     state: ReportState,
     job_id: str = "",
+    custom_cpt_codes: list[str] | None = None,
 ) -> tuple[str, bytes | None]:
     """Generate the Tier 0 HTML report from an address. Returns (html, debug_excel_bytes)."""
     log = logging.getLogger(__name__)
@@ -575,6 +576,8 @@ async def run_html_report(
     # 1. Specialty metadata
     log.info("[1] Resolving specialty meta for '%s'", payload.specialty_name)
     meta = _resolve_specialty_meta(state, payload.specialty_name)
+    # T2: override specialty CPT codes with caller-provided list
+    effective_cpt_codes = custom_cpt_codes if custom_cpt_codes else meta.cpt_codes
     provider_state = payload.state
 
     # 2. Geocode
@@ -591,7 +594,7 @@ async def run_html_report(
     # 4+5. Fetch providers from AlphaSophia and enrich addresses/coords
     log.info("[4] Fetching and enriching providers across %d ZIPs", len(expanded_zips_df))
     providers_list = await _fetch_and_enrich_providers(
-        expanded_zips_df, meta.taxonomy_codes, meta.cpt_codes
+        expanded_zips_df, meta.taxonomy_codes, effective_cpt_codes
     )
 
     # 5.5 + 6. Stamp drive times and filter to radius (two-pass)
@@ -610,18 +613,18 @@ async def run_html_report(
 
     # 8. CPT profiles + debug dump
     log.info("[7] Fetching CPT profiles for %d in-radius providers", len(providers_in_radius))
-    await asyncio.gather(*[p.fetch_cpt_profiles(meta.cpt_codes) for p in providers_in_radius])
+    await asyncio.gather(*[p.fetch_cpt_profiles(effective_cpt_codes) for p in providers_in_radius])
 
     debug_excel_bytes: bytes | None = None
     if job_id:
         debug_excel_bytes = _build_debug_excel(
-            providers_list, providers_in_radius, source_lat, source_lon, meta.cpt_codes, job_id
+            providers_list, providers_in_radius, source_lat, source_lon, effective_cpt_codes, job_id
         )
 
     # 9. Aggregate CPT data
     log.info("[8] Aggregating CPT data across %d providers", len(providers_in_radius))
     cpt_agg = _aggregate_cpt_data(
-        providers_in_radius, meta.cpt_codes, meta.cpt_patient_type_map,
+        providers_in_radius, effective_cpt_codes, meta.cpt_patient_type_map,
         provider_state, state.rvu_table, state.gpci_table,
     )
     log.info("[8] %d CPT rows, market total: %d", len(cpt_agg.cpt_rows), cpt_agg.total_market_services)
@@ -706,6 +709,39 @@ async def run_html_report(
 
     # 13. Assemble and render report
     report_id = job_id or f"MERC-{ulid.ulid()}"
+
+    # Upgrades: T2 only shows the tier above it; T1 shows both upper tiers
+    if custom_cpt_codes:
+        upgrades = [
+            Upgrade(
+                price="$799",
+                name="10-Code Full Analysis + Add-On",
+                desc=(
+                    "Complete procedure mix, NP/PA competitive presence, payer mix,"
+                    " infrastructure sizing, and lease term optimization."
+                ),
+            ),
+        ]
+    else:
+        upgrades = [
+            Upgrade(
+                price="$599",
+                name="Through-the-Door Codes Report",
+                desc=(
+                    "Your 5 custom CPT codes benchmarked against every competitor within your drive time."
+                    " Procedure-specific demand and visit-mix optimization."
+                ),
+            ),
+            Upgrade(
+                price="$799",
+                name="10-Code Full Analysis + Add-On",
+                desc=(
+                    "Complete procedure mix, NP/PA competitive presence, payer mix,"
+                    " infrastructure sizing, and lease term optimization."
+                ),
+            ),
+        ]
+
     report_data = ReportTemplateDataV2(
         reportId=report_id,
         dateIssued=pd.Timestamp.now().strftime("%m/%d/%Y"),
@@ -728,24 +764,7 @@ async def run_html_report(
         cptRows=cpt_agg.cpt_rows,
         cptTotalVisits=f"{cpt_agg.total_market_services:,}",
         analysisText=analysis_text,
-        upgrades=[
-            Upgrade(
-                price="$599",
-                name="5-Code Strategic Report",
-                desc=(
-                    "Top 5 CPT codes by procedure volume analyzed against this specific market."
-                    " Procedure-specific demand and visit-mix optimization."
-                ),
-            ),
-            Upgrade(
-                price="$799",
-                name="10-Code Full Analysis + Add-On",
-                desc=(
-                    "Complete procedure mix, NP/PA competitive presence, payer mix,"
-                    " infrastructure sizing, and lease term optimization."
-                ),
-            ),
-        ],
+        upgrades=upgrades,
         providerProfile=ProviderProfileV2(annualVisits=None),
         competitorCount=peer_providers_count,
         showRelevantPopulation=pop.relevant_pop != pop.total_population,

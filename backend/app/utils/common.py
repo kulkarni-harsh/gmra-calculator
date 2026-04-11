@@ -267,7 +267,7 @@ def generate_tags(
     tags_list: list[Tag]
         List of tags for the report.
     """
-    tags_list = [Tag(text="2025 Procedures Data", color="sky")]
+    tags_list = [Tag(text="2024 Procedures Data", color="sky")]
 
     # Get count of CPT codes with peerAvgVolume > clientVolume
     potential_cpt_count = 0

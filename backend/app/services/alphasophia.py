@@ -22,6 +22,7 @@ _ALPHASOPHIA_CONCURRENCY = 15
 _alphasophia_sem = asyncio.Semaphore(_ALPHASOPHIA_CONCURRENCY)
 
 _MAX_HCP_PAGES = 20  # Safety cap to avoid runaway pagination
+_ZIP_CHUNK_SIZE = 30  # Max zip codes per request — large lists trigger 414/431 "request too large" errors
 
 
 @retry(
@@ -68,25 +69,34 @@ async def get_hcp_data(
 ) -> list[Provider]:
     """Fetch all pages of healthcare provider data from the AlphaSophia API.
 
-    Paginates automatically until a page returns fewer results than ``page_size``
-    (indicating the last page) or ``_MAX_HCP_PAGES`` is reached.
+    Zip codes are chunked to avoid HTTP 414/431 "request too large" errors.
+    Results are deduplicated by provider ID across chunks.
 
     Returns
     -------
-        list[Provider]: Concatenated providers across all pages.
+        list[Provider]: Deduplicated providers across all pages and zip chunks.
     """
+    zip_chunks = [zip_codes_list[i : i + _ZIP_CHUNK_SIZE] for i in range(0, len(zip_codes_list), _ZIP_CHUNK_SIZE)] or [
+        []
+    ]
+
+    seen_ids: set[int] = set()
     all_providers: list[Provider] = []
     try:
-        for page in range(1, _MAX_HCP_PAGES + 1):
-            page_data = await _fetch_hcp_page(
-                zip_codes_list, taxonomy_codes_list, cpt_codes_list, npi_list, page_size, page
-            )
-            all_providers.extend(page_data)
-            logging.info("AlphaSophia HCP search page %d: %d results", page, len(page_data))
-            if len(page_data) < page_size:
-                break  # Last page — fewer results than requested
-        else:
-            logging.warning("AlphaSophia HCP search hit page cap (%d pages)", _MAX_HCP_PAGES)
+        for zip_chunk in zip_chunks:
+            for page in range(1, _MAX_HCP_PAGES + 1):
+                page_data = await _fetch_hcp_page(
+                    zip_chunk, taxonomy_codes_list, cpt_codes_list, npi_list, page_size, page
+                )
+                for provider in page_data:
+                    if provider.id not in seen_ids:
+                        seen_ids.add(provider.id)
+                        all_providers.append(provider)
+                logging.info("AlphaSophia HCP search page %d: %d results", page, len(page_data))
+                if len(page_data) < page_size:
+                    break  # Last page — fewer results than requested
+            else:
+                logging.warning("AlphaSophia HCP search hit page cap (%d pages)", _MAX_HCP_PAGES)
     except httpx.TimeoutException as e:
         logging.critical(
             "Timed out requesting AlphaSophia HCP search API after 3 attempts. %s: %s", type(e).__name__, e
@@ -148,11 +158,19 @@ async def get_npi_address(npi: str | None) -> tuple[str | None, str | None, str 
     except httpx.TimeoutException as e:
         logging.critical(f"Timed out requesting NPI API for {npi} after 3 attempts. {type(e).__name__}: {e}")
         return None, None, None
-    except httpx.RequestError:
-        logging.critical(f"An error occurred while requesting NPI Registry API for NPI {npi}.")
+    except httpx.RequestError as exc:
+        logging.critical(
+            f"An error occurred while requesting NPI Registry API for NPI {npi}. {type(exc).__name__}: {exc}"
+        )
+        import traceback
+
+        traceback.print_exc()
         return None, None, None
     except httpx.HTTPStatusError as exc:
-        logging.critical(f"Error response {exc.response.status_code} while requesting NPI Registry API for NPI {npi}.")
+        logging.critical(
+            f"Error response {exc.response.status_code} while requesting NPI Registry API for NPI {npi}."
+            f" {type(exc).__name__}: {exc}"
+        )
         return None, None, None
     except Exception as exc:
         logging.critical(
@@ -173,7 +191,13 @@ async def get_npi_address(npi: str | None) -> tuple[str | None, str | None, str 
 )
 async def _fetch_hcp_procedure(hcp_id: int, page: int, code: str | None) -> list[CPT]:
     url = "/v1/profile/hcp/procedure/"
-    params: dict[str, str | int | bool] = {"id": hcp_id, "all-payor": "true", "page": page, "pageSize": 15, "time": "2024"}
+    params: dict[str, str | int | bool] = {
+        "id": hcp_id,
+        "all-payor": "true",
+        "page": page,
+        "pageSize": 15,
+        "time": "2024",
+    }
     if code:
         params["code"] = code
     headers = {

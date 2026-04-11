@@ -5,6 +5,7 @@ import { useReportGeneration } from '@/hooks/useReportGeneration'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import type { Provider, RadiusOption, DriveTimeOption, T1Location } from '@/types/api'
 import { createPaymentIntent, createT1PaymentIntent, createT2PaymentIntent, generateReport, generateT1Report, generateT2Report } from '@/lib/api'
+import { TIER_PRICES } from '@/lib/pricing'
 import StepAddressWithCpt from '@/components/buy/StepAddressWithCpt'
 
 import TierSelection from '@/components/buy/TierSelection'
@@ -258,7 +259,7 @@ export default function Buy() {
                         ? 'Through-the-Door Codes Report'
                         : 'Legacy Report'
                   }
-                  price={state.selectedTierId === 0 ? '$399' : state.selectedTierId === 1 ? '$599' : '$500'}
+                  price={TIER_PRICES[state.selectedTierId]}
                 />
               </div>
             </aside>
@@ -283,7 +284,7 @@ export default function Buy() {
                         ? 'Through-the-Door Codes Report'
                         : 'Legacy Report'
                   }
-                  price={state.selectedTierId === 0 ? '$399' : state.selectedTierId === 1 ? '$599' : '$500'}
+                  price={TIER_PRICES[state.selectedTierId]}
                 />
               </div>
             )}
@@ -383,7 +384,7 @@ export default function Buy() {
                           ? 'Through-the-Door Codes Report'
                           : 'Legacy Report'
                     }
-                    price={state.selectedTierId === 0 ? '$399' : state.selectedTierId === 1 ? '$599' : '$500'}
+                    price={TIER_PRICES[state.selectedTierId]}
                   />
                 </>
               )}
@@ -391,6 +392,7 @@ export default function Buy() {
               {state.currentStep === 5 && state.paymentClientSecret && (
                 <StepPayment
                   clientSecret={state.paymentClientSecret}
+                  price={TIER_PRICES[state.selectedTierId]}
                   onSuccess={handlePaymentSuccess}
                   onBack={back}
                 />

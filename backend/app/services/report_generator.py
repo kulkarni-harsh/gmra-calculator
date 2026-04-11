@@ -27,6 +27,7 @@ from app.services.alphasophia import get_hcp_data
 from app.services.bedrock_llm import MarketAnalysisInput, generate_market_analysis
 from app.services.census import get_population_in_polygon
 from app.services.fee_schedule import get_medicare_rate
+from app.services.payment import T2_DISPLAY_PRICE, T3_DISPLAY_PRICE
 from app.services.geocoder import geocode_address
 from app.services.html_imputers import render_report
 from app.services.mapbox import fetch_isochrones, generate_map, stamp_provider_drive_times_by_isochrone
@@ -716,7 +717,7 @@ async def run_html_report(
     if custom_cpt_codes:
         upgrades = [
             Upgrade(
-                price="$799",
+                price=T3_DISPLAY_PRICE,
                 name="10-Code Full Analysis + Add-On",
                 desc=(
                     "Complete procedure mix, NP/PA competitive presence, payer mix,"
@@ -727,7 +728,7 @@ async def run_html_report(
     else:
         upgrades = [
             Upgrade(
-                price="$599",
+                price=T2_DISPLAY_PRICE,
                 name="Through-the-Door Codes Report",
                 desc=(
                     "Your 5 custom CPT codes benchmarked against every competitor within your drive time."
@@ -735,7 +736,7 @@ async def run_html_report(
                 ),
             ),
             Upgrade(
-                price="$799",
+                price=T3_DISPLAY_PRICE,
                 name="10-Code Full Analysis + Add-On",
                 desc=(
                     "Complete procedure mix, NP/PA competitive presence, payer mix,"

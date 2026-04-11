@@ -7,11 +7,12 @@ import { Lock } from 'lucide-react'
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
 
 interface StepPaymentInnerProps {
+  price: string
   onSuccess: (paymentIntentId: string) => void
   onBack: () => void
 }
 
-function StepPaymentInner({ onSuccess, onBack }: StepPaymentInnerProps) {
+function StepPaymentInner({ price, onSuccess, onBack }: StepPaymentInnerProps) {
   const stripe = useStripe()
   const elements = useElements()
   const [isPaying, setIsPaying] = useState(false)
@@ -73,7 +74,7 @@ function StepPaymentInner({ onSuccess, onBack }: StepPaymentInnerProps) {
           className="w-full gap-2 bg-[hsl(204_66%_52%)] py-6 text-base font-bold uppercase tracking-wide text-white hover:bg-[hsl(204_66%_45%)] disabled:opacity-60"
         >
           <Lock size={18} />
-          {isPaying ? 'Processing…' : 'Pay $500 & Generate Report'}
+          {isPaying ? 'Processing…' : `Pay ${price} & Generate Report`}
         </Button>
       </form>
 
@@ -93,11 +94,12 @@ function StepPaymentInner({ onSuccess, onBack }: StepPaymentInnerProps) {
 
 interface StepPaymentProps {
   clientSecret: string
+  price: string
   onSuccess: (paymentIntentId: string) => void
   onBack: () => void
 }
 
-export default function StepPayment({ clientSecret, onSuccess, onBack }: StepPaymentProps) {
+export default function StepPayment({ clientSecret, price, onSuccess, onBack }: StepPaymentProps) {
   return (
     <Elements
       stripe={stripePromise}
@@ -114,7 +116,7 @@ export default function StepPayment({ clientSecret, onSuccess, onBack }: StepPay
         },
       }}
     >
-      <StepPaymentInner onSuccess={onSuccess} onBack={onBack} />
+      <StepPaymentInner price={price} onSuccess={onSuccess} onBack={onBack} />
     </Elements>
   )
 }

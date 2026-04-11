@@ -1,13 +1,14 @@
 import { Lock, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { TIER_PRICES } from '@/lib/pricing'
 
 const tiers = [
   {
     id: 0 as const,
     name: 'Market Entry Report',
     subtitle: 'Ground-level demand analysis',
-    price: '$399',
+    price: TIER_PRICES[0],
     badge: 'New',
     locked: false,
     features: [
@@ -22,7 +23,7 @@ const tiers = [
     id: 1 as const,
     name: 'Through-the-Door Codes Report',
     subtitle: 'Your CPT codes vs. local market',
-    price: '$599',
+    price: TIER_PRICES[1],
     badge: 'Most Popular',
     locked: false,
     features: [
@@ -37,7 +38,7 @@ const tiers = [
     id: 2 as const,
     name: '5-Code Strategic Report',
     subtitle: '',
-    price: '$599',
+    price: TIER_PRICES[2],
     badge: 'Coming Soon',
     locked: true,
     features: [
@@ -51,7 +52,7 @@ const tiers = [
     id: 3 as const,
     name: '10-Code Full Analysis + Add-On',
     subtitle: '',
-    price: '$799',
+    price: TIER_PRICES[3],
     badge: 'Coming Soon',
     locked: true,
     features: [

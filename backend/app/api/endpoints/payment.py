@@ -9,7 +9,12 @@ from app.core.config import settings
 from app.schemas.payment import CreatePaymentIntentRequest, CreateT1PaymentIntentRequest, CreateT2PaymentIntentRequest
 from app.services.email import send_request_confirmation
 from app.services.job_store import JobAlreadyExistsError, claim_job_for_generation, create_job_awaiting_payment
-from app.services.payment import create_payment_intent, create_t1_payment_intent, create_t2_payment_intent, T2_REPORT_AMOUNT_CENTS
+from app.services.payment import (
+    REPORT_TYPE_AMOUNTS,
+    create_payment_intent,
+    create_t1_payment_intent,
+    create_t2_payment_intent,
+)
 from app.services.queue import send_job
 
 router = APIRouter()
@@ -92,13 +97,27 @@ async def stripe_webhook(request: Request):
             logging.error("Stripe webhook: failed to claim job %s: %s", job_id, exc)
             raise HTTPException(status_code=500, detail="Failed to process webhook") from exc
 
+        # Verify the charged amount matches the report type stored in DynamoDB.
+        # This guards against webhook replays where a cheaper job_id is reused for a pricier tier.
+        try:
+            stored = json.loads(payload_json)
+            report_type = stored.get("report_type", "a1")
+            expected_amount = REPORT_TYPE_AMOUNTS.get(report_type, REPORT_TYPE_AMOUNTS["a1"])
+            if intent.get("amount") != expected_amount:
+                logging.error(
+                    "Stripe webhook: amount mismatch for job %s (type=%s, got=%d, expected=%d) — skipping",
+                    job_id, report_type, intent.get("amount"), expected_amount,
+                )
+                return {"received": True}
+        except Exception as exc:
+            logging.error("Stripe webhook: could not verify amount for job %s: %s", job_id, exc)
+
         send_job(job_id)
         logging.info("Stripe webhook: enqueued job %s via payment_intent.succeeded", job_id)
 
         try:
-            stored = json.loads(payload_json)
             customer_email = stored.get("customer_email", "")
-            # T1 stores address instead of client_provider; A1 stores client_provider
+            # T1/T2 store address instead of client_provider; A1 stores client_provider
             if stored.get("report_type") in ("t1", "t2"):
                 provider_name = (
                     f"{stored.get('address_line_1', '')}, {stored.get('city', '')} {stored.get('state', '')}"

@@ -18,7 +18,7 @@ from app.core.logging import configure_logging
 from app.services.email import send_report_ready
 from app.services.job_store import get_job, update_job
 from app.services.queue import delete_message, receive_jobs
-from backend.app.services.report_generator import ReportState, load_state
+from app.services.report_generator import ReportState, load_state
 
 
 async def process_job(job_id: str, state: ReportState) -> None:
@@ -28,7 +28,7 @@ async def process_job(job_id: str, state: ReportState) -> None:
     from app.services.pdf import html_to_pdf
     from app.services._report_generator_a1_archived import run_report
     from app.services.s3 import upload_report, upload_report_pdf
-    from backend.app.services.report_generator import run_html_report
+    from app.services.report_generator import run_html_report
 
     job = get_job(job_id)
     if not job:

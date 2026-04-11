@@ -7,9 +7,25 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
-REPORT_AMOUNT_CENTS = 50_000  # $500.00
-T1_REPORT_AMOUNT_CENTS = 39_900  # $399.00 — change here to adjust T1 price
-T2_REPORT_AMOUNT_CENTS = 59_900  # $599.00 — Through-the-Door Codes Report
+
+# ── Prices (cents) — change only here ────────────────────────────────────────
+REPORT_AMOUNT_CENTS = 50_000     # A1  $500.00
+T1_REPORT_AMOUNT_CENTS = 39_900  # T1  $399.00  Market Entry Report
+T2_REPORT_AMOUNT_CENTS = 59_900  # T2  $599.00  Through-the-Door Codes Report
+
+# Display strings derived from the cent constants above.
+# Use these everywhere a human-readable price is needed (emails, report upgrades).
+A1_DISPLAY_PRICE = f"${REPORT_AMOUNT_CENTS // 100:,}"      # "$500"
+T1_DISPLAY_PRICE = f"${T1_REPORT_AMOUNT_CENTS // 100:,}"   # "$399"
+T2_DISPLAY_PRICE = f"${T2_REPORT_AMOUNT_CENTS // 100:,}"   # "$599"
+T3_DISPLAY_PRICE = "$799"  # Coming-soon tier — no PaymentIntent yet
+
+# Lookup used by the Stripe webhook to verify the charged amount matches the job type.
+REPORT_TYPE_AMOUNTS: dict[str, int] = {
+    "a1": REPORT_AMOUNT_CENTS,
+    "t1": T1_REPORT_AMOUNT_CENTS,
+    "t2": T2_REPORT_AMOUNT_CENTS,
+}
 
 
 def create_payment_intent(

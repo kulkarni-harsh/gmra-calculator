@@ -564,7 +564,7 @@ def _build_debug_excel(
 # ── Public entry point ────────────────────────────────────────────────────────
 
 
-async def run_t1_report(
+async def run_html_report(
     payload: AddressReportRequest,
     state: ReportState,
     job_id: str = "",

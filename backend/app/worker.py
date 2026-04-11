@@ -18,7 +18,7 @@ from app.core.logging import configure_logging
 from app.services.email import send_report_ready
 from app.services.job_store import get_job, update_job
 from app.services.queue import delete_message, receive_jobs
-from app.services.t1_report_generator import ReportState, load_state
+from backend.app.services.report_generator import ReportState, load_state
 
 
 async def process_job(job_id: str, state: ReportState) -> None:
@@ -27,7 +27,7 @@ async def process_job(job_id: str, state: ReportState) -> None:
     from app.services.pdf import html_to_pdf
     from app.services._report_generator_a1_archived import run_report
     from app.services.s3 import upload_report, upload_report_pdf
-    from app.services.t1_report_generator import run_t1_report
+    from backend.app.services.report_generator import run_html_report
 
     job = get_job(job_id)
     if not job:
@@ -43,7 +43,7 @@ async def process_job(job_id: str, state: ReportState) -> None:
 
         if report_type == "t1":
             t1_payload = AddressReportRequest.model_validate(raw)
-            html, debug_excel_bytes = await run_t1_report(t1_payload, state, job_id=job_id)
+            html, debug_excel_bytes = await run_html_report(t1_payload, state, job_id=job_id)
         else:
             a1_payload = ProviderRequest.model_validate(raw)
             html, debug_excel_bytes = await run_report(a1_payload, state, job_id=job_id)

@@ -23,7 +23,7 @@ from app.services.alphasophia import get_hcp_data
 from app.services.census import combine_demographics, get_zip_demographics
 from app.services.fee_schedule import get_medicare_rate
 from app.services.html_imputers import render_report
-from app.services.t1_report_generator import ReportState  # noqa: F401 — shared state now lives in main generator
+from backend.app.services.report_generator import ReportState  # noqa: F401 — shared state now lives in main generator
 from app.services.s3 import upload_debug_excel
 from app.types.alphasophia import CPT, Provider
 from app.types.baseline_report_template import (

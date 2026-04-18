@@ -4,7 +4,7 @@ import asyncio
 import logging
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, PrivateAttr, field_validator
 
 
 class _Taxonomy(BaseModel):
@@ -93,6 +93,8 @@ class Provider(BaseModel):
     drive_time_minutes: float | None = None  # Drive time from source; set by generate_map()
     cpt_list: list[CPT] = []  # Not in Alphasophia output
     cpt_total_services: int = 0  # Sum of totalServices across report CPT codes; set during report generation
+    is_locum: bool | None = None  # Set after CPT profiles are fetched and totals are aggregated
+    _cpt_fetched: bool = PrivateAttr(default=False)
 
     @field_validator("id", mode="before")
     def convert_to_int(cls, value: Any) -> int:  # noqa: N805
@@ -133,6 +135,22 @@ class Provider(BaseModel):
         cpt_tasks = [get_hcp_procedure(hcp_id=self.id, page=1, code=cpt_code) for cpt_code in cpt_codes]
         gathered_results = await asyncio.gather(*cpt_tasks)
         self.cpt_list = [cpt for cpt_list in gathered_results for cpt in cpt_list]
+        self._cpt_fetched = True
 
     def get_cpt_profile(self, cpt_code: str):
         return next((cpt for cpt in self.cpt_list if cpt.code == cpt_code), None)
+
+    def set_is_locum(self, total_market_services: int) -> None:
+        """Mark provider as locum if their CPT volume is ≤ 2% of total market services.
+
+        Must be called AFTER both:
+        1. fetch_cpt_profiles() — sets _cpt_fetched and populates cpt_list
+        2. cpt_total_services has been summed externally (done by _aggregate_cpt_data)
+
+        Raises ValueError if CPT profiles have not been fetched yet.
+        """
+        if not self._cpt_fetched:
+            raise ValueError(
+                f"Provider {self.id} (NPI: {self.npi}): CPT profiles must be fetched before calling set_is_locum"
+            )
+        self.is_locum = self.cpt_total_services <= 0.02 * total_market_services

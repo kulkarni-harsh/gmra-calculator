@@ -97,6 +97,7 @@ class ProviderShareEntry:
     share: int  # % of total market CPT services (0–100)
     taxonomy: str  # taxonomy description, e.g. "Family Medicine"
     drive_time_minutes: float | None = None  # drive time from source
+    is_locum: bool = False  # True when provider's CPT volume ≤ 2% of total market
 
 
 @dataclass(slots=True)
@@ -139,6 +140,9 @@ class ReportTemplateDataV2:
     providerShares: list[ProviderShareEntry] | None = None
     # Map image: base64 data URI ("data:image/png;base64,...") or None to hide the map section.
     mapImageSrc: str | None = None
+    # Number of locum providers (CPT volume ≤ 2% of total market) within the radius.
+    # Display: show (currentProviders - locumCount) as non-locum base, locumCount as subscript.
+    locumCount: int = 0
     # "State" when state-level density data exists; "National (US Avg.)" when falling back to
     # the national benchmark because the state has no data in specialty_lookup.
     densityScope: str = "State"

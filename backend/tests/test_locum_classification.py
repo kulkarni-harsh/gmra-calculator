@@ -41,3 +41,23 @@ def test_set_is_locum_true_when_total_zero():
     p.set_is_locum(total_market_services=0)
     # 0 <= 0.02 * 0 → 0 <= 0 → True
     assert p.is_locum is True
+
+
+from app.types.baseline_report_template import ProviderShareEntry, ReportTemplateDataV2
+import dataclasses
+
+
+def test_provider_share_entry_has_is_locum():
+    entry = ProviderShareEntry(share=1, taxonomy="Family Medicine", is_locum=True)
+    assert entry.is_locum is True
+
+
+def test_provider_share_entry_is_locum_defaults_false():
+    entry = ProviderShareEntry(share=10, taxonomy="Family Medicine")
+    assert entry.is_locum is False
+
+
+def test_report_template_data_v2_has_locum_count():
+    fields = {f.name: f for f in dataclasses.fields(ReportTemplateDataV2)}
+    assert "locumCount" in fields
+    assert fields["locumCount"].default == 0

@@ -1121,16 +1121,19 @@ const DATA = {
   relevantPopulation: "503,447",
   populationLabel:    "All ages (Family Med)",   // e.g. "Ages 65+ (Cardiology)"
   currentProviders:   38,
+  locumCount:         2,
   targetDensity:      55.2,
   // Each entry = one anonymous provider's % share of total market CPT services, sorted desc.
+  // is_locum: true when provider's CPT volume was ≤ 2% of total market (collapsed into single bar).
   providerShares: [
-    { share: 34, taxonomy: "Family Medicine",   drive_time_minutes: 5  },
-    { share: 22, taxonomy: "General Practice",  drive_time_minutes: 8  },
-    { share: 18, taxonomy: "Family Medicine",   drive_time_minutes: 12 },
-    { share: 11, taxonomy: "Family Medicine",   drive_time_minutes: 15 },
-    { share:  7, taxonomy: "Internal Medicine", drive_time_minutes: 18 },
-    { share:  5, taxonomy: "General Practice",  drive_time_minutes: 23 },
-    { share:  3, taxonomy: "Family Medicine",   drive_time_minutes: 28 },
+    { share: 34, taxonomy: "Family Medicine",   drive_time_minutes: 5,  is_locum: false },
+    { share: 22, taxonomy: "General Practice",  drive_time_minutes: 8,  is_locum: false },
+    { share: 18, taxonomy: "Family Medicine",   drive_time_minutes: 12, is_locum: false },
+    { share: 11, taxonomy: "Family Medicine",   drive_time_minutes: 15, is_locum: false },
+    { share:  7, taxonomy: "Internal Medicine", drive_time_minutes: 18, is_locum: false },
+    { share:  5, taxonomy: "General Practice",  drive_time_minutes: 23, is_locum: false },
+    { share:  2, taxonomy: "Family Medicine",   drive_time_minutes: 30, is_locum: true  },
+    { share:  1, taxonomy: "General Practice",  drive_time_minutes: 35, is_locum: true  },
   ],
 
   // ── Section 2: CPT Table ──────────────────────────────────
@@ -1247,8 +1250,14 @@ const DATA = {
   const gaugeDash = Math.round(157 * (1 - densityBarPct / 100));
 
   // Provider CPT distribution bars (Section 03)
-  const providerShareBars = (D.providerShares || []).map((entry, i) => {
-    const share = entry.share ?? entry;
+  // Non-locum providers get individual bars; all locum providers collapse into one.
+  const _allShares = D.providerShares || [];
+  const _nonLocumShares = _allShares.filter(e => !e.is_locum);
+  const _locumShares    = _allShares.filter(e =>  e.is_locum);
+  const _locumShareTotal = _locumShares.reduce((sum, e) => sum + (e.share ?? 0), 0);
+
+  const _nonLocumBars = _nonLocumShares.map((entry, i) => {
+    const share = entry.share ?? 0;
     const taxonomy = entry.taxonomy || '';
     const dt = entry.drive_time_minutes != null ? Math.round(entry.drive_time_minutes) : null;
     const opacity = Math.max(0.25, 1 - i * 0.1);
@@ -1267,9 +1276,24 @@ const DATA = {
     `;
   }).join('');
 
-  // Taxonomy composition summary (group + count)
+  const _locumBar = _locumShares.length > 0 ? `
+    <div class="prov-bar-row" style="border-top:1px dashed var(--border);margin-top:8px;padding-top:8px;">
+      <div class="prov-bar-label">
+        <div style="font-style:italic;color:var(--muted);">Locum</div>
+        <div class="prov-bar-sublabel">${_locumShares.length} provider${_locumShares.length !== 1 ? 's' : ''} combined</div>
+      </div>
+      <div class="prov-bar-track">
+        <div class="prov-bar-fill" style="width:${_locumShareTotal}%;opacity:0.35;background:var(--muted);"></div>
+      </div>
+      <div class="prov-bar-pct" style="color:var(--muted);">${_locumShareTotal}%</div>
+    </div>
+  ` : '';
+
+  const providerShareBars = _nonLocumBars + _locumBar;
+
+  // Taxonomy composition summary (group + count) — excludes locum providers
   const _taxCounts = {};
-  (D.providerShares || []).forEach(entry => {
+  (D.providerShares || []).filter(e => !e.is_locum).forEach(entry => {
     const tax = ((entry.taxonomy || 'Unknown')).trim();
     _taxCounts[tax] = (_taxCounts[tax] || 0) + 1;
   });
@@ -1417,8 +1441,9 @@ const DATA = {
       </div>`}
       <div class="metric-card strong">
         <div class="metric-label">Existing Provider Base</div>
-        <div class="metric-value">${D.currentProviders}</div>
+        <div class="metric-value">${D.currentProviders - (D.locumCount || 0)}</div>
         <div class="metric-sub">Serving this market</div>
+        ${(D.locumCount || 0) > 0 ? `<div class="metric-sub" style="font-size:9px;font-style:italic;color:var(--muted);">+ ${D.locumCount} locum</div>` : ''}
       </div>
       <div class="metric-card">
         <div class="metric-label">${D.densityScope} Density Baseline</div>
@@ -1505,7 +1530,7 @@ const DATA = {
         <div class="saturation-stats">
           <div class="sat-stat">
             <div class="sat-stat-label">Active Providers</div>
-            <div class="sat-stat-val">${Number.isFinite(currentProviders) ? Math.round(currentProviders) : '—'}</div>
+            <div class="sat-stat-val">${Number.isFinite(currentProviders) ? Math.round(currentProviders - (D.locumCount || 0)) : '—'}</div>
           </div>
           <div class="sat-stat">
             <div class="sat-stat-label">Benchmark Target</div>
@@ -1521,7 +1546,7 @@ const DATA = {
         <div class="tax-summary-strip">${taxonomySummaryHtml}</div>
         <div class="prov-dist-chart">${providerShareBars}</div>
         <div class="prov-dist-note">
-          Based on services count for all procedures listed in Section 02 across ${(D.providerShares || []).length} providers.
+          Based on services count for all procedures listed in Section 02 across ${_nonLocumShares.length} providers${_locumShares.length > 0 ? ` (+ ${_locumShares.length} locum, shown combined)` : ''}.
           Individual provider volume breakdowns are not disclosed — market share distribution is shown in aggregate only.
         </div>
       </div>

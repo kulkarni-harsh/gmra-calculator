@@ -338,8 +338,7 @@ def _aggregate_cpt_data(
     gpci_table: dict,
 ) -> _CptAggregation:
     """Aggregate CPT volume across all in-radius peers and build display rows."""
-    # Per-provider totals for share distribution
-    raw_totals: list[tuple[int, str, float | None]] = []
+    # Pass 1 — compute per-provider totals and stamp cpt_total_services
     for p in providers_in_radius:
         total = sum(
             (p.get_cpt_profile(code).totalServices or 0)
@@ -347,14 +346,23 @@ def _aggregate_cpt_data(
             if p.get_cpt_profile(code)
         )
         p.cpt_total_services = total
-        raw_totals.append((total, p.taxonomy.description or "Unknown", p.drive_time_minutes))
 
     # Guard against divide-by-zero when no providers have any recorded services.
-    share_denom = sum(t for t, _, _ in raw_totals) or 1
+    share_denom = sum(p.cpt_total_services for p in providers_in_radius) or 1
+
+    # Pass 2 — classify locum and build share list
+    for p in providers_in_radius:
+        p.set_is_locum(share_denom)
+
     provider_shares = sorted(
         [
-            ProviderShareEntry(share=round(t / share_denom * 100), taxonomy=tax, drive_time_minutes=dt)
-            for t, tax, dt in raw_totals
+            ProviderShareEntry(
+                share=round(p.cpt_total_services / share_denom * 100),
+                taxonomy=p.taxonomy.description or "Unknown",
+                drive_time_minutes=p.drive_time_minutes,
+                is_locum=p.is_locum or False,
+            )
+            for p in providers_in_radius
         ],
         key=lambda e: e.share,
         reverse=True,
@@ -630,6 +638,7 @@ async def run_html_report(
         providers_in_radius, effective_cpt_codes, meta.cpt_patient_type_map,
         provider_state, state.rvu_table, state.gpci_table,
     )
+    locum_count = sum(1 for p in providers_in_radius if p.is_locum)
     log.info("[8] %d CPT rows, market total: %d", len(cpt_agg.cpt_rows), cpt_agg.total_market_services)
 
     # 10. Population + demographics
@@ -770,6 +779,7 @@ async def run_html_report(
         upgrades=upgrades,
         providerProfile=ProviderProfileV2(annualVisits=None),
         competitorCount=peer_providers_count,
+        locumCount=locum_count,
         showRelevantPopulation=pop.relevant_pop != pop.total_population,
         taxonomyCodes=meta.taxonomy_codes,
         searchedZipCodes=[

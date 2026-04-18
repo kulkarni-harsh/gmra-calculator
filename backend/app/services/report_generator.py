@@ -649,7 +649,7 @@ async def run_html_report(
     )
 
     # 11. Verdict + density gap (locum providers excluded — they don't represent permanent market capacity)
-    peer_providers_count = max(sum(1 for p in providers_in_radius if not p.is_locum), 1)
+    peer_providers_count = max(sum(1 for p in providers_in_radius if not p.is_locum), 0)
     density_scope = get_density_scope(state.specialty_lookup, payload.specialty_name, provider_state)
     target_density = get_provider_density(state.specialty_lookup, payload.specialty_name, provider_state)
     if target_density is not None and pop.relevant_pop > 0:

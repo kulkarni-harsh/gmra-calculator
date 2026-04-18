@@ -140,10 +140,11 @@ class Provider(BaseModel):
     def get_cpt_profile(self, cpt_code: str):
         return next((cpt for cpt in self.cpt_list if cpt.code == cpt_code), None)
 
-    def set_is_locum(self, total_market_services: int) -> None:
-        """Mark provider as locum if their CPT volume is ≤ 2% of total market services.
+    def set_is_locum(self, share_volume: int) -> None:
+        """Mark provider as locum if their CPT volume is ≤ 2% of the total shared volume.
 
-        Must be called AFTER both:
+        share_volume is the sum of cpt_total_services across all in-radius providers
+        (i.e. share_denom from _aggregate_cpt_data). Must be called AFTER both:
         1. fetch_cpt_profiles() — sets _cpt_fetched and populates cpt_list
         2. cpt_total_services has been summed externally (done by _aggregate_cpt_data)
 
@@ -153,4 +154,4 @@ class Provider(BaseModel):
             raise ValueError(
                 f"Provider {self.id} (NPI: {self.npi}): CPT profiles must be fetched before calling set_is_locum"
             )
-        self.is_locum = self.cpt_total_services <= 0.02 * total_market_services
+        self.is_locum = self.cpt_total_services <= 0.02 * share_volume

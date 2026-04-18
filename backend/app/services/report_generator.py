@@ -360,7 +360,7 @@ def _aggregate_cpt_data(
                 share=round(p.cpt_total_services / share_denom * 100),
                 taxonomy=p.taxonomy.description or "Unknown",
                 drive_time_minutes=p.drive_time_minutes,
-                is_locum=p.is_locum or False,
+                is_locum=p.is_locum,
             )
             for p in providers_in_radius
         ],

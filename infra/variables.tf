@@ -54,18 +54,24 @@ variable "resend_api_key" {
 }
 
 variable "resend_dkim_value" {
-  description = "TXT value for resend._domainkey DKIM record (provided by Resend dashboard)"
+  description = "TXT value for resend._domainkey DKIM record (from Resend dashboard)"
   type        = string
 }
 
 variable "resend_mx_value" {
-  description = "MX record value for the send subdomain (provided by Resend dashboard, e.g. feedback-smtp.us-east-1.amazonses.com)"
+  description = "MX record value for the send subdomain (from Resend dashboard)"
   type        = string
 }
 
 variable "resend_spf_value" {
-  description = "TXT SPF value for the send subdomain (provided by Resend dashboard, e.g. v=spf1 include:amazonses.com ~all)"
+  description = "TXT SPF value for the send subdomain"
   type        = string
+}
+
+variable "dmarc_value" {
+  description = "TXT DMARC policy record value"
+  type        = string
+  default     = "v=DMARC1; p=none;"
 }
 
 variable "stripe_secret_key" {

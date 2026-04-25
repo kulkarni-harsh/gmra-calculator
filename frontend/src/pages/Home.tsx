@@ -1,19 +1,29 @@
 import Hero from '@/components/home/Hero'
-import ValuePillars from '@/components/home/ValuePillars'
-import Deliverables from '@/components/home/Deliverables'
-import ReportPreview from '@/components/home/ReportPreview'
-import TrustBadges from '@/components/home/TrustBadges'
-import BottomCTA from '@/components/home/BottomCTA'
+import AmberBand from '@/components/layout/AmberBand'
+import IndependenceBar from '@/components/layout/IndependenceBar'
+import WhatItIs from '@/components/home/WhatItIs'
+import SiteNeutrality from '@/components/home/SiteNeutrality'
+import WhoItsFor from '@/components/home/WhoItsFor'
+import ReportsPricing from '@/components/home/ReportsPricing'
+import CalculatorVsGlobe from '@/components/home/CalculatorVsGlobe'
+import AboutGlobe from '@/components/home/AboutGlobe'
+import FaqSection from '@/components/home/FaqSection'
+import CtaSection from '@/components/home/CtaSection'
 
 export default function Home() {
   return (
     <>
       <Hero />
-      <ValuePillars />
-      <Deliverables />
-      <ReportPreview />
-      <TrustBadges />
-      <BottomCTA />
+      <AmberBand />
+      <IndependenceBar />
+      <WhatItIs />
+      <SiteNeutrality />
+      <WhoItsFor />
+      <ReportsPricing />
+      <CalculatorVsGlobe />
+      <AboutGlobe />
+      <FaqSection />
+      <CtaSection />
     </>
   )
 }

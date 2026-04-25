@@ -1120,7 +1120,7 @@ const DATA = {
   totalPopulation:    "503,447",
   relevantPopulation: "503,447",
   populationLabel:    "All ages (Family Med)",   // e.g. "Ages 65+ (Cardiology)"
-  currentProviders:   38,
+  activeProviders:    36,
   locumCount:         2,
   targetDensity:      55.2,
   // Each entry = one anonymous provider's % share of total market CPT services, sorted desc.
@@ -1154,7 +1154,7 @@ const DATA = {
   // ── Section 4: Analysis Narrative (HTML allowed) ──────────
   analysisText: `
     The Frisco, TX market presents a <strong>clear opportunity for a new or expanding Family Medicine provider.</strong>
-    With 503,447 residents and only 38 active providers against a benchmark target of 55.2, this location is operating
+    With 503,447 residents and only 36 active providers against a benchmark target of 55.2, this location is operating
     at <strong>69% of benchmark provider density</strong> — indicating strong demand headroom for an additional practice.<br><br>
     The "through the door" CPT baseline confirms demand is real: <strong>178,530 annual patient visits</strong> are
     processed across the active provider base. Provider distribution analysis shows the market is moderately concentrated —
@@ -1224,7 +1224,7 @@ const DATA = {
   const marketVisitsTotal = Number.isFinite(marketVisitsInput) ? marketVisitsInput : sumNums(cptNormalizedRows.map(r => r.marketVolume));
 
   // Provider density & saturation (Section 03)
-  const currentProviders = toNum(D.currentProviders);
+  const currentProviders = toNum(D.activeProviders);
   const targetProviders   = toNum(D.targetDensity);  // benchmark provider count for this market
   const totalPop          = toNum(D.totalPopulation);
   const providerDensityPct = (Number.isFinite(currentProviders) && Number.isFinite(targetProviders) && targetProviders > 0)
@@ -1441,7 +1441,7 @@ const DATA = {
       </div>`}
       <div class="metric-card strong">
         <div class="metric-label">Existing Provider Base</div>
-        <div class="metric-value">${D.currentProviders - (D.locumCount || 0)}</div>
+        <div class="metric-value">${D.activeProviders}</div>
         <div class="metric-sub">Serving this market</div>
         ${(D.locumCount || 0) > 0 ? `<div class="metric-sub" style="font-size:9px;font-style:italic;color:var(--muted);">+ ${D.locumCount} locum</div>` : ''}
       </div>
@@ -1530,7 +1530,7 @@ const DATA = {
         <div class="saturation-stats">
           <div class="sat-stat">
             <div class="sat-stat-label">Active Providers</div>
-            <div class="sat-stat-val">${Number.isFinite(currentProviders) ? Math.round(currentProviders - (D.locumCount || 0)) : '—'}</div>
+            <div class="sat-stat-val">${Number.isFinite(currentProviders) ? Math.round(currentProviders) : '—'}</div>
           </div>
           <div class="sat-stat">
             <div class="sat-stat-label">Benchmark Target</div>

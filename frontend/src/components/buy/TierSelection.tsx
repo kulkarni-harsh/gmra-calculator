@@ -3,23 +3,10 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { TIER_PRICES } from '@/lib/pricing'
 
-interface TierFeature {
+interface Feature {
   label: string
   note?: string
 }
-
-const ALL_FEATURES: TierFeature[] = [
-  { label: 'Market demand snapshot' },
-  { label: 'Through-the-door CPT code analysis' },
-  { label: 'Local demographics analysis' },
-  { label: 'Provider density benchmark' },
-  { label: 'AI insights PDF report' },
-  { label: 'Anonymized provider market share breakdown' },
-  { label: 'Custom CPT codes (up to 5)' },
-  { label: 'Custom CPT codes (up to 15)' },
-  { label: 'Gap & opportunity report', note: '*' },
-  { label: '1-on-1 strategy call' },
-]
 
 const tiers = [
   {
@@ -29,13 +16,21 @@ const tiers = [
     price: TIER_PRICES[0],
     badge: 'New',
     locked: false,
-    included: new Set([
-      'Market demand snapshot',
-      'Through-the-door CPT code analysis',
-      'Local demographics analysis',
-      'Provider density benchmark',
-      'AI insights PDF report',
-    ]),
+    includesEverythingFrom: null,
+    added: [
+      { label: 'Market demand snapshot' },
+      { label: 'Through-the-door CPT code analysis' },
+      { label: 'Local demographics analysis' },
+      { label: 'Provider density benchmark' },
+      { label: 'AI insights PDF report' },
+    ] as Feature[],
+    notIncluded: [
+      { label: 'Anonymized provider market share breakdown' },
+      { label: 'Custom CPT codes (up to 5)' },
+      { label: 'Custom CPT codes (up to 15)' },
+      { label: 'Gap & opportunity report' },
+      { label: '1-on-1 strategy call' },
+    ] as Feature[],
   },
   {
     id: 1 as const,
@@ -44,15 +39,16 @@ const tiers = [
     price: TIER_PRICES[1],
     badge: 'Most Popular',
     locked: false,
-    included: new Set([
-      'Market demand snapshot',
-      'Through-the-door CPT code analysis',
-      'Local demographics analysis',
-      'Provider density benchmark',
-      'AI insights PDF report',
-      'Anonymized provider market share breakdown',
-      'Custom CPT codes (up to 5)',
-    ]),
+    includesEverythingFrom: 'Market Entry Report',
+    added: [
+      { label: 'Anonymized provider market share breakdown' },
+      { label: 'Custom CPT codes (up to 5)' },
+    ] as Feature[],
+    notIncluded: [
+      { label: 'Custom CPT codes (up to 15)' },
+      { label: 'Gap & opportunity report' },
+      { label: '1-on-1 strategy call' },
+    ] as Feature[],
   },
   {
     id: 2 as const,
@@ -61,17 +57,14 @@ const tiers = [
     price: TIER_PRICES[2],
     badge: 'New',
     locked: false,
-    included: new Set([
-      'Market demand snapshot',
-      'Through-the-door CPT code analysis',
-      'Local demographics analysis',
-      'Provider density benchmark',
-      'AI insights PDF report',
-      'Anonymized provider market share breakdown',
-      'Custom CPT codes (up to 5)',
-      'Custom CPT codes (up to 15)',
-      'Gap & opportunity report',
-    ]),
+    includesEverythingFrom: 'Current Market Analysis',
+    added: [
+      { label: 'Custom CPT codes (up to 15)' },
+      { label: 'Gap & opportunity report', note: '*' },
+    ] as Feature[],
+    notIncluded: [
+      { label: '1-on-1 strategy call' },
+    ] as Feature[],
   },
   {
     id: 3 as const,
@@ -80,18 +73,11 @@ const tiers = [
     price: TIER_PRICES[3],
     badge: 'Expert Call',
     locked: true,
-    included: new Set([
-      'Market demand snapshot',
-      'Through-the-door CPT code analysis',
-      'Local demographics analysis',
-      'Provider density benchmark',
-      'AI insights PDF report',
-      'Anonymized provider market share breakdown',
-      'Custom CPT codes (up to 5)',
-      'Custom CPT codes (up to 15)',
-      'Gap & opportunity report',
-      '1-on-1 strategy call',
-    ]),
+    includesEverythingFrom: 'In-depth Market Analysis',
+    added: [
+      { label: '1-on-1 strategy call' },
+    ] as Feature[],
+    notIncluded: [] as Feature[],
   },
 ]
 
@@ -159,33 +145,31 @@ export default function TierSelection({ selectedTierId, onSelect }: TierSelectio
               )}
               <p className="mt-1 text-3xl font-bold text-[hsl(204_66%_52%)]">{tier.price}</p>
 
-              {/* Feature list — shows ALL features with ✓ included / ✗ not included */}
               <ul className="mt-4 space-y-1.5">
-                {ALL_FEATURES.map((f) => {
-                  const has = tier.included.has(f.label)
-                  return (
-                    <li
-                      key={f.label}
-                      className={cn(
-                        'flex items-start gap-2 text-sm',
-                        has ? 'text-white/80' : 'text-white/30',
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'mt-0.5 shrink-0 font-bold',
-                          has ? 'text-[hsl(204_66%_52%)]' : 'text-white/25',
-                        )}
-                      >
-                        {has ? '✓' : '✗'}
-                      </span>
-                      {f.label}
-                      {f.note && has && (
-                        <sup className="text-white/40">{f.note}</sup>
-                      )}
-                    </li>
-                  )
-                })}
+                {/* "Everything in Tier X" rollup */}
+                {tier.includesEverythingFrom && (
+                  <li className="flex items-start gap-2 text-sm text-white/80">
+                    <span className="mt-0.5 shrink-0 font-bold text-[hsl(204_66%_52%)]">✓</span>
+                    Everything in {tier.includesEverythingFrom}
+                  </li>
+                )}
+
+                {/* New features added in this tier */}
+                {tier.added.map((f) => (
+                  <li key={f.label} className="flex items-start gap-2 text-sm text-white/80">
+                    <span className="mt-0.5 shrink-0 font-bold text-[hsl(204_66%_52%)]">✓</span>
+                    {f.label}
+                    {f.note && <sup className="text-white/40">{f.note}</sup>}
+                  </li>
+                ))}
+
+                {/* Features not yet in this tier */}
+                {tier.notIncluded.map((f) => (
+                  <li key={f.label} className="flex items-start gap-2 text-sm text-white/30">
+                    <span className="mt-0.5 shrink-0 font-bold text-white/25">✗</span>
+                    {f.label}
+                  </li>
+                ))}
               </ul>
 
               <div className="mt-5">

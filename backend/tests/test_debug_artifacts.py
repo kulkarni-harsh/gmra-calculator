@@ -1,4 +1,8 @@
-import pytest
+"""Tests for S3 debug artifact uploads + report-generator integration."""
+
+from unittest.mock import MagicMock, patch
+
+from botocore.exceptions import ClientError
 
 
 def test_enable_debug_artifacts_default_true():
@@ -26,8 +30,6 @@ def test_enable_debug_artifacts_can_be_disabled():
 
 def test_upload_debug_json_puts_correct_key():
     """upload_debug_json must write to debug/{job_id}/{stage}.json."""
-    from unittest.mock import MagicMock, patch
-
     mock_client = MagicMock()
     with patch("app.services.s3._client", return_value=mock_client):
         from app.services.s3 import upload_debug_json
@@ -42,9 +44,6 @@ def test_upload_debug_json_puts_correct_key():
 
 def test_upload_debug_json_returns_empty_string_on_error():
     """upload_debug_json must never raise — return '' on failure."""
-    from unittest.mock import MagicMock, patch
-    from botocore.exceptions import ClientError
-
     mock_client = MagicMock()
     mock_client.put_object.side_effect = ClientError(
         {"Error": {"Code": "500", "Message": "fail"}}, "PutObject"
@@ -58,8 +57,6 @@ def test_upload_debug_json_returns_empty_string_on_error():
 
 def test_find_nearby_google_places_returns_raw_and_deduped():
     """find_nearby_google_places must return GooglePlacesResult with .raw and .deduped."""
-    from unittest.mock import patch
-
     fake_place = {
         "name": "Clinic A",
         "vicinity": "123 Main St",
@@ -87,7 +84,6 @@ def test_find_nearby_google_places_returns_raw_and_deduped():
 
 def test_debug_upload_skips_when_no_job_id():
     """_debug_upload must be a no-op when job_id is None."""
-    from unittest.mock import patch
     with patch("app.services.report_generator.upload_debug_json") as mock_upload:
         from app.services.report_generator import _debug_upload
         _debug_upload(None, "01_providers_raw", [{"npi": "1"}])
@@ -96,7 +92,6 @@ def test_debug_upload_skips_when_no_job_id():
 
 def test_debug_upload_skips_when_flag_disabled():
     """_debug_upload must be a no-op when ENABLE_DEBUG_ARTIFACTS is False."""
-    from unittest.mock import patch
     with (
         patch("app.services.report_generator.upload_debug_json") as mock_upload,
         patch("app.services.report_generator.settings") as mock_settings,
@@ -109,7 +104,6 @@ def test_debug_upload_skips_when_flag_disabled():
 
 def test_debug_upload_calls_s3_when_enabled():
     """_debug_upload must call upload_debug_json when job_id is set and flag is True."""
-    from unittest.mock import patch
     with (
         patch("app.services.report_generator.upload_debug_json") as mock_upload,
         patch("app.services.report_generator.settings") as mock_settings,
@@ -123,10 +117,11 @@ def test_debug_upload_calls_s3_when_enabled():
 def test_load_state_module_imports_json():
     """Importing load_state must not raise NameError for json."""
     import inspect
+
+    import app.services.report_generator as rg
     from app.services.report_generator import load_state
 
     src = inspect.getsource(load_state)
     assert "json.load" in src
 
-    import app.services.report_generator as rg
     assert hasattr(rg, "json")

@@ -10,6 +10,7 @@ Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `ci`.
 
 ## 2026-04-25
 
+- test: pure-function unit tests landed for cpt parsing, specialty lookups, validator, fee_schedule, common (severity/population/tags), distance helpers, google_maps internals (Phase 3)
 - refactor: replace 8 stray `print()` calls with logging across main, utils, services
 - chore: delete 5 stale `_debug_*.json` files from `backend/` root
 - fix: ruff is green — 0 errors (was 9) — Phase 1 complete

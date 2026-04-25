@@ -223,6 +223,29 @@ async def _fetch_hcp_procedure(hcp_id: int, page: int, code: str | None) -> list
     response_dict = response.json()
     return [CPT(**cpt) for cpt in response_dict["data"]["procedures"]]
 
+async def get_top_procedures(hcp_id: int, k: int) -> list[CPT]:
+    """Fetch the top k procedures for a given HCP ID, handling pagination as needed.
+
+    Args    
+    ---
+        hcp_id (int): The ID of the healthcare provider for whom to fetch procedures.
+        k (int): The number of top procedures to fetch.
+
+    Returns
+    -------
+        list[CPT]: A list of CPT objects representing the top k procedures for the given HCP ID.
+    """
+    # Implementation for fetching top procedures
+    procedures: list[CPT] = []
+    page = 1
+    while len(procedures) < k:
+        page_procedures = await get_hcp_procedure(hcp_id = hcp_id, page=page, code=None)
+        if not page_procedures:
+            break  # No more procedures available
+        procedures.extend(page_procedures)
+        page += 1
+    return procedures[:k]
+
 
 async def get_hcp_procedure(
     hcp_id: int,

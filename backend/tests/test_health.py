@@ -24,3 +24,12 @@ def test_health_module_uses_datetime_utc_alias():
     from app.api.endpoints import health
     src = inspect.getsource(health)
     assert "timezone.utc" not in src, "use datetime.UTC alias"
+
+
+def test_main_module_has_no_print_calls():
+    """app/main.py must use logging, not print()."""
+    import inspect
+
+    from app import main
+    src = inspect.getsource(main)
+    assert "print(" not in src, "use logging.info(...) instead of print(...)"

@@ -223,5 +223,7 @@ backend/test.ipynb
 .worktrees/
 docs/superpowers/*
 
-# Ignore debug json
-*/_debug_*.json.worktrees/
+# Ignore debug artifacts (local development only)
+_debug_*.json
+_debug_*.csv
+_debug_*.xlsx

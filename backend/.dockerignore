@@ -8,3 +8,8 @@ __pycache__
 .pytest_cache
 .mypy_cache
 .ruff_cache
+
+# Debug artifacts
+_debug_*.json
+_debug_*.csv
+_debug_*.xlsx

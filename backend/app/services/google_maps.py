@@ -1,4 +1,3 @@
-import json
 import math
 import time
 from typing import NamedTuple
@@ -69,13 +68,7 @@ def find_nearby_google_places(
         ) <= radius_miles
     ]
 
-    # with open("debug_google_places.json", "w") as f:
-    #     f.write(json.dumps([p.model_dump() for p in parsed], indent=2))
-
     deduped = _dedup_google_places(parsed, dedup_threshold_miles)
-
-    # with open("debug_google_places_deduped.json", "w") as f:
-    #     f.write(json.dumps([p.model_dump() for p in deduped], indent=2))
 
     return GooglePlacesResult(raw=parsed, deduped=deduped)
 

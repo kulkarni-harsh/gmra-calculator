@@ -9,7 +9,6 @@ No provider NPI lookup — market-level aggregate only.
 
 import asyncio
 import base64
-import json
 import logging
 from dataclasses import dataclass
 from io import BytesIO
@@ -674,10 +673,6 @@ async def run_html_report(
         ],
     )
 
-    # if log.isEnabledFor(logging.DEBUG):
-    #     with open("providers.json", "w") as f:
-    #         f.write(json.dumps([p.model_dump() for p in providers_in_radius], indent=2))
-
     _google_places_keywords = get_google_places_keywords(state.specialty_lookup, payload.specialty_name)
     _google_places_result = find_nearby_google_places(
         source_latitude=source_lat,
@@ -698,11 +693,6 @@ async def run_html_report(
     _debug_upload(job_id, "06_sites_of_care", [s.model_dump() for s in _sites_of_care_list])
     peers: list[Provider | SiteOfCare] = _sites_of_care_list if use_site_of_care else providers_in_radius
     _debug_upload(job_id, "07_peers", [p.model_dump() for p in peers])
-    # with open("_debug_nearby_google_places.json", "w") as f:
-    #     f.write(json.dumps([p.model_dump() for p in _nearby_google_places], indent=2))
-
-    # with open("_debug_sites_of_care.json", "w") as f:
-    #     f.write(json.dumps([p.model_dump() for p in _sites_of_care_list], indent=2))
 
     debug_excel_bytes: bytes | None = None
     if job_id:

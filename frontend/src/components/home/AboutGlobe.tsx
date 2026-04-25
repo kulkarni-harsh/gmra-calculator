@@ -1,27 +1,30 @@
+import type { ComponentType, SVGProps } from 'react'
+import { ChartColumnIncreasing, Database, Scale, ShieldCheck } from 'lucide-react'
+
 interface Card {
-  icon: string
+  icon: ComponentType<SVGProps<SVGSVGElement>>
   title: string
   body: string
 }
 
 const CARDS: ReadonlyArray<Card> = [
   {
-    icon: '⚖️',
+    icon: Scale,
     title: 'Fiduciary Standard — Always',
     body: "Globe never represents landlords, hospitals, or developers. Every engagement is physician-side with a legal obligation to the physician's outcome.",
   },
   {
-    icon: '📊',
+    icon: ChartColumnIncreasing,
     title: 'Data-First for 25 Years',
     body: "Clinical demand analysis has been Globe's first step in every client engagement — before location, before negotiation, before recommendation.",
   },
   {
-    icon: '🔒',
+    icon: ShieldCheck,
     title: 'Zero Patient Data — Ever',
     body: 'Every report uses publicly available market-level data only. No PHI. No EHR access. No billing records requested from your practice.',
   },
   {
-    icon: '🤝',
+    icon: Database,
     title: 'Powered by AlphaSophia',
     body: 'Our data partner provides access to hundreds of millions of market-level procedure records for procedure activity, ICD-10, and DRG analysis at any geography.',
   },
@@ -47,8 +50,12 @@ export default function AboutGlobe() {
       <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {CARDS.map((c) => (
           <div key={c.title} className="p-6 text-center">
-            <div className="text-[28px]">{c.icon}</div>
-            <h4 className="mt-3 text-[13px] font-bold text-mcrec-navy">{c.title}</h4>
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-mcrec-blue/8 text-mcrec-blue ring-1 ring-mcrec-blue/12">
+              <c.icon className="h-7 w-7 stroke-[1.8]" aria-hidden="true" />
+            </div>
+            <h4 className="mt-3 text-[15px] font-bold tracking-[0.3px] text-mcrec-navy md:text-[17px]">
+              {c.title}
+            </h4>
             <p className="mt-1.5 text-xs leading-[1.6] text-mcrec-gray">{c.body}</p>
           </div>
         ))}

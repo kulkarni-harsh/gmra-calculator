@@ -12,7 +12,7 @@ export default function FounderQuote() {
         />
       ) : (
         <img
-          src="/founder.jpg"
+          src="../src/assets/david_rutson_profile.jpeg"
           alt="David Rutson, Founder of Globe Medical Realty Advisors — 25 years of physician-side fiduciary medical real estate representation"
           onError={() => setImgFailed(true)}
           className="h-40 w-40 shrink-0 rounded-full border-[3px] border-mcrec-blue object-cover"

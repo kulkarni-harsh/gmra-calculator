@@ -13,13 +13,13 @@ interface Tier {
 }
 
 // TIER_PRICES values look like "$399"; strip the leading $ for the styled price chip.
-const priceFor = (tierIndex: 0 | 1 | 2): string => TIER_PRICES[tierIndex].replace('$', '')
+const priceFor = (tierIndex: 0 | 1 | 2 | 3): string => TIER_PRICES[tierIndex].replace('$', '')
 
 const TIERS: ReadonlyArray<Tier> = [
   {
     id: 'tier1',
     tier: 'Tier 1',
-    name: 'Market Baseline',
+    name: 'Market Entry Report',
     price: priceFor(0),
     desc: 'Best for physicians evaluating a market for the first time or wanting an objective read on provider density and market activity.',
     features: [
@@ -29,38 +29,51 @@ const TIERS: ReadonlyArray<Tier> = [
       'Drive-time radius: 5, 10, 20, 30, or 45 min',
       'Any outpatient specialty',
     ],
-    cta: 'Order Market Baseline →',
+    cta: 'Order Market Entry →',
   },
   {
     id: 'tier2',
     tier: 'Tier 2',
-    name: 'Practice-Specific',
+    name: 'Current Market Analysis',
     price: priceFor(1),
     desc: 'Ideal for lease renewals and new location decisions where demand for your specific procedures matters most.',
     features: [
-      'Everything in Market Baseline',
-      '5 procedure categories specific to your specialty',
+      'Everything in Market Entry Report',
+      '5 CPT codes specific to your specialty',
       'Procedure-level market activity by category',
       'Drive-time radius: your choice',
       'Any outpatient specialty',
     ],
-    cta: 'Order Practice-Specific →',
+    cta: 'Order Current Market Analysis →',
     featured: true,
   },
   {
     id: 'tier3',
     tier: 'Tier 3',
-    name: 'Advanced Practice',
+    name: 'In-depth Market Analysis',
     price: priceFor(2),
     desc: 'For multi-provider groups and significant lease decisions requiring the most complete market picture available.',
     features: [
-      'Everything in Practice-Specific',
-      '15 procedure categories specific to your specialty',
+      'Everything in Current Market Analysis',
+      '15 CPT codes specific to your specialty',
+      'Additional selections tailored to your needs',
+      'Drive-time radius: your choice',
+    ],
+    cta: 'Order In-depth Market Analysis →',
+  },
+  {
+    id: 'tier4',
+    tier: 'Tier 4',
+    name: 'Custom Market Analysis',
+    price: priceFor(3),
+    desc: 'For organizations with unique requirements or those needing a tailored approach to market analysis.',
+    features: [
+      'Everything in In-depth Market Analysis',
       'Additional selections tailored to your needs',
       'Drive-time radius: your choice',
       'Globe fiduciary clients receive this tier at no cost',
     ],
-    cta: 'Order Advanced Practice →',
+    cta: 'Order Custom Market Analysis →',
   },
 ]
 
@@ -79,7 +92,7 @@ export default function ReportsPricing() {
         and is delivered as a complete market intelligence package.
       </p>
 
-      <div className="mt-7 grid gap-5 md:grid-cols-3">
+      <div className="mt-7 grid gap-5 md:grid-cols-4">
         {TIERS.map((t) => (
           <div
             key={t.id}

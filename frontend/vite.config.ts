@@ -12,6 +12,9 @@ export default defineConfig({
     },
   },
   server: {
+    fs: {
+      allow: [path.resolve(__dirname, '..')],
+    },
     // Proxy /api requests to the local FastAPI backend during development.
     // This avoids CORS entirely — the browser sees all traffic on localhost:5173.
     // For production, set VITE_API_BASE_URL to the cloud backend URL instead.

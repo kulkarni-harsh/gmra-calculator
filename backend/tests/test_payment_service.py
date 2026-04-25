@@ -1,6 +1,7 @@
 """Unit tests for app.services.payment — price constants + Stripe wrappers (mocked)."""
 
 from unittest.mock import MagicMock, patch
+
 import pytest
 
 

@@ -13,7 +13,7 @@ REPORT_AMOUNT_CENTS = 50_000  # A1  $500.00
 T1_REPORT_AMOUNT_CENTS = 39_900  # T1  $399.00  Market Entry Report
 T2_REPORT_AMOUNT_CENTS = 49_900  # T2  $499.00  Through-the-Door Codes Report
 T3_REPORT_AMOUNT_CENTS = 59_900  # T3  $599.00  Through-the-Door Codes Report
-T4_REPORT_AMOUNT_CENTS = 79_900  # T4  $799.00  Through-the-Door Codes Report
+T4_REPORT_AMOUNT_CENTS = 99_900  # T4  $999.00  Through-the-Door Codes Report
 
 # Display strings derived from the cent constants above.
 # Use these everywhere a human-readable price is needed (emails, report upgrades).

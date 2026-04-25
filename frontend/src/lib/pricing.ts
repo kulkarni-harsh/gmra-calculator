@@ -1,13 +1,14 @@
 /**
  * Single source of truth for tier display prices on the frontend.
- * To change a price, update it here — TierSelection, Buy, and StepPayment
- * all derive their display strings from this map.
- *
  * Keep in sync with the backend cent constants in app/services/payment.py.
+ *   T1_REPORT_AMOUNT_CENTS = 39_900  → $399
+ *   T2_REPORT_AMOUNT_CENTS = 49_900  → $499
+ *   T3_REPORT_AMOUNT_CENTS = 59_900  → $599
+ *   T4_REPORT_AMOUNT_CENTS = 99_900  → $999
  */
 export const TIER_PRICES = {
   0: '$399',  // T1  Market Entry Report
-  1: '$599',  // T2  Through-the-Door Codes Report
-  2: '$599',  // Coming Soon — 5-Code Strategic Report
-  3: '$799',  // Coming Soon — 10-Code Full Analysis + Add-On
+  1: '$499',  // T2  Current Market Analysis
+  2: '$599',  // T3  In-depth Market Analysis
+  3: '$999',  // T4  Custom Market Expansion Report
 } as const satisfies Record<0 | 1 | 2 | 3, string>

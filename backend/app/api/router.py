@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.endpoints import health, jobs, payment, providers, report_a1, report_t1, report_t2
+from app.api.endpoints import health, jobs, payment, providers, report_a1, report_t1, report_t2, report_t3
 
 api_router = APIRouter()
 api_router.include_router(health.router, tags=["health"], prefix="/health")
@@ -9,4 +9,5 @@ api_router.include_router(payment.router, tags=["payments"], prefix="/payments")
 api_router.include_router(jobs.router, tags=["jobs"], prefix="/jobs")
 api_router.include_router(report_t1.router, tags=["reports-t1"], prefix="/reports/t1")
 api_router.include_router(report_t2.router, tags=["reports-t2"], prefix="/reports/t2")
+api_router.include_router(report_t3.router, tags=["reports-t3"], prefix="/reports/t3")
 api_router.include_router(report_a1.router, tags=["reports-a1"], prefix="/reports/a1")

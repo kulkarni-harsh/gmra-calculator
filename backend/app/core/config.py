@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     S3_REPORTS_PREFIX: str = "reports"
     S3_PRESIGN_EXPIRY_SECONDS: int = 604800  # 7 days
 
+    # Debug artifact uploads — set False to skip intermediate S3 dumps
+    ENABLE_DEBUG_ARTIFACTS: bool = True
+
     # Settings for file paths, use cwd as base
     LOOKUP_DIR: Path = Path("resources/lookups")
     TEMPLATES_DIR: Path = Path("resources/templates")

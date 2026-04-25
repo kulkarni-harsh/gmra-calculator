@@ -106,7 +106,10 @@ async def stripe_webhook(request: Request):
             if intent.get("amount") != expected_amount:
                 logging.error(
                     "Stripe webhook: amount mismatch for job %s (type=%s, got=%d, expected=%d) — skipping",
-                    job_id, report_type, intent.get("amount"), expected_amount,
+                    job_id,
+                    report_type,
+                    intent.get("amount"),
+                    expected_amount,
                 )
                 return {"received": True}
         except Exception as exc:

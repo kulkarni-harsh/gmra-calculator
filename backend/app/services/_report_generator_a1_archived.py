@@ -6,9 +6,7 @@ t1_report_generator.py (T1). ReportState and load_state live there.
 """
 
 import asyncio
-import json
 import logging
-from dataclasses import dataclass
 from functools import reduce
 from io import BytesIO
 
@@ -43,10 +41,7 @@ from app.utils.common import (
     get_provider_density,
     get_source_tabs,
     get_taxonomy_codes,
-    load_fee_schedule_tables,
 )
-from app.utils.validator import validate_speciality_master_df
-
 
 
 async def run_report(payload: ProviderRequest, state: ReportState, job_id: str = "") -> tuple[str, bytes | None]:
@@ -248,13 +243,13 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
     all_providers_for_share = [payload.client_provider] + list(providers_in_radius)
     provider_raw_totals: list[tuple[int, str, float | None]] = []
     for _p in all_providers_for_share:
-        _p_total = sum(
-            (_p.get_cpt_profile(code).totalServices or 0)
-            for code in relevant_cpt_codes_list
-            if _p.get_cpt_profile(code)
-        )
-        _p.cpt_total_services = _p_total
-        provider_raw_totals.append((_p_total, _p.taxonomy.description or "Unknown", _p.drive_time_minutes))
+        # _p_total = sum(
+        #     (_p.get_cpt_profile(code).totalServices or 0)
+        #     for code in relevant_cpt_codes_list
+        #     if _p.get_cpt_profile(code)
+        # )
+        # _p.cpt_total_services = _p_total
+        provider_raw_totals.append((_p.cpt_total_services, _p.taxonomy.description or "Unknown", _p.drive_time_minutes))
 
     _share_denominator = sum(t for t, _, _ in provider_raw_totals) or 1
     provider_shares: list[ProviderShareEntry] = sorted(

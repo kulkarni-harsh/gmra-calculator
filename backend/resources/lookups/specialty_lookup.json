@@ -63,7 +63,11 @@
       "MN": 55,
       "WA": 50,
       "SD": 55
-    }
+    },
+    "google_places_keywords": [
+      "general practice doctor",
+      "primary care physician"
+    ]
   },
   "02": {
     "description": "General Surgery",
@@ -152,7 +156,11 @@
       "MN": 8,
       "WA": 7,
       "SD": 10
-    }
+    },
+    "google_places_keywords": [
+      "general surgeon",
+      "surgical center"
+    ]
   },
   "03": {
     "description": "Allergy Immunology",
@@ -215,7 +223,12 @@
       "MN": 1,
       "WA": 1,
       "TX": 1
-    }
+    },
+    "google_places_keywords": [
+      "allergist",
+      "allergy and immunology",
+      "allergy clinic"
+    ]
   },
   "04": {
     "description": "Otolaryngology",
@@ -285,7 +298,12 @@
       "MN": 3,
       "WA": 3,
       "SD": 3
-    }
+    },
+    "google_places_keywords": [
+      "ENT doctor",
+      "otolaryngologist",
+      "ear nose throat"
+    ]
   },
   "05": {
     "description": "Anesthesiology",
@@ -355,7 +373,11 @@
       "MN": 10,
       "WA": 14,
       "SD": 9
-    }
+    },
+    "google_places_keywords": [
+      "anesthesiologist",
+      "anesthesiology"
+    ]
   },
   "06": {
     "description": "Cardiology",
@@ -421,7 +443,12 @@
       "MN": 8,
       "WA": 5,
       "SD": 4
-    }
+    },
+    "google_places_keywords": [
+      "cardiologist",
+      "cardiology",
+      "heart doctor"
+    ]
   },
   "07": {
     "description": "Dermatology",
@@ -492,7 +519,12 @@
       "MN": 4,
       "WA": 4,
       "SD": 4
-    }
+    },
+    "google_places_keywords": [
+      "dermatologist",
+      "dermatology",
+      "skin doctor"
+    ]
   },
   "08": {
     "description": "Family Practice",
@@ -567,7 +599,12 @@
       "MN": 55,
       "WA": 50,
       "SD": 55
-    }
+    },
+    "google_places_keywords": [
+      "family medicine",
+      "family doctor",
+      "family practice"
+    ]
   },
   "09": {
     "description": "Interventional Pain Management",
@@ -631,7 +668,12 @@
       "MN": 2,
       "WA": 2,
       "SD": 2
-    }
+    },
+    "google_places_keywords": [
+      "pain management",
+      "pain clinic",
+      "interventional pain"
+    ]
   },
   "10": {
     "description": "Gastroenterology",
@@ -698,7 +740,12 @@
       "MN": 6,
       "WA": 5,
       "SD": 4
-    }
+    },
+    "google_places_keywords": [
+      "gastroenterologist",
+      "gastroenterology",
+      "GI doctor"
+    ]
   },
   "11": {
     "description": "Internal Medicine",
@@ -789,7 +836,11 @@
       "MN": 33,
       "WA": 34,
       "SD": 30
-    }
+    },
+    "google_places_keywords": [
+      "internal medicine",
+      "internist"
+    ]
   },
   "12": {
     "description": "Osteopathic Manipulative Therapy (OMM)",
@@ -798,7 +849,11 @@
       "204C00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "osteopathic physician",
+      "DO doctor"
+    ]
   },
   "13": {
     "description": "Neurology",
@@ -866,7 +921,11 @@
       "MN": 5,
       "WA": 4,
       "SD": 4
-    }
+    },
+    "google_places_keywords": [
+      "neurologist",
+      "neurology"
+    ]
   },
   "14": {
     "description": "Neurosurgery",
@@ -931,7 +990,11 @@
       "MN": 2,
       "WA": 2,
       "SD": 2
-    }
+    },
+    "google_places_keywords": [
+      "neurosurgeon",
+      "neurosurgery"
+    ]
   },
   "15": {
     "description": "Speech Language Pathologist",
@@ -939,7 +1002,11 @@
       "235Z00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "speech language pathologist",
+      "speech therapy"
+    ]
   },
   "16": {
     "description": "Obstetrics Gynecology",
@@ -1015,7 +1082,12 @@
       "MN": 13,
       "WA": 11,
       "SD": 11
-    }
+    },
+    "google_places_keywords": [
+      "OB/GYN",
+      "gynecologist",
+      "obstetrics gynecology"
+    ]
   },
   "17": {
     "description": "Physician/Hospice and Palliative Care",
@@ -1079,7 +1151,11 @@
       "MN": 1,
       "WA": 1,
       "TX": 1
-    }
+    },
+    "google_places_keywords": [
+      "hospice",
+      "palliative care"
+    ]
   },
   "18": {
     "description": "Ophthalmology",
@@ -1150,7 +1226,12 @@
       "MN": 5,
       "WA": 6,
       "SD": 4
-    }
+    },
+    "google_places_keywords": [
+      "ophthalmologist",
+      "eye doctor",
+      "ophthalmology"
+    ]
   },
   "19": {
     "description": "Oral Surgery (dental only)",
@@ -1159,7 +1240,11 @@
       "207WX0108X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "oral surgeon",
+      "oral surgery"
+    ]
   },
   "20": {
     "description": "Orthopedic Surgery",
@@ -1232,7 +1317,12 @@
       "MN": 7,
       "WA": 6,
       "SD": 7
-    }
+    },
+    "google_places_keywords": [
+      "orthopedic surgeon",
+      "orthopedics",
+      "orthopedic surgery"
+    ]
   },
   "21": {
     "description": "Clinical Cardiac Electrophysiology",
@@ -1291,7 +1381,11 @@
       "MN": 1,
       "WA": 1,
       "TX": 1
-    }
+    },
+    "google_places_keywords": [
+      "cardiac electrophysiology",
+      "electrophysiologist"
+    ]
   },
   "22": {
     "description": "Pathology",
@@ -1371,7 +1465,11 @@
       "MN": 9,
       "WA": 5,
       "SD": 5
-    }
+    },
+    "google_places_keywords": [
+      "pathology lab",
+      "pathologist"
+    ]
   },
   "23": {
     "description": "Physician/Sports Medicine",
@@ -1442,7 +1540,11 @@
       "MN": 2,
       "WA": 1,
       "TX": 1
-    }
+    },
+    "google_places_keywords": [
+      "sports medicine doctor",
+      "sports medicine clinic"
+    ]
   },
   "24": {
     "description": "Plastic and Reconstructive Surgery",
@@ -1507,7 +1609,12 @@
       "MN": 2,
       "WA": 2,
       "SD": 2
-    }
+    },
+    "google_places_keywords": [
+      "plastic surgeon",
+      "plastic surgery",
+      "reconstructive surgery"
+    ]
   },
   "25": {
     "description": "Physical Medicine and Rehabilitation",
@@ -1578,7 +1685,12 @@
       "MN": 4,
       "WA": 4,
       "SD": 2
-    }
+    },
+    "google_places_keywords": [
+      "physiatrist",
+      "physical medicine rehabilitation",
+      "PM&R"
+    ]
   },
   "26": {
     "description": "Psychiatry",
@@ -1645,7 +1757,12 @@
       "MN": 11,
       "WA": 11,
       "SD": 10
-    }
+    },
+    "google_places_keywords": [
+      "psychiatrist",
+      "psychiatry",
+      "mental health doctor"
+    ]
   },
   "27": {
     "description": "Physician/Geriatric Psychiatry",
@@ -1711,7 +1828,11 @@
       "WV": 10,
       "WI": 10,
       "WY": 7
-    }
+    },
+    "google_places_keywords": [
+      "geriatric psychiatrist",
+      "geriatric psychiatry"
+    ]
   },
   "28": {
     "description": "Colorectal Surgery (formerly Proctology)",
@@ -1719,7 +1840,11 @@
       "208C00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "colorectal surgeon",
+      "colorectal surgery"
+    ]
   },
   "29": {
     "description": "Pulmonary Disease",
@@ -1783,7 +1908,12 @@
       "MN": 1,
       "WA": 1,
       "TX": 1
-    }
+    },
+    "google_places_keywords": [
+      "pulmonologist",
+      "pulmonary disease",
+      "lung doctor"
+    ]
   },
   "30": {
     "description": "Diagnostic Radiology",
@@ -1853,7 +1983,12 @@
       "MN": 14,
       "WA": 8,
       "SD": 8
-    }
+    },
+    "google_places_keywords": [
+      "radiologist",
+      "diagnostic radiology",
+      "imaging center"
+    ]
   },
   "31": {
     "description": "Intensive Cardiac Rehabilitation",
@@ -1862,7 +1997,11 @@
       "261QR0404X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "cardiac rehabilitation",
+      "cardiac rehab center"
+    ]
   },
   "32": {
     "description": "Anesthesiologist Assistant",
@@ -1927,7 +2066,11 @@
       "MN": 10,
       "WA": 14,
       "SD": 9
-    }
+    },
+    "google_places_keywords": [
+      "anesthesiology",
+      "anesthesiologist"
+    ]
   },
   "33": {
     "description": "Thoracic Surgery",
@@ -1990,7 +2133,12 @@
       "MN": 1,
       "WA": 1,
       "SD": 1
-    }
+    },
+    "google_places_keywords": [
+      "thoracic surgeon",
+      "thoracic surgery",
+      "chest surgeon"
+    ]
   },
   "34": {
     "description": "Urology",
@@ -2056,7 +2204,11 @@
       "MN": 3,
       "WA": 3,
       "SD": 3
-    }
+    },
+    "google_places_keywords": [
+      "urologist",
+      "urology"
+    ]
   },
   "35": {
     "description": "Chiropractic",
@@ -2075,7 +2227,11 @@
       "111NR0400X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "chiropractor",
+      "chiropractic"
+    ]
   },
   "36": {
     "description": "Nuclear Medicine",
@@ -2087,7 +2243,11 @@
       "2085N0904X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "nuclear medicine",
+      "nuclear medicine specialist"
+    ]
   },
   "37": {
     "description": "Pediatric Medicine",
@@ -2175,7 +2335,12 @@
       "MN": 16,
       "WA": 17,
       "SD": 11
-    }
+    },
+    "google_places_keywords": [
+      "pediatrician",
+      "pediatrics",
+      "children's doctor"
+    ]
   },
   "38": {
     "description": "Geriatric Medicine",
@@ -2240,7 +2405,12 @@
       "MN": 2,
       "WA": 2,
       "SD": 2
-    }
+    },
+    "google_places_keywords": [
+      "geriatrician",
+      "geriatric medicine",
+      "senior care doctor"
+    ]
   },
   "39": {
     "description": "Nephrology",
@@ -2304,7 +2474,12 @@
       "MN": 4,
       "WA": 3,
       "SD": 3
-    }
+    },
+    "google_places_keywords": [
+      "nephrologist",
+      "nephrology",
+      "kidney doctor"
+    ]
   },
   "40": {
     "description": "Hand Surgery",
@@ -2372,7 +2547,11 @@
       "MN": 7,
       "WA": 6,
       "SD": 7
-    }
+    },
+    "google_places_keywords": [
+      "hand surgeon",
+      "hand surgery"
+    ]
   },
   "41": {
     "description": "Optometry",
@@ -2386,7 +2565,12 @@
       "152WC0802X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "optometrist",
+      "optometry",
+      "eye care"
+    ]
   },
   "42": {
     "description": "Certified Nurse Midwife",
@@ -2394,7 +2578,11 @@
       "367A00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "midwife",
+      "certified nurse midwife"
+    ]
   },
   "43": {
     "description": "Certified Registered Nurse Assistant (CRNA)",
@@ -2402,7 +2590,11 @@
       "367500000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "CRNA",
+      "anesthesiology"
+    ]
   },
   "44": {
     "description": "Infectious Disease",
@@ -2465,7 +2657,11 @@
       "MN": 3,
       "WA": 3,
       "SD": 3
-    }
+    },
+    "google_places_keywords": [
+      "infectious disease doctor",
+      "infectious disease specialist"
+    ]
   },
   "45": {
     "description": "Mammography Screening Center",
@@ -2474,7 +2670,12 @@
       "261QR0208X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "mammography",
+      "mammogram center",
+      "breast imaging"
+    ]
   },
   "46": {
     "description": "Endocrinology",
@@ -2537,7 +2738,12 @@
       "MN": 3,
       "WA": 2,
       "SD": 2
-    }
+    },
+    "google_places_keywords": [
+      "endocrinologist",
+      "endocrinology",
+      "diabetes doctor"
+    ]
   },
   "47": {
     "description": "Independent Diagnostic Testing Facility",
@@ -2545,7 +2751,10 @@
       "293D00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "diagnostic testing facility"
+    ]
   },
   "48": {
     "description": "Podiatry",
@@ -2560,7 +2769,12 @@
       "213ES0000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "podiatrist",
+      "podiatry",
+      "foot doctor"
+    ]
   },
   "49": {
     "description": "Ambulatory Surgical Center",
@@ -2568,7 +2782,11 @@
       "261QA1903X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "ambulatory surgical center",
+      "outpatient surgery"
+    ]
   },
   "50": {
     "description": "Nurse Practitioner",
@@ -2593,7 +2811,11 @@
       "363L00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "nurse practitioner",
+      "NP clinic"
+    ]
   },
   "51": {
     "description": "Medical Supply Company with Orthotist",
@@ -2601,7 +2823,8 @@
       "335E00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   },
   "52": {
     "description": "Medical Supply Company with Prosthetist",
@@ -2609,7 +2832,8 @@
       "335E00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   },
   "53": {
     "description": "Medical Supply Company with Orthotist-Prosthetist",
@@ -2617,7 +2841,8 @@
       "335E00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   },
   "54": {
     "description": "Other Medical Supply Company",
@@ -2625,7 +2850,8 @@
       "332B00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   },
   "55": {
     "description": "Individual Certified Orthotist",
@@ -2633,7 +2859,8 @@
       "222Z00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   },
   "56": {
     "description": "Individual Certified Prosthetist",
@@ -2642,7 +2869,8 @@
       "224P00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   },
   "57": {
     "description": "Individual Certified Prosthetist-Orthotist",
@@ -2652,7 +2880,8 @@
       "224P00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   },
   "58": {
     "description": "Medical Supply Company with Pharmacist",
@@ -2671,7 +2900,8 @@
       "3336C0002X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   },
   "59": {
     "description": "Ambulance Service Provider",
@@ -2682,7 +2912,8 @@
       "3416A0800X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   },
   "60": {
     "description": "Public Health or Welfare Agency",
@@ -2690,7 +2921,8 @@
       "251K00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   },
   "61": {
     "description": "Voluntary Health or Charitable Agency",
@@ -2698,7 +2930,8 @@
       "251V00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   },
   "62": {
     "description": "Psychologist",
@@ -2729,7 +2962,11 @@
       "103TP0814X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "psychologist",
+      "psychology clinic"
+    ]
   },
   "63": {
     "description": "Portable X-Ray Supplier",
@@ -2737,7 +2974,8 @@
       "335V00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   },
   "64": {
     "description": "Audiologist",
@@ -2747,7 +2985,12 @@
       "231HA2400X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "audiologist",
+      "audiology",
+      "hearing specialist"
+    ]
   },
   "65": {
     "description": "Physical Therapist",
@@ -2822,7 +3065,11 @@
       "MN": 4,
       "WA": 4,
       "SD": 2
-    }
+    },
+    "google_places_keywords": [
+      "physical therapist",
+      "physical therapy"
+    ]
   },
   "66": {
     "description": "Rheumatology",
@@ -2887,7 +3134,12 @@
       "MN": 2,
       "WA": 2,
       "SD": 2
-    }
+    },
+    "google_places_keywords": [
+      "rheumatologist",
+      "rheumatology",
+      "arthritis doctor"
+    ]
   },
   "67": {
     "description": "Occupational Therapist",
@@ -2907,7 +3159,11 @@
       "225XE0001X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "occupational therapist",
+      "occupational therapy"
+    ]
   },
   "68": {
     "description": "Clinical Psychologist",
@@ -2915,7 +3171,11 @@
       "103TC0700X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "clinical psychologist",
+      "psychologist"
+    ]
   },
   "69": {
     "description": "Clinical Laboratory",
@@ -2923,7 +3183,8 @@
       "291U00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   },
   "70": {
     "description": "Multi-specialty Clinic or Group Practice/single specialty",
@@ -2994,7 +3255,8 @@
       "MN": 110,
       "WA": 104,
       "SD": 100
-    }
+    },
+    "google_places_keywords": []
   },
   "71": {
     "description": "Registered Dietitian/Nutrition Professional",
@@ -3010,7 +3272,12 @@
       "133VN1201X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "dietitian",
+      "nutritionist",
+      "nutrition counseling"
+    ]
   },
   "72": {
     "description": "Pain Management",
@@ -3074,7 +3341,12 @@
       "MN": 2,
       "WA": 2,
       "SD": 2
-    }
+    },
+    "google_places_keywords": [
+      "pain management",
+      "pain clinic",
+      "pain specialist"
+    ]
   },
   "74": {
     "description": "Radiation Therapy Center",
@@ -3140,7 +3412,8 @@
       "MN": 2,
       "WA": 2,
       "SD": 2
-    }
+    },
+    "google_places_keywords": []
   },
   "75": {
     "description": "Slide Preparation Facilities",
@@ -3148,7 +3421,8 @@
       "247200000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   },
   "76": {
     "description": "Peripheral Vascular Disease",
@@ -3209,7 +3483,11 @@
       "MN": 1,
       "WA": 1,
       "TX": 1
-    }
+    },
+    "google_places_keywords": [
+      "vascular surgeon",
+      "peripheral vascular disease"
+    ]
   },
   "77": {
     "description": "Vascular Surgery",
@@ -3270,7 +3548,11 @@
       "MN": 1,
       "WA": 1,
       "TX": 1
-    }
+    },
+    "google_places_keywords": [
+      "vascular surgeon",
+      "vascular surgery"
+    ]
   },
   "78": {
     "description": "Cardiac Surgery",
@@ -3333,7 +3615,12 @@
       "MN": 1,
       "WA": 1,
       "SD": 1
-    }
+    },
+    "google_places_keywords": [
+      "cardiac surgeon",
+      "heart surgery",
+      "cardiovascular surgery"
+    ]
   },
   "79": {
     "description": "Addiction Medicine",
@@ -3344,7 +3631,12 @@
       "207L00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "addiction medicine",
+      "addiction specialist",
+      "substance abuse treatment"
+    ]
   },
   "80": {
     "description": "Licensed Clinical Social Worker",
@@ -3352,7 +3644,8 @@
       "1041C0700X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   },
   "81": {
     "description": "Critical Care (Intensivists)",
@@ -3417,7 +3710,11 @@
       "MN": 6,
       "WA": 4,
       "SD": 3
-    }
+    },
+    "google_places_keywords": [
+      "critical care physician",
+      "intensivist"
+    ]
   },
   "82": {
     "description": "Hematology",
@@ -3483,7 +3780,11 @@
       "MN": 7,
       "WA": 6,
       "SD": 4
-    }
+    },
+    "google_places_keywords": [
+      "hematologist",
+      "hematology"
+    ]
   },
   "83": {
     "description": "Hematology/Oncology",
@@ -3549,7 +3850,12 @@
       "MN": 7,
       "WA": 6,
       "SD": 4
-    }
+    },
+    "google_places_keywords": [
+      "hematologist oncologist",
+      "hematology oncology",
+      "cancer doctor"
+    ]
   },
   "84": {
     "description": "Preventive Medicine",
@@ -3621,7 +3927,11 @@
       "MN": 2,
       "WA": 3,
       "SD": 2
-    }
+    },
+    "google_places_keywords": [
+      "preventive medicine",
+      "preventive care"
+    ]
   },
   "85": {
     "description": "Maxillofacial Surgery",
@@ -3687,7 +3997,11 @@
       "MN": 8,
       "WA": 7,
       "SD": 10
-    }
+    },
+    "google_places_keywords": [
+      "oral maxillofacial surgeon",
+      "maxillofacial surgery"
+    ]
   },
   "86": {
     "description": "Neuropsychiatry",
@@ -3772,7 +4086,11 @@
       "MN": 11,
       "WA": 11,
       "SD": 10
-    }
+    },
+    "google_places_keywords": [
+      "neuropsychiatrist",
+      "neuropsychiatry"
+    ]
   },
   "87": {
     "description": "All Other Suppliers",
@@ -3780,7 +4098,8 @@
       "332B00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   },
   "89": {
     "description": "Certified Clinical Nurse Specialist",
@@ -3821,7 +4140,8 @@
       "364SP0811X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   },
   "90": {
     "description": "Medical Oncology",
@@ -3887,7 +4207,12 @@
       "MN": 7,
       "WA": 6,
       "SD": 4
-    }
+    },
+    "google_places_keywords": [
+      "oncologist",
+      "medical oncology",
+      "cancer center"
+    ]
   },
   "91": {
     "description": "Surgical Oncology",
@@ -3953,7 +4278,11 @@
       "MN": 8,
       "WA": 7,
       "SD": 10
-    }
+    },
+    "google_places_keywords": [
+      "surgical oncologist",
+      "surgical oncology"
+    ]
   },
   "92": {
     "description": "Radiation Oncology",
@@ -4019,7 +4348,11 @@
       "MN": 2,
       "WA": 2,
       "SD": 2
-    }
+    },
+    "google_places_keywords": [
+      "radiation oncologist",
+      "radiation oncology"
+    ]
   },
   "93": {
     "description": "Emergency Medicine",
@@ -4091,7 +4424,12 @@
       "MN": 15,
       "WA": 16,
       "SD": 11
-    }
+    },
+    "google_places_keywords": [
+      "emergency medicine",
+      "emergency room",
+      "urgent care"
+    ]
   },
   "94": {
     "description": "Interventional Radiology",
@@ -4153,7 +4491,11 @@
       "MN": 2,
       "WA": 1,
       "TX": 1
-    }
+    },
+    "google_places_keywords": [
+      "interventional radiologist",
+      "interventional radiology"
+    ]
   },
   "96": {
     "description": "Optician",
@@ -4161,7 +4503,8 @@
       "156FX1800X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   },
   "97": {
     "description": "Physician Assistant",
@@ -4171,7 +4514,11 @@
       "363A00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": [
+      "physician assistant",
+      "PA clinic"
+    ]
   },
   "98": {
     "description": "Gynecological/Oncology",
@@ -4237,7 +4584,11 @@
       "MN": 13,
       "WA": 11,
       "SD": 11
-    }
+    },
+    "google_places_keywords": [
+      "gynecologic oncologist",
+      "gynecologic oncology"
+    ]
   },
   "99": {
     "description": "Unknown Physician Specialty",
@@ -4245,6 +4596,7 @@
       "208D00000X"
     ],
     "source_tabs": [],
-    "states": {}
+    "states": {},
+    "google_places_keywords": []
   }
 }

@@ -23,12 +23,12 @@ from app.services.report_generator import ReportState, load_state
 
 async def process_job(job_id: str, state: ReportState) -> None:
     from app.schemas.address_report_request import AddressReportRequest
-    from app.schemas.t2_report_request import T2ReportRequest
     from app.schemas.provider_request import ProviderRequest
-    from app.services.pdf import html_to_pdf
+    from app.schemas.t2_report_request import T2ReportRequest
     from app.services._report_generator_a1_archived import run_report
-    from app.services.s3 import upload_report, upload_report_pdf
+    from app.services.pdf import html_to_pdf
     from app.services.report_generator import run_html_report
+    from app.services.s3 import upload_report, upload_report_pdf
 
     job = get_job(job_id)
     if not job:

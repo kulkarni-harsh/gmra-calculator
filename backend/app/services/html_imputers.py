@@ -97,10 +97,7 @@ def render_report(tier: str, data: TemplateDataInput) -> str:
     Raises ``ValueError`` with a clear message for unknown tiers.
     """
     if tier not in _TIER_TEMPLATES:
-        raise ValueError(
-            f"Unknown report tier {tier!r}. "
-            f"Valid tiers: {sorted(_TIER_TEMPLATES)}"
-        )
+        raise ValueError(f"Unknown report tier {tier!r}. Valid tiers: {sorted(_TIER_TEMPLATES)}")
     filename = _TIER_TEMPLATES[tier]
     template_html = (settings.TEMPLATES_DIR / filename).read_text(encoding="utf-8")
     return replace_data_block(template_html, data)

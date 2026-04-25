@@ -4,23 +4,12 @@ import asyncio
 import logging
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, PrivateAttr, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
-
-class _Taxonomy(BaseModel):
-    model_config = ConfigDict(extra="allow")
-    code: str | None = None
-    description: str | None = None
-    count: int | None = None
-
-
-class _Location(BaseModel):
-    model_config = ConfigDict(extra="allow")
-    address_line_1: str | None = None  # Not in Alphasophia output
-    address_line_2: str | None = None  # Not in Alphasophia output
-    zip_code: str | None = None  # Not in Alphasophia output
-    city: str | None = None
-    state: str | None = None
+from app.services.geocoding import calculate_distance_miles
+from app.types.common_provider_siteofcare import Location, Taxonomy
+from app.types.cpt import CPT
+from app.types.google_maps import GooglePlace
 
 
 class _Affiliation(BaseModel):
@@ -39,40 +28,6 @@ class _Contact(BaseModel):
     doximity: list[str | None] | None = None
 
 
-class CPT(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    code: str | None
-    codeType: str | None = None
-    description: str | None = None
-    sourceType: str | None = None
-    dataset: Any | None = None
-    totalServices: int = 0
-    totalCharges: float = 0.0
-    totalPatients: int = 0
-
-    @field_validator("totalServices", mode="before")
-    def convert_total_services(cls, value: Any) -> int:  # noqa: N805
-        if value is not None:
-            return int(value)
-        logging.critical(f"totalServices is not an integer: {value}")
-        return -1
-
-    @field_validator("totalCharges", mode="before")
-    def convert_total_charges(cls, value: Any) -> float:  # noqa: N805
-        if value is not None:
-            return float(value)
-        # logging.critical(f"totalCharges is not a float: {value}")
-        return -0.1
-
-    @field_validator("totalPatients", mode="before")
-    def convert_total_patients(cls, value: Any) -> int:  # noqa: N805
-        if value is not None:
-            return int(value)
-        logging.critical(f"totalPatients is not an integer: {value}")
-        return -1
-
-
 class Provider(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -80,8 +35,8 @@ class Provider(BaseModel):
     npi: str | None
     name: str | None
     profilePicture: str | None = None
-    taxonomy: _Taxonomy = _Taxonomy()
-    location: _Location = _Location()
+    taxonomy: Taxonomy = Taxonomy()
+    location: Location = Location()
     affiliation: _Affiliation = _Affiliation()
     contact: _Contact = _Contact()
     licensure: list[str] = []
@@ -92,9 +47,12 @@ class Provider(BaseModel):
     distance_from_source_miles: float | None = None  # Not in Alphasophia output
     drive_time_minutes: float | None = None  # Drive time from source; set by generate_map()
     cpt_list: list[CPT] = []  # Not in Alphasophia output
-    cpt_total_services: int = 0  # Sum of totalServices across report CPT codes; set during report generation
-    is_locum: bool | None = None  # Set after CPT profiles are fetched and totals are aggregated
-    _cpt_fetched: bool = PrivateAttr(default=False)
+    is_locum: bool = False  # Set after CPT profiles are fetched and totals are aggregated
+    _cpt_fetched: bool = False  # Track if CPT profiles have been fetched
+    nearest_google_place: GooglePlace | None = None
+    distance_from_nearest_google_place_miles: float | None = (
+        None  # Derived from nearest_google_place; set by stamp_nearest_google_place()
+    )
 
     @field_validator("id", mode="before")
     def convert_to_int(cls, value: Any) -> int:  # noqa: N805
@@ -144,9 +102,6 @@ class Provider(BaseModel):
         """Mark provider as locum if their CPT volume is ≤ 2% of the total shared volume.
 
         share_volume is the sum of cpt_total_services across all in-radius providers
-        (i.e. share_denom from _aggregate_cpt_data). Must be called AFTER both:
-        1. fetch_cpt_profiles() — sets _cpt_fetched and populates cpt_list
-        2. cpt_total_services has been summed externally (done by _aggregate_cpt_data)
 
         Raises ValueError if CPT profiles have not been fetched yet.
         """
@@ -155,3 +110,47 @@ class Provider(BaseModel):
                 f"Provider {self.id} (NPI: {self.npi}): CPT profiles must be fetched before calling set_is_locum"
             )
         self.is_locum = self.cpt_total_services <= 0.02 * share_volume
+
+    def stamp_nearest_google_place(
+        self, google_places: list[GooglePlace], distance_threshold_miles: float = 0.125
+    ) -> None:
+        nearest_place = None
+        nearest_distance = float("inf")
+
+        if self.latitude is None or self.longitude is None:
+            logging.warning(
+                f"Provider {self.id} (NPI: {self.npi}): Latitude or longitude is None; "
+                "cannot calculate distance to Google Places"
+            )
+            return
+
+        for place in google_places:
+            if place.latitude is None or place.longitude is None:
+                logging.warning(
+                    f"Google Place '{place.name}' (ID: {place.place_id}): "
+                    "Latitude or longitude is None; skipping distance calculation for this place"
+                )
+                continue
+            dist = calculate_distance_miles(
+                lat1=self.latitude,
+                lon1=self.longitude,
+                lat2=place.latitude,
+                lon2=place.longitude,
+            )
+            if dist is not None and dist < nearest_distance and dist <= distance_threshold_miles:
+                nearest_distance = dist
+                nearest_place = place
+
+        self.nearest_google_place = nearest_place
+        self.distance_from_nearest_google_place_miles = nearest_distance
+        return None
+
+    @property
+    def cpt_total_services(self) -> int:
+        if self._cpt_fetched:
+            return sum(cpt.totalServices for cpt in self.cpt_list)
+        logging.warning(
+            f"Provider {self.id} (NPI: {self.npi}): CPT profiles have not been fetched yet;"
+            " returning 0 for cpt_total_services"
+        )
+        return 0

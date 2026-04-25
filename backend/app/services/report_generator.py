@@ -341,7 +341,7 @@ def _aggregate_cpt_data(
 
     # Pass 2 — classify locum and build share list
     # Set is_locum on all providers
-    if providers_in_radius and type(providers_in_radius[0]) is Provider:
+    if providers_in_radius and isinstance(providers_in_radius[0], Provider):
         for p in providers_in_radius:
             p.set_is_locum(share_denom)
 
@@ -652,9 +652,9 @@ async def run_html_report(
     log.info("[7] Fetching CPT profiles for %d in-radius providers", len(providers_in_radius))
     await asyncio.gather(*[p.fetch_cpt_profiles(effective_cpt_codes) for p in providers_in_radius])
 
-    # Save debug as JSON for debugging.
-    with open("providers.json", "w") as f:
-        f.write(json.dumps([p.model_dump() for p in providers_in_radius], indent=2))
+    # if log.isEnabledFor(logging.DEBUG):
+    #     with open("providers.json", "w") as f:
+    #         f.write(json.dumps([p.model_dump() for p in providers_in_radius], indent=2))
 
     _google_places_keywords = get_google_places_keywords(state.specialty_lookup, payload.specialty_name)
     _nearby_google_places = find_nearby_google_places(

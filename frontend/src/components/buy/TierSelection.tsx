@@ -16,51 +16,52 @@ const tiers = [
       'Through-the-door CPT code analysis',
       'Local demographics analysis',
       'Provider density benchmark',
-      'PDF report',
+      'AI insights PDF report',
     ],
   },
   {
     id: 1 as const,
-    name: 'Through-the-Door Codes Report',
-    subtitle: 'Your CPT codes vs. local market',
+    name: 'Current Market Analysis',
+    subtitle: 'CPT codes + anonymized market share',
     price: TIER_PRICES[1],
     badge: 'Most Popular',
     locked: false,
     features: [
       'Everything in Market Entry',
+      'Anonymized provider market share breakdown',
       'Bring your own 1–5 CPT codes',
       'Your codes benchmarked vs. competitors',
-      'Procedure-specific demand analysis',
       'Comprehensive PDF report',
     ],
   },
   {
     id: 2 as const,
-    name: '5-Code Strategic Report',
-    subtitle: '',
+    name: 'In-depth Market Analysis',
+    subtitle: 'Up to 15 CPT codes + gaps report',
     price: TIER_PRICES[2],
-    badge: 'Coming Soon',
-    locked: true,
+    badge: 'New',
+    locked: false,
     features: [
-      'Everything in Tier 1',
-      'Top 5 highest-revenue CPT codes analyzed',
-      'Revenue forecast per procedure',
-      'Procedure-specific demand analysis',
+      'Everything in Current Market Analysis',
+      'Up to 15 custom CPT codes',
+      'Top-5 CPT comparison per provider',
+      'Gap & opportunity identification report*',
+      'Comprehensive PDF report',
     ],
   },
   {
     id: 3 as const,
-    name: '10-Code Full Analysis + Add-On',
-    subtitle: '',
+    name: 'Custom Market Expansion Report',
+    subtitle: 'Expert consultation included',
     price: TIER_PRICES[3],
-    badge: 'Coming Soon',
+    badge: 'Expert Call',
     locked: true,
     features: [
-      'Everything in Tier 2',
-      'Complete procedure mix',
-      'NP/PA peer presence analysis',
-      'Payer mix breakdown',
-      'Infrastructure sizing recommendations',
+      'Custom scope defined with our team',
+      'Unlimited CPT code analysis',
+      'Provider-level competitive deep-dive',
+      'Tailored growth strategy deck',
+      '1-on-1 strategy call with consultant',
     ],
   },
 ]
@@ -141,7 +142,7 @@ export default function TierSelection({ selectedTierId, onSelect }: TierSelectio
               <div className="mt-5">
                 {tier.locked ? (
                   <Button disabled className="w-full cursor-not-allowed bg-white/10 text-white/40">
-                    Coming Soon
+                    Contact Us
                   </Button>
                 ) : (
                   <Button
@@ -161,6 +162,9 @@ export default function TierSelection({ selectedTierId, onSelect }: TierSelectio
           )
         })}
       </div>
+      <p className="mt-3 text-xs text-white/30">
+        * Gap &amp; opportunity report is in development — included when available at no extra cost.
+      </p>
     </div>
   )
 }

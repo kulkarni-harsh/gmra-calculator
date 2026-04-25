@@ -670,6 +670,7 @@ async def run_html_report(
 
     # Save sites of care list for debugging / potential future use.
     _sites_of_care_list = get_sites_of_care_list(providers_in_radius)
+    peers: list[Provider | SiteOfCare] = _sites_of_care_list if use_site_of_care else providers_in_radius
     # with open("_debug_nearby_google_places.json", "w") as f:
     #     f.write(json.dumps([p.model_dump() for p in _nearby_google_places], indent=2))
 
@@ -684,16 +685,16 @@ async def run_html_report(
         )
 
     # 9. Aggregate CPT data
-    log.info("[8] Aggregating CPT data across %d providers", len(providers_in_radius))
+    log.info("[8] Aggregating CPT data across %d peers", len(peers))
     cpt_agg = _aggregate_cpt_data(
-        providers_in_radius,
+        peers,
         effective_cpt_codes,
         meta.cpt_patient_type_map,
         provider_state,
         state.rvu_table,
         state.gpci_table,
     )
-    locum_count = sum(1 for p in providers_in_radius if p.is_locum)
+    locum_count = sum(1 for p in peers if p.is_locum)
     log.info("[8] %d CPT rows, market total: %d", len(cpt_agg.cpt_rows), cpt_agg.total_market_services)
 
     # 10. Population + demographics
@@ -703,13 +704,13 @@ async def run_html_report(
         source_lat,
         source_lon,
         payload.drive_time_minutes,
-        providers_in_radius,
+        peers,
         payload.specialty_name,
         payload.zip_code,
     )
 
     # 11. Verdict + density gap (locum providers excluded — they don't represent permanent market capacity)
-    peer_providers_count = max(sum(1 for p in providers_in_radius if not p.is_locum), 0)
+    peer_providers_count = max(sum(1 for p in peers if not p.is_locum), 0)
     density_scope = get_density_scope(state.specialty_lookup, payload.specialty_name, provider_state)
     target_density = get_provider_density(state.specialty_lookup, payload.specialty_name, provider_state)
     if target_density is not None and pop.relevant_pop > 0:
@@ -741,7 +742,7 @@ async def run_html_report(
     )
 
     competitor_drive_times = sorted(
-        p.drive_time_minutes for p in providers_in_radius if p.drive_time_minutes is not None
+        p.drive_time_minutes for p in peers if p.drive_time_minutes is not None
     )
     analysis_text = await generate_market_analysis(
         data=MarketAnalysisInput(
@@ -770,7 +771,7 @@ async def run_html_report(
             provider_drive_volume_pairs=sorted(
                 [
                     (p.drive_time_minutes, round(p.cpt_total_services / cpt_agg.share_denom * 100))
-                    for p in providers_in_radius
+                    for p in peers
                     if p.drive_time_minutes is not None
                 ],
                 key=lambda x: x[0],
@@ -849,7 +850,11 @@ async def run_html_report(
             for z in sorted(pop.zip_overlap_fractions) or pop.actual_zips_df["zip"].astype(str).tolist()
         ],
         sourceTabs=meta.source_tabs,
-        peerNpis=[p.npi for p in providers_in_radius if p.npi],
+        peerNpis=(
+            [npi for s in peers for npi in s.npi_list]  # type: ignore[union-attr]
+            if use_site_of_care
+            else [p.npi for p in peers if p.npi]  # type: ignore[union-attr]
+        ),
         providerShares=cpt_agg.provider_shares,
         mapImageSrc=map_image_src,
         densityScope=density_scope,

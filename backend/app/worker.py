@@ -15,6 +15,7 @@ import logging
 
 from app.core.config import settings
 from app.core.logging import configure_logging
+from app.schemas.report_requests import T3ReportRequest
 from app.services.email import send_report_ready
 from app.services.job_store import get_job, update_job
 from app.services.queue import delete_message, receive_jobs
@@ -22,9 +23,8 @@ from app.services.report_generator import ReportState, load_state
 
 
 async def process_job(job_id: str, state: ReportState) -> None:
-    from app.schemas.address_report_request import AddressReportRequest
     from app.schemas.provider_request import ProviderRequest
-    from app.schemas.t2_report_request import T2ReportRequest
+    from app.schemas.report_requests import T1ReportRequest, T2ReportRequest
     from app.services._report_generator_a1_archived import run_report
     from app.services.pdf import html_to_pdf
     from app.services.report_generator import run_html_report
@@ -42,13 +42,18 @@ async def process_job(job_id: str, state: ReportState) -> None:
         raw = json.loads(job["payload"])
         report_type = raw.get("report_type", "a1")
 
-        if report_type == "t2":
+        if report_type == "t3":
+            t3_payload = T3ReportRequest.model_validate(raw)
+            html, debug_excel_bytes = await run_html_report(
+                t3_payload, state, job_id=job_id, custom_cpt_codes=t3_payload.cpt_codes
+            )
+        elif report_type == "t2":
             t2_payload = T2ReportRequest.model_validate(raw)
             html, debug_excel_bytes = await run_html_report(
                 t2_payload, state, job_id=job_id, custom_cpt_codes=t2_payload.cpt_codes
             )
         elif report_type == "t1":
-            t1_payload = AddressReportRequest.model_validate(raw)
+            t1_payload = T1ReportRequest.model_validate(raw)
             html, debug_excel_bytes = await run_html_report(t1_payload, state, job_id=job_id)
         else:
             a1_payload = ProviderRequest.model_validate(raw)
@@ -69,7 +74,10 @@ async def process_job(job_id: str, state: ReportState) -> None:
         )
 
         # Build email context from whichever payload branch was taken — avoids unbound variable refs.
-        if report_type == "t2":
+        if report_type == "t3":
+            email_to = str(t3_payload.customer_email)
+            provider_label = f"{t3_payload.address_line_1}, {t3_payload.city}"
+        elif report_type == "t2":
             email_to = str(t2_payload.customer_email)
             provider_label = f"{t2_payload.address_line_1}, {t2_payload.city}"
         elif report_type == "t1":

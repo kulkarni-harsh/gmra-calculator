@@ -21,7 +21,7 @@ from shapely.geometry import Point, shape
 
 from app.core.config import settings
 from app.core.types import SexAgeCounts
-from app.schemas.address_report_request import AddressReportRequest
+from app.schemas.report_requests import T1ReportRequest, T2ReportRequest, T3ReportRequest
 from app.services import mapbox
 from app.services.alphasophia import get_hcp_data
 from app.services.bedrock_llm import MarketAnalysisInput, generate_market_analysis
@@ -149,7 +149,7 @@ def _resolve_specialty_meta(state: ReportState, specialty_name: str) -> _Special
 
 
 async def _geocode_with_fallback(
-    payload: AddressReportRequest,
+    payload: T1ReportRequest | T2ReportRequest | T3ReportRequest,
     zip_centroids_df: pd.DataFrame,
 ) -> tuple[float, float]:
     """Return (lat, lon) for the request address, falling back to ZIP centroid."""
@@ -610,7 +610,7 @@ def _debug_upload(job_id: str | None, stage: str, data: list | dict) -> None:
 
 
 async def run_html_report(
-    payload: AddressReportRequest,
+    payload: T1ReportRequest | T2ReportRequest | T3ReportRequest,
     state: ReportState,
     job_id: str = "",
     custom_cpt_codes: list[str] | None = None,
@@ -861,7 +861,8 @@ async def run_html_report(
         specialty=payload.specialty_name,
         market=f"{payload.zip_code} {payload.city}, {payload.state}",
         radius=f"{payload.drive_time_minutes} min drive",
-        reportTier="Market Entry",
+        reportTier=payload.tier_name,
+        showSection03="T1" not in payload.__class__.__name__,
         address=f"{payload.address_line_1} {payload.address_line_2 if payload.address_line_2 else ''}",
         clientName="",
         tags=generate_tags(cpt_agg.cpt_rows),

@@ -44,6 +44,7 @@ def _minimal_v2(**overrides: object):
         market="75034 Frisco, TX",
         radius="20 min drive",
         reportTier="Market Entry",
+        showSection03=False,
         address="5757 Warren Pkwy, Frisco TX 75034",
         clientName="",
         tags=[Tag(text="Test", color="green")],

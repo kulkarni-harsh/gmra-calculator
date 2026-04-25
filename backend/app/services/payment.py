@@ -11,20 +11,25 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 # ── Prices (cents) — change only here ────────────────────────────────────────
 REPORT_AMOUNT_CENTS = 50_000  # A1  $500.00
 T1_REPORT_AMOUNT_CENTS = 39_900  # T1  $399.00  Market Entry Report
-T2_REPORT_AMOUNT_CENTS = 59_900  # T2  $599.00  Through-the-Door Codes Report
+T2_REPORT_AMOUNT_CENTS = 49_900  # T2  $499.00  Through-the-Door Codes Report
+T3_REPORT_AMOUNT_CENTS = 59_900  # T3  $599.00  Through-the-Door Codes Report
+T4_REPORT_AMOUNT_CENTS = 79_900  # T4  $799.00  Through-the-Door Codes Report
 
 # Display strings derived from the cent constants above.
 # Use these everywhere a human-readable price is needed (emails, report upgrades).
 A1_DISPLAY_PRICE = f"${REPORT_AMOUNT_CENTS // 100:,}"  # "$500"
 T1_DISPLAY_PRICE = f"${T1_REPORT_AMOUNT_CENTS // 100:,}"  # "$399"
-T2_DISPLAY_PRICE = f"${T2_REPORT_AMOUNT_CENTS // 100:,}"  # "$599"
-T3_DISPLAY_PRICE = "$799"  # Coming-soon tier — no PaymentIntent yet
+T2_DISPLAY_PRICE = f"${T2_REPORT_AMOUNT_CENTS // 100:,}"  # "$499"
+T3_DISPLAY_PRICE = f"${T3_REPORT_AMOUNT_CENTS // 100:,}"  # "$599"
+T4_DISPLAY_PRICE = f"${T4_REPORT_AMOUNT_CENTS // 100:,}"  # "$799"
 
 # Lookup used by the Stripe webhook to verify the charged amount matches the job type.
 REPORT_TYPE_AMOUNTS: dict[str, int] = {
     "a1": REPORT_AMOUNT_CENTS,
     "t1": T1_REPORT_AMOUNT_CENTS,
     "t2": T2_REPORT_AMOUNT_CENTS,
+    "t3": T3_REPORT_AMOUNT_CENTS,
+    "t4": T4_REPORT_AMOUNT_CENTS,
 }
 
 
@@ -83,7 +88,7 @@ def create_t2_payment_intent(
     address_label: str,
     cpt_codes: list[str] | None = None,
 ) -> str:
-    """Create a Stripe PaymentIntent for the T2 Through-the-Door Codes Report ($599). Returns client_secret."""
+    """Create a Stripe PaymentIntent for the T2 Current Market Analysis Report ($499). Returns client_secret."""
     intent = stripe.PaymentIntent.create(
         amount=T2_REPORT_AMOUNT_CENTS,
         currency="usd",
@@ -93,6 +98,32 @@ def create_t2_payment_intent(
             "job_id": job_id,
             "customer_email": customer_email,
             "report_type": "t2",
+            "provider_name": address_label,
+            "specialty_name": specialty_name,
+            "cpt_codes": ",".join(cpt_codes) if cpt_codes else "",
+        },
+    )
+    return intent.client_secret  # type: ignore[return-value]
+
+
+def create_t3_payment_intent(
+    *,
+    job_id: str,
+    customer_email: str,
+    specialty_name: str,
+    address_label: str,
+    cpt_codes: list[str] | None = None,
+) -> str:
+    """Create a Stripe PaymentIntent for the T3 In-depth Market Analysis Report ($599). Returns client_secret."""
+    intent = stripe.PaymentIntent.create(
+        amount=T3_REPORT_AMOUNT_CENTS,
+        currency="usd",
+        receipt_email=customer_email,
+        payment_method_types=["card"],
+        metadata={
+            "job_id": job_id,
+            "customer_email": customer_email,
+            "report_type": "t3",
             "provider_name": address_label,
             "specialty_name": specialty_name,
             "cpt_codes": ",".join(cpt_codes) if cpt_codes else "",

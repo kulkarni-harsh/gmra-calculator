@@ -134,6 +134,9 @@ class ReportTemplateDataV2:
     searchedZipCodes: list[str]  # ZIP codes within the exact radius
     sourceTabs: list[str]  # Dashboard tab names from specialty_lookup (density source)
     peerNpis: list[str]  # NPIs of peer providers within the exact radius
+    # False hides Section 03 (Provider Density & CPT Volume Distribution) and renumbers
+    # subsequent sections. T1 omits Section 03; T2 includes it.
+    showSection03: bool
     # Sorted descending list of each provider's % share of total market CPT services (0–100).
     # Anonymous — no names or NPIs. For T1+ reports, the client provider is included as one entry.
     # For T1 (Market Entry) reports, only peer providers are included (no named client).

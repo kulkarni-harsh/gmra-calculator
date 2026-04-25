@@ -29,7 +29,8 @@ from app.types.baseline_report_template import ReportTemplateData, ReportTemplat
 # the file on disk is resolved in one place.
 
 _TIER_TEMPLATES: dict[str, str] = {
-    "T1": "MREC_Report_TEMPLATE_T1.html",  # active — market-entry / address-only report
+    "T1": "MREC_Report_TEMPLATE_T1.html",  # active — market-entry (no Section 03)
+    "T2": "MREC_Report_TEMPLATE_T1.html",  # active — competitive intel (includes Section 03)
     "A1": "MREC_Report_TEMPLATE_A1.html",  # archived — provider NPI report
 }
 

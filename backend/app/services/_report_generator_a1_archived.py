@@ -444,6 +444,7 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
         market=f"{payload.client_provider.location.city or ''}, {payload.client_provider.location.state or ''}",
         radius=f"{payload.miles_radius} mi",
         reportTier="Baseline",
+        showSection03=True,
         address=str(address_str),
         clientName=str(payload.client_provider.name),
         tags=generate_tags(cpt_rows),

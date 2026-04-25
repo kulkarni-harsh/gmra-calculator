@@ -1,7 +1,6 @@
 """Unit tests for app.services.payment — price constants + Stripe wrappers (mocked)."""
 
 from unittest.mock import MagicMock, patch
-
 import pytest
 
 
@@ -14,18 +13,28 @@ def test_price_constants_are_consistent():
         T1_REPORT_AMOUNT_CENTS,
         T2_DISPLAY_PRICE,
         T2_REPORT_AMOUNT_CENTS,
+        T3_DISPLAY_PRICE,
+        T3_REPORT_AMOUNT_CENTS,
+        T4_DISPLAY_PRICE,
+        T4_REPORT_AMOUNT_CENTS,
     )
 
     assert REPORT_AMOUNT_CENTS == 50_000
     assert T1_REPORT_AMOUNT_CENTS == 39_900
-    assert T2_REPORT_AMOUNT_CENTS == 59_900
+    assert T2_REPORT_AMOUNT_CENTS == 49_900
+    assert T3_REPORT_AMOUNT_CENTS == 59_900
+    assert T4_REPORT_AMOUNT_CENTS == 79_900
     assert A1_DISPLAY_PRICE == "$500"
     assert T1_DISPLAY_PRICE == "$399"
-    assert T2_DISPLAY_PRICE == "$599"
+    assert T2_DISPLAY_PRICE == "$499"
+    assert T3_DISPLAY_PRICE == "$599"
+    assert T4_DISPLAY_PRICE == "$799"
     assert REPORT_TYPE_AMOUNTS == {
         "a1": REPORT_AMOUNT_CENTS,
         "t1": T1_REPORT_AMOUNT_CENTS,
         "t2": T2_REPORT_AMOUNT_CENTS,
+        "t3": T3_REPORT_AMOUNT_CENTS,
+        "t4": T4_REPORT_AMOUNT_CENTS,
     }
 
 
@@ -78,7 +87,7 @@ def test_create_t2_payment_intent_uses_599_amount_and_serializes_cpt_codes():
         )
     assert cs == "cs_t2"
     kwargs = m.call_args.kwargs
-    assert kwargs["amount"] == 59_900
+    assert kwargs["amount"] == 49_900
     assert kwargs["metadata"]["cpt_codes"] == "99213,99214"
     assert kwargs["metadata"]["report_type"] == "t2"
 

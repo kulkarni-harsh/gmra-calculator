@@ -1,30 +1,30 @@
-# app/api/endpoints/report_t2.py
+# app/api/endpoints/report_t3.py
 import logging
 
 from fastapi import APIRouter, HTTPException
 
 from app.core.config import settings
-from app.schemas.report_requests import T2ReportRequest
+from app.schemas.report_requests import T3ReportRequest
 from app.services.email import send_request_confirmation
 from app.services.job_store import JobAlreadyExistsError, claim_job_for_generation
-from app.services.payment import T2_REPORT_AMOUNT_CENTS, verify_payment_intent
+from app.services.payment import T3_REPORT_AMOUNT_CENTS, verify_payment_intent
 from app.services.queue import send_job
 
 router = APIRouter()
 
 
 @router.post("/generate")
-async def submit_t2_report_job(payload: T2ReportRequest):
-    """Verify Stripe payment, enqueue T2 Current Market Analysis report generation.
+async def submit_t3_report_job(payload: T3ReportRequest):
+    """Verify Stripe payment, enqueue T3 In-depth Market Analysis report generation.
     Poll GET /api/jobs/status/{job_id} for completion."""
     try:
         job_id = verify_payment_intent(
             payment_intent_id=payload.payment_intent_id,
             expected_email=str(payload.customer_email),
-            expected_amount=T2_REPORT_AMOUNT_CENTS,
+            expected_amount=T3_REPORT_AMOUNT_CENTS,
         )
     except ValueError as exc:
-        logging.warning("T2 payment verification failed: %s", exc)
+        logging.warning("T3 payment verification failed: %s", exc)
         raise HTTPException(status_code=402, detail=str(exc)) from exc
 
     try:

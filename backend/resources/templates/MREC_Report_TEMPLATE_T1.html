@@ -1489,7 +1489,8 @@ const DATA = {
       <div><strong>* Est. Market Revenue:</strong> Projected using the CMS 2026 Medicare Physician Fee Schedule (office-setting, state-adjusted). Actual reimbursement varies by payer mix, contract rates, and coding — use as a directional estimate only.</div>
     </div>
 
-    <!-- SECTION 03 -->
+    <!-- SECTION 03 — T2 only -->
+    ${D.showSection03 ? `
     <div class="section-header">
       <div class="section-num">03</div>
       <div class="section-title">Provider Density &amp; <em>CPT Volume Distribution</em></div>
@@ -1552,6 +1553,7 @@ const DATA = {
       </div>
 
     </div>
+    ` : ''}
 
     <!-- MAP SECTION -->
     ${D.mapImageSrc ? `
@@ -1566,7 +1568,7 @@ const DATA = {
 
     <!-- SECTION 04 -->
     <div class="section-header">
-      <div class="section-num">04</div>
+      <div class="section-num">${D.showSection03 ? '04' : '03'}</div>
       <div class="section-title">Clinical <em>Analysis Summary</em></div>
     </div>
 

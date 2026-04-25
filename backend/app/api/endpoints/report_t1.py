@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, HTTPException
 
 from app.core.config import settings
-from app.schemas.address_report_request import AddressReportRequest
+from app.schemas.report_requests import T1ReportRequest
 from app.services.email import send_request_confirmation
 from app.services.job_store import JobAlreadyExistsError, claim_job_for_generation
 from app.services.payment import T1_REPORT_AMOUNT_CENTS, verify_payment_intent
@@ -13,8 +13,8 @@ router = APIRouter()
 
 
 @router.post("/generate")
-async def submit_t1_report_job(payload: AddressReportRequest):
-    """Verify Stripe payment, enqueue T1 report generation. Poll GET /api/status/{job_id}."""
+async def submit_t1_report_job(payload: T1ReportRequest):
+    """Verify Stripe payment, enqueue Market Entry Report generation. Poll GET /api/status/{job_id}."""
     try:
         job_id = verify_payment_intent(
             payment_intent_id=payload.payment_intent_id,

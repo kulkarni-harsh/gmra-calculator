@@ -386,11 +386,11 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
         )
     elif provider_gap < -1:
         verdict_type = "avoid"
-        verdict_value = "AVOID"
+        verdict_value = "Saturated"
         verdict_sub = f"Saturated — {abs(provider_gap):.1f} providers above {density_scope.lower()} density baseline."
     else:
         verdict_type = "caution"
-        verdict_value = "CAUTION"
+        verdict_value = "Caution"
         verdict_sub = f"Market is near {density_scope.lower()} density baseline — limited opportunity."
 
     log.info(
@@ -453,7 +453,7 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
         totalPopulation=f"{total_population:,}" if total_population > 0 else "N/A",
         relevantPopulation=f"{relevant_pop:,}" if relevant_pop > 0 else "N/A",
         populationLabel=population_label,
-        currentProviders=peer_providers_count + 1,
+        activeProviders=peer_providers_count + 1,
         targetDensity=round(expected_providers, 1),
         providerGap=round(provider_gap, 1),
         cptRows=cpt_rows,

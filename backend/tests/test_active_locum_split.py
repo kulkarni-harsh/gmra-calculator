@@ -1,16 +1,14 @@
 """Tests for the active/locum provider split in ReportTemplateDataV2."""
-import dataclasses
 
-import pytest
+import dataclasses
+from typing import Any
 
 
 def test_report_template_data_v2_has_active_providers_field():
     from app.types.baseline_report_template import ReportTemplateDataV2
 
     fields = {f.name for f in dataclasses.fields(ReportTemplateDataV2)}
-    assert "activeProviders" in fields, (
-        "ReportTemplateDataV2 must have an 'activeProviders' field (non-locum count)"
-    )
+    assert "activeProviders" in fields, "ReportTemplateDataV2 must have an 'activeProviders' field (non-locum count)"
     assert "currentProviders" not in fields, (
         "currentProviders has been replaced by activeProviders — remove the old field"
     )
@@ -39,7 +37,7 @@ def _minimal_v2(**overrides: object):
         Tag,
     )
 
-    defaults = dict(
+    defaults: dict[str, Any] = dict(
         reportId="TEST-001",
         dateIssued="04/25/2026",
         specialty="Family Medicine",

@@ -10,6 +10,7 @@ Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `ci`.
 
 ## 2026-04-25
 
+- test: service-layer tests with mocks landed for s3, queue, job_store, payment, email, geocoder, alphasophia (Phase 4)
 - test: pure-function unit tests landed for cpt parsing, specialty lookups, validator, fee_schedule, common (severity/population/tags), distance helpers, google_maps internals (Phase 3)
 - refactor: replace 8 stray `print()` calls with logging across main, utils, services
 - chore: delete 5 stale `_debug_*.json` files from `backend/` root

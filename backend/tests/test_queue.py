@@ -48,9 +48,7 @@ def test_send_job_uses_queue_url_from_settings():
 def test_receive_jobs_returns_messages_list():
     """receive_jobs forwards max_messages and wait_seconds and returns Messages."""
     mock_client = _make_sqs_mock()
-    mock_client.receive_message.return_value = {
-        "Messages": [{"Body": '{"job_id":"MERC-1"}', "ReceiptHandle": "r1"}]
-    }
+    mock_client.receive_message.return_value = {"Messages": [{"Body": '{"job_id":"MERC-1"}', "ReceiptHandle": "r1"}]}
     with patch("app.services.queue._sqs", return_value=mock_client):
         from app.services.queue import receive_jobs
 

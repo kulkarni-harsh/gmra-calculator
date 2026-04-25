@@ -61,19 +61,13 @@ def test_zips_within_radius_returns_only_close_ones():
             "lon": [-122.4194, -122.4194, -74.0060],
         }
     )
-    result = zips_within_radius_geopy(
-        lat=37.7749, lon=-122.4194, radius_miles=5.0, centroids_df=centroids
-    )
+    result = zips_within_radius_geopy(lat=37.7749, lon=-122.4194, radius_miles=5.0, centroids_df=centroids)
     assert "94101" in result
     assert "94102" in result
     assert "10001" not in result  # NYC is way outside 5 miles
 
 
 def test_zips_within_radius_distances_are_positive_floats():
-    centroids = pd.DataFrame(
-        {"zip": ["94101"], "lat": [37.7749], "lon": [-122.4194]}
-    )
-    result = zips_within_radius_geopy(
-        lat=37.7849, lon=-122.4194, radius_miles=10.0, centroids_df=centroids
-    )
+    centroids = pd.DataFrame({"zip": ["94101"], "lat": [37.7749], "lon": [-122.4194]})
+    result = zips_within_radius_geopy(lat=37.7849, lon=-122.4194, radius_miles=10.0, centroids_df=centroids)
     assert result["94101"] > 0

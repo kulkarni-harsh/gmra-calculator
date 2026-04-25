@@ -6,7 +6,7 @@ AWS_REGION="us-east-1"
 ACCOUNT_ID="707057771327"
 CLUSTER="gmra-calculator-cluster"
 ECR_BASE="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-
+VITE_STRIPE_PUBLISHABLE_KEY="pk_test_51TBuNhHhWMiyKgBo9ft6mCt4Hs1sSWMUtuVVCCXthHaDYWdjk7DB7IVZcSfyR1ynpk4HqRLtIspKQckfvNY0O7CC00IQPnMXDp"
 BACKEND_REPO="${ECR_BASE}/gmra-calculator-backend"
 FRONTEND_REPO="${ECR_BASE}/gmra-calculator-frontend"
 

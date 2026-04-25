@@ -20,6 +20,7 @@ def test_create_job_writes_pending_item():
     table = MagicMock()
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import create_job
+
         create_job("MERC-1", '{"k":"v"}', "Family Medicine", "Dr A")
 
     item = table.put_item.call_args.kwargs["Item"]
@@ -40,6 +41,7 @@ def test_create_job_raises_job_already_exists_on_conditional_failure():
     )
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import JobAlreadyExistsError, create_job
+
         with pytest.raises(JobAlreadyExistsError):
             create_job("MERC-1", "{}", "x", "y")
 
@@ -53,6 +55,7 @@ def test_create_job_reraises_other_client_errors():
     )
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import create_job
+
         with pytest.raises(ClientError):
             create_job("MERC-1", "{}", "x", "y")
 
@@ -62,6 +65,7 @@ def test_create_job_awaiting_payment_sets_correct_status():
     table = MagicMock()
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import create_job_awaiting_payment
+
         create_job_awaiting_payment("MERC-2", "{}", "FM", "Dr B")
     item = table.put_item.call_args.kwargs["Item"]
     assert item["status"] == "awaiting_payment"
@@ -72,6 +76,7 @@ def test_create_job_awaiting_payment_has_ttl():
     table = MagicMock()
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import create_job_awaiting_payment
+
         create_job_awaiting_payment("MERC-2", "{}", "FM", "Dr B")
     item = table.put_item.call_args.kwargs["Item"]
     assert "ttl" in item
@@ -87,6 +92,7 @@ def test_create_job_awaiting_payment_raises_job_already_exists_on_conditional_fa
     )
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import JobAlreadyExistsError, create_job_awaiting_payment
+
         with pytest.raises(JobAlreadyExistsError):
             create_job_awaiting_payment("MERC-2", "{}", "FM", "Dr B")
 
@@ -96,6 +102,7 @@ def test_claim_job_for_generation_returns_payload():
     table = _make_table(update_item_return={"Attributes": {"payload": '{"k":"v"}'}})
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import claim_job_for_generation
+
         payload = claim_job_for_generation("MERC-3")
     assert payload == '{"k":"v"}'
 
@@ -105,6 +112,7 @@ def test_claim_job_for_generation_transitions_status():
     table = _make_table(update_item_return={"Attributes": {"payload": "{}"}})
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import claim_job_for_generation
+
         claim_job_for_generation("MERC-3")
 
     kwargs = table.update_item.call_args.kwargs
@@ -122,6 +130,7 @@ def test_claim_job_for_generation_raises_when_already_claimed():
     )
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import JobAlreadyExistsError, claim_job_for_generation
+
         with pytest.raises(JobAlreadyExistsError):
             claim_job_for_generation("MERC-3")
 
@@ -131,6 +140,7 @@ def test_get_job_returns_item():
     table = _make_table(get_item_return={"Item": {"job_id": "MERC-4", "status": "done"}})
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import get_job
+
         out = get_job("MERC-4")
     assert out is not None and out["job_id"] == "MERC-4"
 
@@ -140,6 +150,7 @@ def test_get_job_returns_none_when_missing():
     table = _make_table(get_item_return={})  # no Item key
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import get_job
+
         assert get_job("MERC-x") is None
 
 
@@ -148,6 +159,7 @@ def test_update_job_sets_arbitrary_fields():
     table = MagicMock()
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import update_job
+
         update_job("MERC-5", status="done", report_s3_url="https://x/y.html")
     kwargs = table.update_item.call_args.kwargs
     expr = kwargs["UpdateExpression"]
@@ -159,6 +171,7 @@ def test_update_job_includes_updated_at():
     table = MagicMock()
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import update_job
+
         update_job("MERC-5", status="done")
     kwargs = table.update_item.call_args.kwargs
     expr_names = kwargs["ExpressionAttributeNames"]
@@ -170,6 +183,7 @@ def test_update_job_passes_correct_key():
     table = MagicMock()
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import update_job
+
         update_job("MERC-99", status="error")
     kwargs = table.update_item.call_args.kwargs
     assert kwargs["Key"] == {"job_id": "MERC-99"}

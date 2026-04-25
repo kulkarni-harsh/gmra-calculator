@@ -3,5 +3,6 @@ def test_types_google_maps_no_unused_logging_import():
     import inspect
 
     from app.types import google_maps
+
     src = inspect.getsource(google_maps)
     assert "import logging" not in src, "remove unused logging import"

@@ -11,7 +11,7 @@ import asyncio
 import base64
 import json
 import logging
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from io import BytesIO
 
 import pandas as pd
@@ -698,7 +698,12 @@ async def run_html_report(
     debug_excel_bytes: bytes | None = None
     if job_id:
         debug_excel_bytes = _build_debug_excel(
-            providers_list, providers_in_radius, source_lat, source_lon, effective_cpt_codes, job_id,
+            providers_list,
+            providers_in_radius,
+            source_lat,
+            source_lon,
+            effective_cpt_codes,
+            job_id,
             sites_of_care=_sites_of_care_list,
         )
 
@@ -718,8 +723,8 @@ async def run_html_report(
         {
             "total_market_services": cpt_agg.total_market_services,
             "share_denom": cpt_agg.share_denom,
-            "cpt_rows": [r.model_dump() for r in cpt_agg.cpt_rows],
-            "provider_shares": [s.model_dump() for s in cpt_agg.provider_shares],
+            "cpt_rows": [asdict(r) for r in cpt_agg.cpt_rows],
+            "provider_shares": [asdict(s) for s in cpt_agg.provider_shares],
         },
     )
     locum_count = sum(1 for p in peers if p.is_locum)
@@ -778,9 +783,7 @@ async def run_html_report(
         "Upgrade to the Strategic Code Report for complete market opportunity analysis."
     )
 
-    competitor_drive_times = sorted(
-        p.drive_time_minutes for p in peers if p.drive_time_minutes is not None
-    )
+    competitor_drive_times = sorted(p.drive_time_minutes for p in peers if p.drive_time_minutes is not None)
     analysis_text = await generate_market_analysis(
         data=MarketAnalysisInput(
             city=payload.city,

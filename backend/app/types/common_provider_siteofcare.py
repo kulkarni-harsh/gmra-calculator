@@ -1,4 +1,5 @@
 """All common types related to both Provider and SiteOfCare"""
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -7,6 +8,7 @@ class Taxonomy(BaseModel):
     code: str | None = None
     description: str | None = None
     count: int | None = None
+
 
 class Location(BaseModel):
     model_config = ConfigDict(extra="allow")

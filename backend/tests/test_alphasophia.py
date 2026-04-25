@@ -123,11 +123,7 @@ async def test_get_npi_address_swallows_http_status_error_and_returns_none():
     mock_resp.status_code = 404
     with patch(
         "app.services.alphasophia._fetch_npi_address",
-        new=AsyncMock(
-            side_effect=httpx.HTTPStatusError(
-                "404 Not Found", request=mock_request, response=mock_resp
-            )
-        ),
+        new=AsyncMock(side_effect=httpx.HTTPStatusError("404 Not Found", request=mock_request, response=mock_resp)),
     ):
         from app.services.alphasophia import get_npi_address
 

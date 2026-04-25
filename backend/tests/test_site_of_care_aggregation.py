@@ -8,10 +8,7 @@ from app.types.google_maps import GooglePlace, SiteOfCare
 
 
 def _make_soc(cpt_services: dict[str, int]) -> SiteOfCare:
-    cpt_list = [
-        CPT(code=code, totalServices=services, totalCharges=0.0)
-        for code, services in cpt_services.items()
-    ]
+    cpt_list = [CPT(code=code, totalServices=services, totalCharges=0.0) for code, services in cpt_services.items()]
     return SiteOfCare(place_id="test", is_locum=False, cpt_list=cpt_list)
 
 
@@ -68,6 +65,7 @@ def test_aggregate_cpt_data_empty_list():
 
 
 # --- get_sites_of_care_list tests ---
+
 
 def _make_provider(npi: str | None, place_id: str | None = "place_1") -> Provider:
     place = GooglePlace(place_id=place_id) if place_id else None

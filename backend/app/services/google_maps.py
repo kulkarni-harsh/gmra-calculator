@@ -34,9 +34,7 @@ def find_nearby_google_places(
     if radius_miles <= _MAX_API_RADIUS_MILES:
         tile_centers = [(source_latitude, source_longitude)]
     else:
-        tile_centers = _generate_tile_centers(
-            source_latitude, source_longitude, radius_miles, tile_radius
-        )
+        tile_centers = _generate_tile_centers(source_latitude, source_longitude, radius_miles, tile_radius)
 
     raw_results: list[dict] = []
     for keyword in keywords:
@@ -61,12 +59,11 @@ def find_nearby_google_places(
 
     # Filter to the actual requested radius (tiles may have fetched places outside it)
     parsed = [
-        p for p in parsed
+        p
+        for p in parsed
         if p.latitude is not None
         and p.longitude is not None
-        and (
-            calculate_distance_miles(source_latitude, source_longitude, p.latitude, p.longitude) or 0
-        ) <= radius_miles
+        and (calculate_distance_miles(source_latitude, source_longitude, p.latitude, p.longitude) or 0) <= radius_miles
     ]
 
     deduped = _dedup_google_places(parsed, dedup_threshold_miles)
@@ -163,8 +160,10 @@ def _dedup_google_places(
                 and other.longitude is not None
             ):
                 dist_miles = calculate_distance_miles(
-                    lat1=place.latitude, lon1=place.longitude,
-                    lat2=other.latitude, lon2=other.longitude,
+                    lat1=place.latitude,
+                    lon1=place.longitude,
+                    lat2=other.latitude,
+                    lon2=other.longitude,
                 )
             else:
                 dist_miles = None

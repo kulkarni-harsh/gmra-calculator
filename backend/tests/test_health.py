@@ -20,6 +20,7 @@ def test_health_timestamp_is_iso_utc(client):
 def test_health_module_uses_datetime_utc_alias():
     """Per ruff UP017, prefer `datetime.UTC` over `datetime.timezone.utc`."""
     import inspect
+
     from app.api.endpoints import health
     src = inspect.getsource(health)
     assert "timezone.utc" not in src, "use datetime.UTC alias"

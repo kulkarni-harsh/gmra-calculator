@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import MercLogo from '@/components/layout/MercLogo'
@@ -18,20 +18,35 @@ const LINKS: ReadonlyArray<NavLink> = [
 ]
 
 export default function Header() {
-  const { pathname } = useLocation()
+  const { pathname, hash } = useLocation()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
 
-  const goToAnchor = (hash: string) => {
+  // After arriving on `/` with a hash (e.g. via cross-route nav), scroll to the section.
+  useEffect(() => {
+    if (pathname !== '/' || !hash) return
+    const id = hash.replace(/^#/, '')
+    // Wait one frame so the target section has mounted.
+    const raf = requestAnimationFrame(() => {
+      const el = document.getElementById(id)
+      if (el) {
+        const y = el.getBoundingClientRect().top + window.scrollY - 72
+        window.scrollTo({ top: y, behavior: 'smooth' })
+      }
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [pathname, hash])
+
+  const goToAnchor = (target: string) => {
     setMenuOpen(false)
     if (pathname === '/') {
-      const el = document.getElementById(hash)
+      const el = document.getElementById(target)
       if (el) {
         const y = el.getBoundingClientRect().top + window.scrollY - 72
         window.scrollTo({ top: y, behavior: 'smooth' })
       }
     } else {
-      navigate(`/#${hash}`)
+      navigate(`/#${target}`)
     }
   }
 

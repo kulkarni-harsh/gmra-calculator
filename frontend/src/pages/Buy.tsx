@@ -4,7 +4,7 @@ import { useProviderSearch } from '@/hooks/useProviderSearch'
 import { useReportGeneration } from '@/hooks/useReportGeneration'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import type { Provider, RadiusOption, DriveTimeOption, T1Location } from '@/types/api'
-import { createPaymentIntent, createT1PaymentIntent, createT2PaymentIntent, generateReport, generateT1Report, generateT2Report } from '@/lib/api'
+import { createPaymentIntent, createT1PaymentIntent, createT2PaymentIntent, createT3PaymentIntent, generateReport, generateT1Report, generateT2Report, generateT3Report } from '@/lib/api'
 import { TIER_PRICES } from '@/lib/pricing'
 import StepAddressWithCpt from '@/components/buy/StepAddressWithCpt'
 
@@ -19,6 +19,7 @@ import StepConfirm from '@/components/buy/StepConfirm'
 import StepPayment from '@/components/buy/StepPayment'
 import GeneratingScreen from '@/components/buy/GeneratingScreen'
 import ConfirmationScreen from '@/components/buy/ConfirmationScreen'
+import StepT4Request from '@/components/buy/StepT4Request'
 
 interface BuyFormState {
   selectedTierId: 0 | 1 | 2 | 3
@@ -36,6 +37,7 @@ interface BuyFormState {
   paymentIntentId: string | null
   isCreatingIntent: boolean
   intentError: string | null
+  t4Submitted: boolean
 }
 
 const INITIAL_STATE: BuyFormState = {
@@ -54,6 +56,7 @@ const INITIAL_STATE: BuyFormState = {
   paymentIntentId: null,
   isCreatingIntent: false,
   intentError: null,
+  t4Submitted: false,
 }
 
 export default function Buy() {
@@ -65,15 +68,20 @@ export default function Buy() {
   const { isGenerating, isComplete, error: genError, jobId, generate, reset: resetGen } = useReportGeneration()
 
   const advance = () =>
-    setState((prev) => ({ ...prev, currentStep: Math.min(prev.currentStep + 1, 5) as 1 | 2 | 3 | 4 | 5 }))
+    setState((prev) => {
+      const nextStep = prev.selectedTierId === 3 && prev.currentStep === 1 ? 3 : prev.currentStep + 1
+      return { ...prev, currentStep: Math.min(nextStep, 5) as 1 | 2 | 3 | 4 | 5 }
+    })
 
   const back = () =>
-    setState((prev) => ({
-      ...prev,
-      currentStep: Math.max(prev.currentStep - 1, 1) as 1 | 2 | 3 | 4 | 5,
-      // Clear payment state when navigating back from the payment step to avoid reusing a spent/in-flight intent
-      ...(prev.currentStep === 5 ? { paymentClientSecret: null, intentError: null } : {}),
-    }))
+    setState((prev) => {
+      const prevStep = prev.selectedTierId === 3 && prev.currentStep === 3 ? 1 : prev.currentStep - 1
+      return {
+        ...prev,
+        currentStep: Math.max(prevStep, 1) as 1 | 2 | 3 | 4 | 5,
+        ...(prev.currentStep === 5 ? { paymentClientSecret: null, intentError: null } : {}),
+      }
+    })
 
   const resetForm = () => {
     setState(INITIAL_STATE)
@@ -104,6 +112,14 @@ export default function Buy() {
         })
       } else if (state.selectedTierId === 1) {
         result = await createT2PaymentIntent({
+          customer_email: state.email,
+          specialty_name: state.specialtyName,
+          ...state.t1Location,
+          drive_time_minutes: state.driveTimeMinutes,
+          cpt_codes: state.cptCodes.filter((c) => c.trim().length > 0),
+        })
+      } else if (state.selectedTierId === 2) {
+        result = await createT3PaymentIntent({
           customer_email: state.email,
           specialty_name: state.specialtyName,
           ...state.t1Location,
@@ -146,6 +162,15 @@ export default function Buy() {
         customer_email: state.email,
         payment_intent_id: paymentIntentId,
       }))
+    } else if (state.selectedTierId === 2) {
+      generate(() => generateT3Report({
+        specialty_name: state.specialtyName,
+        ...state.t1Location,
+        drive_time_minutes: state.driveTimeMinutes,
+        cpt_codes: state.cptCodes.filter((c) => c.trim().length > 0),
+        customer_email: state.email,
+        payment_intent_id: paymentIntentId,
+      }))
     } else {
       if (!state.selectedProvider) return
       generate(() => generateReport({
@@ -177,6 +202,15 @@ export default function Buy() {
         customer_email: state.email,
         payment_intent_id: state.paymentIntentId!,
       }))
+    } else if (state.selectedTierId === 2) {
+      generate(() => generateT3Report({
+        specialty_name: state.specialtyName,
+        ...state.t1Location,
+        drive_time_minutes: state.driveTimeMinutes,
+        cpt_codes: state.cptCodes.filter((c) => c.trim().length > 0),
+        customer_email: state.email,
+        payment_intent_id: state.paymentIntentId!,
+      }))
     } else {
       if (!state.selectedProvider) { resetGen(); return }
       generate(() => generateReport({
@@ -196,7 +230,7 @@ export default function Buy() {
         <div className="mx-auto max-w-[1280px] px-6 py-12">
           <GeneratingScreen
             providerName={
-              state.selectedTierId <= 1
+              state.selectedTierId <= 2
                 ? `${state.t1Location.address_line_1}, ${state.t1Location.city} ${state.t1Location.state}`
                 : (state.selectedProvider?.name ?? null)
             }
@@ -215,7 +249,7 @@ export default function Buy() {
         <div className="mx-auto max-w-[1280px] px-6 py-12">
           <ConfirmationScreen
             providerName={
-              state.selectedTierId <= 1
+              state.selectedTierId <= 2
                 ? `${state.t1Location.address_line_1}, ${state.t1Location.city} ${state.t1Location.state}`
                 : (state.selectedProvider?.name ?? null)
             }
@@ -226,6 +260,32 @@ export default function Buy() {
             onRetry={handleRetryGeneration}
             onReset={resetForm}
           />
+        </div>
+      </div>
+    )
+  }
+
+  if (state.t4Submitted) {
+    return (
+      <div className="min-h-screen bg-[hsl(215_63%_14%)]">
+        <div className="mx-auto max-w-[1280px] px-6 py-12">
+          <div className="mx-auto max-w-lg rounded-xl bg-[hsl(217_33%_17%)] p-10 text-center text-white">
+            <div className="mb-4 text-5xl">✓</div>
+            <h2 className="font-[family-name:var(--font-heading)] text-2xl tracking-wide">
+              REQUEST RECEIVED
+            </h2>
+            <p className="mt-3 text-white/70">
+              Thank you! A MERC consultant will reach out to{' '}
+              <span className="font-semibold text-white">{state.email}</span> within 1 business day
+              to scope your custom report.
+            </p>
+            <button
+              onClick={resetForm}
+              className="mt-8 text-sm text-[hsl(204_66%_52%)] hover:underline"
+            >
+              ← Return to home
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -256,8 +316,10 @@ export default function Buy() {
                     state.selectedTierId === 0
                       ? 'Market Entry Report'
                       : state.selectedTierId === 1
-                        ? 'Through-the-Door Codes Report'
-                        : 'Legacy Report'
+                        ? 'Current Market Analysis'
+                        : state.selectedTierId === 2
+                          ? 'In-depth Market Analysis'
+                          : 'Custom Market Expansion Report'
                   }
                   price={TIER_PRICES[state.selectedTierId]}
                 />
@@ -281,8 +343,10 @@ export default function Buy() {
                     state.selectedTierId === 0
                       ? 'Market Entry Report'
                       : state.selectedTierId === 1
-                        ? 'Through-the-Door Codes Report'
-                        : 'Legacy Report'
+                        ? 'Current Market Analysis'
+                        : state.selectedTierId === 2
+                          ? 'In-depth Market Analysis'
+                          : 'Custom Market Expansion Report'
                   }
                   price={TIER_PRICES[state.selectedTierId]}
                 />
@@ -329,7 +393,20 @@ export default function Buy() {
                   onBack={back}
                 />
               )}
-              {state.currentStep === 2 && state.selectedTierId > 1 && (
+              {state.currentStep === 2 && state.selectedTierId === 2 && (
+                <StepAddressWithCpt
+                  location={state.t1Location}
+                  driveTimeMinutes={state.driveTimeMinutes}
+                  cptCodes={state.cptCodes}
+                  maxCptCodes={15}
+                  onLocationChange={(loc) => setState((prev) => ({ ...prev, t1Location: loc }))}
+                  onDriveTimeChange={(v) => setState((prev) => ({ ...prev, driveTimeMinutes: v }))}
+                  onCptCodesChange={(codes) => setState((prev) => ({ ...prev, cptCodes: codes }))}
+                  onNext={advance}
+                  onBack={back}
+                />
+              )}
+              {state.currentStep === 2 && state.selectedTierId > 2 && (
                 <StepLocation
                   zipCode={state.zipCode}
                   milesRadius={state.milesRadius}
@@ -359,7 +436,7 @@ export default function Buy() {
                 />
               )}
 
-              {state.currentStep === 4 && (
+              {state.currentStep === 4 && state.selectedTierId !== 3 && (
                 <>
                   {state.intentError && (
                     <p className="mb-4 rounded-lg bg-red-900/30 px-4 py-3 text-sm text-red-300">
@@ -375,18 +452,29 @@ export default function Buy() {
                     onProceedToPayment={handleProceedToPayment}
                     onBack={back}
                     isLoading={state.isCreatingIntent}
-                    t1Location={state.selectedTierId <= 1 ? state.t1Location : undefined}
-                    cptCodes={state.selectedTierId === 1 ? state.cptCodes.filter((c) => c.trim().length > 0) : undefined}
+                    t1Location={state.selectedTierId <= 2 ? state.t1Location : undefined}
+                    cptCodes={(state.selectedTierId === 1 || state.selectedTierId === 2) ? state.cptCodes.filter((c) => c.trim().length > 0) : undefined}
                     tierName={
                       state.selectedTierId === 0
                         ? 'Market Entry Report'
                         : state.selectedTierId === 1
-                          ? 'Through-the-Door Codes Report'
-                          : 'Legacy Report'
+                          ? 'Current Market Analysis'
+                          : state.selectedTierId === 2
+                            ? 'In-depth Market Analysis'
+                            : 'Custom Market Expansion Report'
                     }
                     price={TIER_PRICES[state.selectedTierId]}
                   />
                 </>
+              )}
+              {state.currentStep === 4 && state.selectedTierId === 3 && (
+                <StepT4Request
+                  specialtyName={state.specialtyName}
+                  email={state.email}
+                  phone={state.phone}
+                  onSubmit={() => setState((prev) => ({ ...prev, t4Submitted: true }))}
+                  onBack={back}
+                />
               )}
 
               {state.currentStep === 5 && state.paymentClientSecret && (

@@ -275,7 +275,7 @@ export default function Buy() {
               REQUEST RECEIVED
             </h2>
             <p className="mt-3 text-white/70">
-              Thank you! A MERC consultant will reach out to{' '}
+              Thank you! A Medical Real Estate Calculator consultant will reach out to{' '}
               <span className="font-semibold text-white">{state.email}</span> within 1 business day
               to scope your custom report.
             </p>

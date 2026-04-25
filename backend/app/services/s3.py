@@ -5,6 +5,7 @@ In production the bucket must exist before deployment.
 For local dev the bucket is created by the LocalStack init script.
 """
 
+import json
 import logging
 
 import boto3
@@ -72,6 +73,28 @@ def upload_debug_excel(job_id: str, excel_bytes: bytes) -> str:
         return key
     except ClientError as exc:
         logging.error("S3 debug Excel upload failed for job %s: %s", job_id, exc)
+        return ""
+
+
+def upload_debug_json(job_id: str, stage: str, data: list | dict) -> str:
+    """
+    Upload a debug JSON artifact to S3.
+    Key pattern: debug/{job_id}/{stage}.json
+    Never raises — logs the error and returns "" on failure.
+    """
+    key = f"debug/{job_id}/{stage}.json"
+    client = _client()
+    try:
+        client.put_object(
+            Bucket=settings.S3_BUCKET_NAME,
+            Key=key,
+            Body=json.dumps(data, default=str).encode("utf-8"),
+            ContentType="application/json",
+        )
+        logging.info("S3 debug artifact uploaded for job %s → %s", job_id, key)
+        return key
+    except Exception as exc:
+        logging.error("S3 debug artifact upload failed for job %s stage %s: %s", job_id, stage, exc)
         return ""
 
 

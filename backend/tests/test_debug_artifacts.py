@@ -83,3 +83,38 @@ def test_find_nearby_google_places_returns_raw_and_deduped():
     assert isinstance(result.deduped, list)
     assert len(result.raw) >= 1
     assert len(result.deduped) >= 1
+
+
+def test_debug_upload_skips_when_no_job_id():
+    """_debug_upload must be a no-op when job_id is None."""
+    from unittest.mock import patch
+    with patch("app.services.report_generator.upload_debug_json") as mock_upload:
+        from app.services.report_generator import _debug_upload
+        _debug_upload(None, "01_providers_raw", [{"npi": "1"}])
+    mock_upload.assert_not_called()
+
+
+def test_debug_upload_skips_when_flag_disabled():
+    """_debug_upload must be a no-op when ENABLE_DEBUG_ARTIFACTS is False."""
+    from unittest.mock import patch
+    with (
+        patch("app.services.report_generator.upload_debug_json") as mock_upload,
+        patch("app.services.report_generator.settings") as mock_settings,
+    ):
+        mock_settings.ENABLE_DEBUG_ARTIFACTS = False
+        from app.services.report_generator import _debug_upload
+        _debug_upload("job123", "01_providers_raw", [{"npi": "1"}])
+    mock_upload.assert_not_called()
+
+
+def test_debug_upload_calls_s3_when_enabled():
+    """_debug_upload must call upload_debug_json when job_id is set and flag is True."""
+    from unittest.mock import patch
+    with (
+        patch("app.services.report_generator.upload_debug_json") as mock_upload,
+        patch("app.services.report_generator.settings") as mock_settings,
+    ):
+        mock_settings.ENABLE_DEBUG_ARTIFACTS = True
+        from app.services.report_generator import _debug_upload
+        _debug_upload("job123", "01_providers_raw", [{"npi": "1"}])
+    mock_upload.assert_called_once_with("job123", "01_providers_raw", [{"npi": "1"}])

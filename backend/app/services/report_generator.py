@@ -32,7 +32,7 @@ from app.services.google_maps import find_nearby_google_places, get_sites_of_car
 from app.services.html_imputers import render_report
 from app.services.mapbox import fetch_isochrones, generate_map, stamp_provider_drive_times_by_isochrone
 from app.services.payment import T2_DISPLAY_PRICE, T3_DISPLAY_PRICE
-from app.services.s3 import upload_debug_excel
+from app.services.s3 import upload_debug_excel, upload_debug_json
 from app.types.alphasophia import CPT, Provider
 from app.types.baseline_report_template import (
     CptRowV2,
@@ -602,6 +602,13 @@ def _build_debug_excel(
 # ── Public entry point ────────────────────────────────────────────────────────
 
 
+def _debug_upload(job_id: str | None, stage: str, data: list | dict) -> None:
+    """Fire-and-forget S3 debug artifact upload; no-ops when disabled."""
+    if not job_id or not settings.ENABLE_DEBUG_ARTIFACTS:
+        return
+    upload_debug_json(job_id, stage, data)
+
+
 async def run_html_report(
     payload: AddressReportRequest,
     state: ReportState,
@@ -633,12 +640,14 @@ async def run_html_report(
     # 4+5. Fetch providers from AlphaSophia and enrich addresses/coords
     log.info("[4] Fetching and enriching providers across %d ZIPs", len(expanded_zips_df))
     providers_list = await _fetch_and_enrich_providers(expanded_zips_df, meta.taxonomy_codes, effective_cpt_codes)
+    _debug_upload(job_id, "01_providers_raw", [p.model_dump() for p in providers_list])
 
     # 5.5 + 6. Stamp drive times and filter to radius (two-pass)
     log.info("[5] Stamping drive times and filtering to %d-min radius", payload.drive_time_minutes)
     providers_in_radius, iso_features = await _stamp_and_filter_providers(
         providers_list, source_lat, source_lon, payload.drive_time_minutes
     )
+    _debug_upload(job_id, "02_providers_filtered", [p.model_dump() for p in providers_in_radius])
 
     # 7. Generate map
     log.info("[6] Generating map image")
@@ -651,6 +660,19 @@ async def run_html_report(
     # 8. CPT profiles + debug dump
     log.info("[7] Fetching CPT profiles for %d in-radius providers", len(providers_in_radius))
     await asyncio.gather(*[p.fetch_cpt_profiles(effective_cpt_codes) for p in providers_in_radius])
+    _debug_upload(
+        job_id,
+        "03_providers_with_cpt",
+        [
+            {
+                "npi": p.npi,
+                "name": p.name,
+                "drive_time_minutes": p.drive_time_minutes,
+                "cpt_list": [c.model_dump() for c in (p.cpt_list or [])],
+            }
+            for p in providers_in_radius
+        ],
+    )
 
     # if log.isEnabledFor(logging.DEBUG):
     #     with open("providers.json", "w") as f:
@@ -665,13 +687,17 @@ async def run_html_report(
         radius_miles=_DRIVE_TIME_FETCH_MILES * 1.5,
     )
     _nearby_google_places = _google_places_result.deduped
+    _debug_upload(job_id, "04_google_places_raw", [p.model_dump() for p in _google_places_result.raw])
+    _debug_upload(job_id, "05_google_places_deduped", [p.model_dump() for p in _google_places_result.deduped])
     # Stamp Nearest Google Place on each Provider in Radius
     for p in providers_in_radius:
         p.stamp_nearest_google_place(_nearby_google_places)
 
     # Group providers by physical site; used as `peers` when use_site_of_care=True.
     _sites_of_care_list = get_sites_of_care_list(providers_in_radius)
+    _debug_upload(job_id, "06_sites_of_care", [s.model_dump() for s in _sites_of_care_list])
     peers: list[Provider | SiteOfCare] = _sites_of_care_list if use_site_of_care else providers_in_radius
+    _debug_upload(job_id, "07_peers", [p.model_dump() for p in peers])
     # with open("_debug_nearby_google_places.json", "w") as f:
     #     f.write(json.dumps([p.model_dump() for p in _nearby_google_places], indent=2))
 
@@ -695,6 +721,16 @@ async def run_html_report(
         state.rvu_table,
         state.gpci_table,
     )
+    _debug_upload(
+        job_id,
+        "08_cpt_aggregation",
+        {
+            "total_market_services": cpt_agg.total_market_services,
+            "share_denom": cpt_agg.share_denom,
+            "cpt_rows": [r.model_dump() for r in cpt_agg.cpt_rows],
+            "provider_shares": [s.model_dump() for s in cpt_agg.provider_shares],
+        },
+    )
     locum_count = sum(1 for p in peers if p.is_locum)
     log.info("[8] %d CPT rows, market total: %d", len(cpt_agg.cpt_rows), cpt_agg.total_market_services)
 
@@ -708,6 +744,15 @@ async def run_html_report(
         peers,
         payload.specialty_name,
         payload.zip_code,
+    )
+    _debug_upload(
+        job_id,
+        "09_population_data",
+        {
+            "total_population": pop.total_population,
+            "relevant_pop": pop.relevant_pop,
+            "population_label": pop.population_label,
+        },
     )
 
     # 11. Verdict + density gap (locum providers excluded — they don't represent permanent market capacity)

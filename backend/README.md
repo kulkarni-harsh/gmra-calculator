@@ -1,71 +1,63 @@
-# FastAPI Professional Backend Template
+# MERC Backend
 
-Production-focused FastAPI starter with clean structure, typed settings, SQLAlchemy async setup, and quality tooling.
+FastAPI service that powers the MERC (Medical Estate Real Calculator) report pipeline.
 
-## Features
+## What it does
 
-- App factory pattern and versioned API routing
-- Health endpoint: `GET /api/v1/health`
-- Environment-based configuration with Pydantic Settings
-- Async SQLAlchemy session management scaffold
-- Pytest setup with API test example
-- uv for dependency and environment management
-- Ruff + MyPy + pre-commit
-- Dockerfile + docker-compose (API + Postgres)
+Two processes in one Docker image:
 
-## Project Structure
+- **API** (`uvicorn app.main:app`) — accepts payment + report-job requests, lists specialties, returns job status.
+- **Worker** (`python -m app.worker`) — long-polls SQS, generates HTML/PDF reports, uploads to S3, emails the customer.
 
-```text
-backend/
-  app/
-    api/v1/endpoints/
-    core/
-    db/
-    models/
-    schemas/
-    services/
-    main.py
-  tests/
-  pyproject.toml
-  Dockerfile
-  docker-compose.yml
-```
+For the request lifecycle and module map, see `docs/ARCHITECTURE.md` and `docs/MODULES.md`.
 
-## Quick Start
-
-```bash
-# install uv once (macOS): brew install uv
-cd backend
-cp .env.example .env
-uv sync --dev
-make run
-```
-
-Open: http://127.0.0.1:8000/docs
-
-## Testing & Quality
-
-```bash
-make install
-make test
-make lint
-make typecheck
-```
-
-## Add Dependencies
-
-```bash
-# runtime dependency
-make add PKG="pandas"
-
-# development-only dependency
-make add-dev PKG="ipython"
-```
-
-## Docker
+## Quick start
 
 ```bash
 cd backend
-cp .env.example .env
-docker compose up --build
+cp .env.example .env       # fill in API keys (Census, Mapbox, AlphaSophia, Google, Stripe, Resend, AWS)
+make install                # uv sync --dev
+make run                    # uvicorn on :8000 — http://127.0.0.1:8000/docs
 ```
+
+## Common commands
+
+```bash
+make test          # pytest
+make lint          # ruff check
+make format        # ruff format
+make typecheck     # mypy app
+make pre-commit    # full lint + format + mypy pass (run before every commit)
+```
+
+## Adding dependencies
+
+```bash
+make add PKG="<package>"        # runtime
+make add-dev PKG="<package>"    # dev/test only
+```
+
+## Tests
+
+`tests/` mirrors `app/` — one test file per module under test. Boto3, Stripe, Resend, and httpx are mocked at the module-attribute layer (see `tests/test_debug_artifacts.py` for the canonical pattern).
+
+```bash
+uv run pytest                                    # all
+uv run pytest tests/test_payment_service.py -v   # one file
+uv run pytest -k "fee_schedule"                  # by keyword
+```
+
+## Living documentation
+
+- `CLAUDE.md` — guidance for AI agents working in this directory
+- `docs/ARCHITECTURE.md` — system design + request flow
+- `docs/MODULES.md` — per-module purpose + test coverage
+- `docs/CHANGELOG.md` — append a one-liner whenever a meaningful change lands
+
+## Local AWS (LocalStack)
+
+Point `AWS_ENDPOINT_URL=http://localhost:4566` in `.env`. The init script in `../localstack-init/` provisions the bucket, table, and queue.
+
+## Production
+
+Deployed via `../deploy.sh` (ECS Fargate). See `../infra/` for CDK / Terraform once that lands.

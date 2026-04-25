@@ -54,13 +54,17 @@ export default function FaqSection() {
       <div className="mt-7 max-w-[720px]">
         {FAQS.map((f, i) => {
           const open = openIndex === i
+          const buttonId = `faq-trigger-${i}`
+          const panelId = `faq-panel-${i}`
           return (
             <div key={f.q} className="border-b border-mcrec-light">
               <button
+                id={buttonId}
                 type="button"
                 onClick={() => setOpenIndex(open ? null : i)}
                 className="relative w-full py-4.5 pr-10 text-left text-[13px] font-semibold leading-[1.5] text-mcrec-navy"
                 aria-expanded={open}
+                aria-controls={panelId}
               >
                 {f.q}
                 <span className="absolute right-0 top-1/2 -translate-y-1/2 text-lg font-light text-mcrec-blue">
@@ -68,6 +72,9 @@ export default function FaqSection() {
                 </span>
               </button>
               <div
+                id={panelId}
+                role="region"
+                aria-labelledby={buttonId}
                 className={`grid overflow-hidden transition-[grid-template-rows] duration-300 ${
                   open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
                 }`}

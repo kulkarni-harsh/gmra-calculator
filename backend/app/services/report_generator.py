@@ -27,10 +27,11 @@ from app.services.alphasophia import get_hcp_data
 from app.services.bedrock_llm import MarketAnalysisInput, generate_market_analysis
 from app.services.census import get_population_in_polygon
 from app.services.fee_schedule import get_medicare_rate
-from app.services.payment import T2_DISPLAY_PRICE, T3_DISPLAY_PRICE
 from app.services.geocoder import geocode_address
+from app.services.google_maps import find_nearby_google_places, get_sites_of_care_list
 from app.services.html_imputers import render_report
 from app.services.mapbox import fetch_isochrones, generate_map, stamp_provider_drive_times_by_isochrone
+from app.services.payment import T2_DISPLAY_PRICE, T3_DISPLAY_PRICE
 from app.services.s3 import upload_debug_excel
 from app.types.alphasophia import CPT, Provider
 from app.types.baseline_report_template import (
@@ -40,6 +41,7 @@ from app.types.baseline_report_template import (
     ReportTemplateDataV2,
     Upgrade,
 )
+from app.types.google_maps import SiteOfCare
 from app.utils.common import (
     generate_tags,
     get_anchor_cpt_codes,
@@ -52,6 +54,7 @@ from app.utils.common import (
     get_taxonomy_codes,
     load_fee_schedule_tables,
 )
+from app.utils.specialty import get_google_places_keywords
 from app.utils.validator import validate_speciality_master_df
 
 # Max drive-time option is 60 min. At ~50 mph average, 60 min ≈ 50 miles.
@@ -251,9 +254,7 @@ async def _stamp_and_filter_providers(
     # distances for all fetched providers, not only those that made the cut.
     for p in providers:
         if p.latitude is not None and p.longitude is not None:
-            p.distance_from_source_miles = geodesic(
-                (p.latitude, p.longitude), (source_lat, source_lon)
-            ).miles
+            p.distance_from_source_miles = geodesic((p.latitude, p.longitude), (source_lat, source_lon)).miles
 
     in_radius = [
         p
@@ -277,9 +278,7 @@ async def _stamp_and_filter_providers(
                 drive_time_limit,
             )
             in_radius = [
-                p
-                for p in in_radius
-                if p.drive_time_minutes is not None and p.drive_time_minutes <= drive_time_limit
+                p for p in in_radius if p.drive_time_minutes is not None and p.drive_time_minutes <= drive_time_limit
             ]
             log.info("%d providers after re-stamp reconciliation", len(in_radius))
         except Exception as exc:
@@ -302,9 +301,7 @@ async def _generate_map_image(
     log = logging.getLogger(__name__)
     try:
         provider_coords = [
-            (p.latitude, p.longitude)
-            for p in providers_in_radius
-            if p.latitude is not None and p.longitude is not None
+            (p.latitude, p.longitude) for p in providers_in_radius if p.latitude is not None and p.longitude is not None
         ]
         result = await asyncio.to_thread(
             generate_map,
@@ -330,7 +327,7 @@ async def _generate_map_image(
 
 
 def _aggregate_cpt_data(
-    providers_in_radius: list[Provider],
+    providers_in_radius: list[Provider | SiteOfCare],
     cpt_codes: list[str],
     cpt_patient_type_map: dict[str, str],
     provider_state: str,
@@ -338,21 +335,18 @@ def _aggregate_cpt_data(
     gpci_table: dict,
 ) -> _CptAggregation:
     """Aggregate CPT volume across all in-radius peers and build display rows."""
-    # Pass 1 — compute per-provider totals and stamp cpt_total_services
-    for p in providers_in_radius:
-        total = sum(
-            (p.get_cpt_profile(code).totalServices or 0)
-            for code in cpt_codes
-            if p.get_cpt_profile(code)
-        )
-        p.cpt_total_services = total
 
     # Guard against divide-by-zero when no providers have any recorded services.
     share_denom = sum(p.cpt_total_services for p in providers_in_radius) or 1
 
     # Pass 2 — classify locum and build share list
-    for p in providers_in_radius:
-        p.set_is_locum(share_denom)
+    # Set is_locum on all providers
+    if providers_in_radius and type(providers_in_radius[0]) is Provider:
+        for p in providers_in_radius:
+            p.set_is_locum(share_denom)
+
+    # SiteOfCare already has is_locum set appropriately,
+    # so we can skip that step for the SiteOfCare list if that's what we're processing here.
 
     provider_shares = sorted(
         [
@@ -409,7 +403,7 @@ def _fetch_population_data(
     source_lat: float,
     source_lon: float,
     drive_time_minutes: int,
-    providers_in_radius: list[Provider],
+    providers_in_radius: list[Provider | SiteOfCare],
     specialty_name: str,
     fallback_zip: str,
 ) -> _PopulationData:
@@ -455,9 +449,7 @@ def _fetch_population_data(
     # Searched-ZIPs list for the report footer (centroid-in-polygon, display only).
     if iso_polygon is not None:
         actual_zips_df = expanded_zips_df[
-            expanded_zips_df.apply(
-                lambda row: iso_polygon.contains(Point(row["lon"], row["lat"])), axis=1
-            )
+            expanded_zips_df.apply(lambda row: iso_polygon.contains(Point(row["lon"], row["lat"])), axis=1)
         ]
     else:
         in_radius_zips = {str(p.location.zip_code) for p in providers_in_radius}
@@ -507,16 +499,19 @@ def _compute_verdict(
         return _Verdict("caution", "N/A", "No density data available for this specialty/state.")
     if provider_gap > 1:
         return _Verdict(
-            "opportunity", "GO",
+            "opportunity",
+            "GO",
             f"Underserved — {provider_gap:.1f} provider-equivalent gap vs. {density_scope.lower()} density baseline.",
         )
     if provider_gap < -1:
         return _Verdict(
-            "avoid", "AVOID",
+            "avoid",
+            "AVOID",
             f"Saturated — {abs(provider_gap):.1f} providers above {density_scope.lower()} density baseline.",
         )
     return _Verdict(
-        "caution", "CAUTION",
+        "caution",
+        "CAUTION",
         f"Market is near {density_scope.lower()} density baseline — limited opportunity.",
     )
 
@@ -528,12 +523,13 @@ def _build_debug_excel(
     source_lon: float,
     cpt_codes: list[str],
     job_id: str,
+    sites_of_care: list | None = None,
 ) -> bytes | None:
     """Upload a debug Excel to S3 and return the raw bytes, or None on failure."""
     log = logging.getLogger(__name__)
     in_radius_ids = {p.id for p in providers_in_radius}
 
-    def _row(p: Provider) -> dict:
+    def _provider_row(p: Provider) -> dict:
         row: dict = {
             "npi": p.npi,
             "name": p.name,
@@ -558,12 +554,43 @@ def _build_debug_excel(
             row[f"cpt_{code}"] = cpt.totalServices if cpt else None
         return row
 
+    def _soc_row(s) -> dict:
+        row: dict = {
+            "place_id": s.place_id,
+            "name": s.name,
+            "vicinity": s.vicinity,
+            "phone": s.phone,
+            "city": s.location.city,
+            "state": s.location.state,
+            "latitude": s.latitude,
+            "longitude": s.longitude,
+            "taxonomy_code": s.taxonomy.code,
+            "taxonomy_description": s.taxonomy.description,
+            "is_locum": s.is_locum,
+            "distance_from_center_miles": round(s.distance_from_source_miles, 2)
+            if s.distance_from_source_miles is not None
+            else None,
+            "drive_time_minutes": s.drive_time_minutes,
+            "npi_list": ", ".join(s.npi_list) if s.npi_list else None,
+        }
+        cpt_by_code = {c.code: c for c in s.cpt_list}
+        for code in cpt_codes:
+            cpt = cpt_by_code.get(code)
+            row[f"cpt_{code}"] = cpt.totalServices if cpt else None
+        return row
+
     try:
         buf = BytesIO()
-        pd.DataFrame(
+        providers_df = pd.DataFrame(
             [{"npi": "source", "latitude": source_lat, "longitude": source_lon, "distance_from_center_miles": 0}]
-            + [_row(p) for p in providers_list]
-        ).to_excel(buf, index=False, engine="openpyxl")
+            + [_provider_row(p) for p in providers_list]
+        )
+        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+            providers_df.to_excel(writer, sheet_name="Providers", index=False)
+            if sites_of_care:
+                pd.DataFrame([_soc_row(s) for s in sites_of_care]).to_excel(
+                    writer, sheet_name="Sites of Care", index=False
+                )
         excel_bytes = buf.getvalue()
         upload_debug_excel(job_id, excel_bytes)
         return excel_bytes
@@ -582,6 +609,9 @@ async def run_html_report(
     custom_cpt_codes: list[str] | None = None,
 ) -> tuple[str, bytes | None]:
     """Generate the Tier 0 HTML report from an address. Returns (html, debug_excel_bytes)."""
+    # Manual set-up for backward compatibility
+    use_site_of_care = True
+
     log = logging.getLogger(__name__)
 
     # 1. Specialty metadata
@@ -597,16 +627,12 @@ async def run_html_report(
 
     # 3. Candidate ZIPs
     log.info("[3] Computing candidate ZIPs within %.0f-mile fetch radius", _DRIVE_TIME_FETCH_MILES)
-    expanded_zips_df = _compute_candidate_zips(
-        state.zip_centroids_df, source_lat, source_lon, payload.zip_code
-    )
+    expanded_zips_df = _compute_candidate_zips(state.zip_centroids_df, source_lat, source_lon, payload.zip_code)
     log.info("[3] %d candidate ZIPs", len(expanded_zips_df))
 
     # 4+5. Fetch providers from AlphaSophia and enrich addresses/coords
     log.info("[4] Fetching and enriching providers across %d ZIPs", len(expanded_zips_df))
-    providers_list = await _fetch_and_enrich_providers(
-        expanded_zips_df, meta.taxonomy_codes, effective_cpt_codes
-    )
+    providers_list = await _fetch_and_enrich_providers(expanded_zips_df, meta.taxonomy_codes, effective_cpt_codes)
 
     # 5.5 + 6. Stamp drive times and filter to radius (two-pass)
     log.info("[5] Stamping drive times and filtering to %d-min radius", payload.drive_time_minutes)
@@ -626,17 +652,46 @@ async def run_html_report(
     log.info("[7] Fetching CPT profiles for %d in-radius providers", len(providers_in_radius))
     await asyncio.gather(*[p.fetch_cpt_profiles(effective_cpt_codes) for p in providers_in_radius])
 
+    # Save debug as JSON for debugging.
+    with open("providers.json", "w") as f:
+        f.write(json.dumps([p.model_dump() for p in providers_in_radius], indent=2))
+
+    _google_places_keywords = get_google_places_keywords(state.specialty_lookup, payload.specialty_name)
+    _nearby_google_places = find_nearby_google_places(
+        source_latitude=source_lat,
+        source_longitude=source_lon,
+        keywords=_google_places_keywords,
+        # Google Places uses a straight-line radius, so we can be more generous here than the drive-time fetch radius.
+        radius_miles=_DRIVE_TIME_FETCH_MILES * 1.5,
+    )
+    # Stamp Nearest Google Place on each Provider in Radius
+    for p in providers_in_radius:
+        p.stamp_nearest_google_place(_nearby_google_places)
+
+    # Save sites of care list for debugging / potential future use.
+    _sites_of_care_list = get_sites_of_care_list(providers_in_radius)
+    # with open("_debug_nearby_google_places.json", "w") as f:
+    #     f.write(json.dumps([p.model_dump() for p in _nearby_google_places], indent=2))
+
+    # with open("_debug_sites_of_care.json", "w") as f:
+    #     f.write(json.dumps([p.model_dump() for p in _sites_of_care_list], indent=2))
+
     debug_excel_bytes: bytes | None = None
     if job_id:
         debug_excel_bytes = _build_debug_excel(
-            providers_list, providers_in_radius, source_lat, source_lon, effective_cpt_codes, job_id
+            providers_list, providers_in_radius, source_lat, source_lon, effective_cpt_codes, job_id,
+            sites_of_care=_sites_of_care_list,
         )
 
     # 9. Aggregate CPT data
     log.info("[8] Aggregating CPT data across %d providers", len(providers_in_radius))
     cpt_agg = _aggregate_cpt_data(
-        providers_in_radius, effective_cpt_codes, meta.cpt_patient_type_map,
-        provider_state, state.rvu_table, state.gpci_table,
+        providers_in_radius,
+        effective_cpt_codes,
+        meta.cpt_patient_type_map,
+        provider_state,
+        state.rvu_table,
+        state.gpci_table,
     )
     locum_count = sum(1 for p in providers_in_radius if p.is_locum)
     log.info("[8] %d CPT rows, market total: %d", len(cpt_agg.cpt_rows), cpt_agg.total_market_services)
@@ -644,8 +699,13 @@ async def run_html_report(
     # 10. Population + demographics
     log.info("[9] Fetching census demographics")
     pop = _fetch_population_data(
-        expanded_zips_df, source_lat, source_lon, payload.drive_time_minutes,
-        providers_in_radius, payload.specialty_name, payload.zip_code,
+        expanded_zips_df,
+        source_lat,
+        source_lon,
+        payload.drive_time_minutes,
+        providers_in_radius,
+        payload.specialty_name,
+        payload.zip_code,
     )
 
     # 11. Verdict + density gap (locum providers excluded — they don't represent permanent market capacity)

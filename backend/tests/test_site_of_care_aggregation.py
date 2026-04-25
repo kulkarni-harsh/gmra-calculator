@@ -31,3 +31,36 @@ def test_get_cpt_profile_found():
 def test_get_cpt_profile_missing_returns_none():
     soc = _make_soc({"99213": 100})
     assert soc.get_cpt_profile("00000") is None
+
+
+from app.services.report_generator import _aggregate_cpt_data
+
+
+def test_aggregate_cpt_data_with_sites_of_care():
+    soc_a = _make_soc({"99213": 200, "99214": 100})
+    soc_b = _make_soc({"99213": 50})
+    result = _aggregate_cpt_data(
+        providers_in_radius=[soc_a, soc_b],
+        cpt_codes=["99213", "99214"],
+        cpt_patient_type_map={},
+        provider_state="CA",
+        rvu_table={},
+        gpci_table={},
+    )
+    assert result.total_market_services == 350
+    assert result.share_denom == 350
+    assert len(result.cpt_rows) == 2
+    assert result.cpt_rows[0].code == "99213"  # highest volume first
+
+
+def test_aggregate_cpt_data_empty_list():
+    result = _aggregate_cpt_data(
+        providers_in_radius=[],
+        cpt_codes=["99213"],
+        cpt_patient_type_map={},
+        provider_state="CA",
+        rvu_table={},
+        gpci_table={},
+    )
+    assert result.total_market_services == 0
+    assert result.share_denom == 1  # divide-by-zero guard

@@ -1,3 +1,4 @@
+import logging
 from io import BytesIO
 
 from pptx.enum.shapes import MSO_SHAPE_TYPE
@@ -95,6 +96,6 @@ def remove_specific_text_row(slide, col_num, match_text_list: tuple):
                     value = cell.text.strip()
                     if value in match_text_list:
                         table._tbl.remove(table.rows[row_idx]._tr)
-                except Exception as e:
-                    print("exception", e)
+                except Exception as exc:
+                    logging.warning("PPT placeholder substitution failed: %s", exc)
                     continue

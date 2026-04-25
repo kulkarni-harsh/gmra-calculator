@@ -1,3 +1,5 @@
+import logging
+
 import pandas as pd
 
 from app.core.types import SexAgeCounts
@@ -97,7 +99,7 @@ def get_specialty_anchor_cpt_info(
         )
 
     if specialty_name not in specialty_master_df["Specialty"].apply(lambda x: str(x).strip().lower()).values:
-        print(f"Warning: Specialty '{specialty_name}' not found in specialty master sheet.")
+        logging.warning("Specialty '%s' not found in master sheet — using fallback CPT codes", specialty_name)
         return parse_anchor_codes_filters("99202-99215, 99381-99397, G0438-G0439"), 4200
 
     specialty_row = specialty_master_df[

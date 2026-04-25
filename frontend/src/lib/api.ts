@@ -4,9 +4,11 @@
 import type {
   CreateT1PaymentIntentPayload,
   CreateT2PaymentIntentPayload,
+  CreateT3PaymentIntentPayload,
   GenerateReportRequest,
   GenerateT1ReportRequest,
   GenerateT2ReportRequest,
+  GenerateT3ReportRequest,
   Provider,
   Specialty,
 } from '@/types/api'
@@ -155,6 +157,35 @@ export async function generateT2Report(payload: GenerateT2ReportRequest): Promis
   if (!res.ok) {
     const text = await res.text().catch(() => '')
     throw new Error(`T2 job submission failed (${res.status}): ${text}`)
+  }
+  const { job_id } = (await res.json()) as { job_id: string }
+  return { htmlContent: null, jobId: job_id }
+}
+
+export async function createT3PaymentIntent(
+  payload: CreateT3PaymentIntentPayload,
+): Promise<CreatePaymentIntentResult> {
+  const res = await fetch(`${API}/payments/create-t3-payment-intent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`Failed to create T3 payment session (${res.status}): ${text}`)
+  }
+  return res.json() as Promise<CreatePaymentIntentResult>
+}
+
+export async function generateT3Report(payload: GenerateT3ReportRequest): Promise<GenerateResult> {
+  const res = await fetch(`${API}/reports/t3/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`T3 job submission failed (${res.status}): ${text}`)
   }
   const { job_id } = (await res.json()) as { job_id: string }
   return { htmlContent: null, jobId: job_id }

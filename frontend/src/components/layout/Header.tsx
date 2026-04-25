@@ -1,69 +1,97 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import MercLogo from '@/components/layout/MercLogo'
 
+interface NavLink {
+  hash: string
+  label: string
+}
+
+const LINKS: ReadonlyArray<NavLink> = [
+  { hash: 'what-it-is', label: 'What It Is' },
+  { hash: 'who-its-for', label: "Who It's For" },
+  { hash: 'site-neutrality', label: '2026 Opportunity' },
+  { hash: 'reports', label: 'Reports & Pricing' },
+  { hash: 'globe-mcrec', label: 'GMRA & MCREC' },
+  { hash: 'faq', label: 'FAQs' },
+]
+
 export default function Header() {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
 
-  const navLinks = [
-    { to: '/', label: 'Home' },
-    { to: '/buy', label: 'Buy / Book Consultation' },
-    { to: '/status', label: 'Check Status' },
-  ]
+  const goToAnchor = (hash: string) => {
+    setMenuOpen(false)
+    if (pathname === '/') {
+      const el = document.getElementById(hash)
+      if (el) {
+        const y = el.getBoundingClientRect().top + window.scrollY - 72
+        window.scrollTo({ top: y, behavior: 'smooth' })
+      }
+    } else {
+      navigate(`/#${hash}`)
+    }
+  }
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-[hsl(215_63%_14%)] shadow-md">
-      <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 py-3">
-        {/* Wordmark */}
-        <Link to="/" className="hover:opacity-85 transition-opacity">
-          <MercLogo variant="nav" />
-        </Link>
+    <header className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-mcrec-light bg-white/95 px-5 backdrop-blur md:px-14">
+      <Link to="/" className="hover:opacity-90" onClick={() => setMenuOpen(false)}>
+        <MercLogo variant="nav" />
+      </Link>
 
-        {/* Desktop Nav */}
-        <nav className="hidden items-center gap-2 md:flex">
-          {navLinks.map(({ to, label }) => (
-            <Link
-              key={to}
-              to={to}
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                pathname === to
-                  ? 'bg-white text-[hsl(215_63%_14%)]'
-                  : 'text-white/80 hover:text-white'
-              }`}
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
+      <button
+        className="md:hidden"
+        onClick={() => setMenuOpen((v) => !v)}
+        aria-label="Toggle menu"
+      >
+        {menuOpen ? <X size={22} className="text-mcrec-navy" /> : <Menu size={22} className="text-mcrec-navy" />}
+      </button>
 
-        {/* Mobile hamburger */}
-        <button
-          className="text-white md:hidden"
-          onClick={() => setMenuOpen((v) => !v)}
-          aria-label="Toggle menu"
+      <nav className="hidden items-center gap-1 md:flex">
+        {LINKS.map((link) => (
+          <button
+            key={link.hash}
+            onClick={() => goToAnchor(link.hash)}
+            className="rounded-sm px-3.5 py-2 text-xs font-medium text-mcrec-gray transition-colors hover:text-mcrec-navy"
+          >
+            {link.label}
+          </button>
+        ))}
+        <a
+          href="tel:+18884772241"
+          className="ml-2 mr-3 text-[11px] font-semibold tracking-wide text-mcrec-navy hover:text-mcrec-blue"
         >
-          {menuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-      </div>
+          1-888-477-2241
+        </a>
+        <Link
+          to="/buy"
+          className="rounded-sm bg-mcrec-blue px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-white transition-colors hover:bg-mcrec-navy"
+        >
+          Order a Report
+        </Link>
+      </nav>
 
-      {/* Mobile drawer */}
       {menuOpen && (
-        <nav className="border-t border-white/10 bg-[hsl(215_63%_14%)] px-6 pb-4 md:hidden">
-          {navLinks.map(({ to, label }) => (
-            <Link
-              key={to}
-              to={to}
-              onClick={() => setMenuOpen(false)}
-              className={`block py-3 text-sm font-medium ${
-                pathname === to ? 'text-[#2d9cdb]' : 'text-white/80'
-              }`}
+        <div className="absolute left-0 right-0 top-16 flex flex-col gap-1 border-b border-mcrec-light bg-white px-5 py-4 shadow-lg md:hidden">
+          {LINKS.map((link) => (
+            <button
+              key={link.hash}
+              onClick={() => goToAnchor(link.hash)}
+              className="rounded-sm px-3 py-2 text-left text-sm font-medium text-mcrec-gray hover:bg-mcrec-off hover:text-mcrec-navy"
             >
-              {label}
-            </Link>
+              {link.label}
+            </button>
           ))}
-        </nav>
+          <Link
+            to="/buy"
+            onClick={() => setMenuOpen(false)}
+            className="mt-2 rounded-sm bg-mcrec-blue px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-white"
+          >
+            Order a Report
+          </Link>
+        </div>
       )}
     </header>
   )

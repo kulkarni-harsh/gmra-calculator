@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { TIER_PRICES } from '@/lib/pricing'
 
 interface Tier {
   id: string
@@ -11,12 +12,15 @@ interface Tier {
   featured?: boolean
 }
 
+// TIER_PRICES values look like "$399"; strip the leading $ for the styled price chip.
+const priceFor = (tierIndex: 0 | 1 | 2): string => TIER_PRICES[tierIndex].replace('$', '')
+
 const TIERS: ReadonlyArray<Tier> = [
   {
     id: 'tier1',
     tier: 'Tier 1',
     name: 'Market Baseline',
-    price: '399',
+    price: priceFor(0),
     desc: 'Best for physicians evaluating a market for the first time or wanting an objective read on provider density and market activity.',
     features: [
       'Provider volume in your drive-time market',
@@ -31,7 +35,7 @@ const TIERS: ReadonlyArray<Tier> = [
     id: 'tier2',
     tier: 'Tier 2',
     name: 'Practice-Specific',
-    price: '599',
+    price: priceFor(1),
     desc: 'Ideal for lease renewals and new location decisions where demand for your specific procedures matters most.',
     features: [
       'Everything in Market Baseline',
@@ -47,7 +51,7 @@ const TIERS: ReadonlyArray<Tier> = [
     id: 'tier3',
     tier: 'Tier 3',
     name: 'Advanced Practice',
-    price: '799',
+    price: priceFor(2),
     desc: 'For multi-provider groups and significant lease decisions requiring the most complete market picture available.',
     features: [
       'Everything in Practice-Specific',

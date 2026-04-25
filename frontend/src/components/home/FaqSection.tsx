@@ -20,7 +20,7 @@ const FAQS: ReadonlyArray<Faq> = [
   },
   {
     q: 'What is the difference between the three report tiers?',
-    a: 'Market Baseline ($399) gives you a full market-level picture of provider density and demand for your specialty. Practice-Specific ($599) adds 5 procedure categories tailored to your specialty for deeper analysis. Advanced Practice ($799) includes 15 procedure categories and is the most complete market picture available — it is also the report Globe fiduciary clients receive at no cost as part of their engagement.',
+    a: 'Market Baseline ($399) gives you a full market-level picture of provider density and demand for your specialty. Practice-Specific ($499) adds 5 procedure categories tailored to your specialty for deeper analysis. Advanced Practice ($599) includes 15 procedure categories and is the most complete market picture available — it is also the report Globe fiduciary clients receive at no cost as part of their engagement.',
   },
   {
     q: "Can I use this report in my lease negotiation even if I don't have a broker?",

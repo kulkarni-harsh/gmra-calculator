@@ -117,7 +117,7 @@ class ReportTemplateDataV2:
     totalPopulation: str
     relevantPopulation: str
     populationLabel: str
-    currentProviders: int
+    activeProviders: int
     targetDensity: float
     providerGap: float
     cptRows: list[CptRowV2]
@@ -140,8 +140,8 @@ class ReportTemplateDataV2:
     providerShares: list[ProviderShareEntry] | None = None
     # Map image: base64 data URI ("data:image/png;base64,...") or None to hide the map section.
     mapImageSrc: str | None = None
-    # Number of locum providers (CPT volume ≤ 2% of total market) within the radius.
-    # Display: show (currentProviders - locumCount) as non-locum base, locumCount as subscript.
+    # locumCount: number of locum / part-time providers in the radius (CPT volume ≤ 2% of market).
+    # Display: show activeProviders as the full-time base, locumCount as a subscript footnote.
     locumCount: int = 0
     # "State" when state-level density data exists; "National (US Avg.)" when falling back to
     # the national benchmark because the state has no data in specialty_lookup.

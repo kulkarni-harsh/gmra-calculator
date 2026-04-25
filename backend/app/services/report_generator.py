@@ -871,7 +871,7 @@ async def run_html_report(
         totalPopulation=f"{pop.total_population:,}" if pop.total_population > 0 else "N/A",
         relevantPopulation=f"{pop.relevant_pop:,}" if pop.relevant_pop > 0 else "N/A",
         populationLabel=pop.population_label,
-        currentProviders=peer_providers_count,
+        activeProviders=peer_providers_count,
         targetDensity=round(expected_providers, 1),
         providerGap=round(provider_gap, 1),
         cptRows=cpt_agg.cpt_rows,

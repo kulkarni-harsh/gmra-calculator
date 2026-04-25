@@ -126,3 +126,29 @@ export interface CreateT2PaymentIntentPayload {
   drive_time_minutes: number
   cpt_codes: string[]        // 1–5 CPT codes
 }
+
+// T3 In-depth Market Analysis types (up to 15 CPT codes)
+export interface GenerateT3ReportRequest {
+  specialty_name: string
+  address_line_1: string
+  address_line_2?: string
+  city: string
+  state: string
+  zip_code: string
+  drive_time_minutes: number
+  cpt_codes: string[]        // 1–15 CPT codes
+  customer_email: string
+  payment_intent_id: string
+}
+
+export interface CreateT3PaymentIntentPayload {
+  customer_email: string
+  specialty_name: string
+  address_line_1: string
+  address_line_2?: string
+  city: string
+  state: string
+  zip_code: string
+  drive_time_minutes: number
+  cpt_codes: string[]        // 1–15 CPT codes
+}

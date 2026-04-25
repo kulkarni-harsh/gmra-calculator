@@ -1,4 +1,3 @@
-from unittest.mock import patch
 import pytest
 
 
@@ -14,6 +13,7 @@ def test_enable_debug_artifacts_default_true():
 
 
 def test_enable_debug_artifacts_can_be_disabled():
+    """ENABLE_DEBUG_ARTIFACTS can be explicitly set to False."""
     from app.core.config import Settings
     s = Settings(
         PROJECT_NAME="test", VERSION="0", API_PREFIX="/api",

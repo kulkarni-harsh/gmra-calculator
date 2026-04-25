@@ -118,3 +118,15 @@ def test_debug_upload_calls_s3_when_enabled():
         from app.services.report_generator import _debug_upload
         _debug_upload("job123", "01_providers_raw", [{"npi": "1"}])
     mock_upload.assert_called_once_with("job123", "01_providers_raw", [{"npi": "1"}])
+
+
+def test_load_state_module_imports_json():
+    """Importing load_state must not raise NameError for json."""
+    import inspect
+    from app.services.report_generator import load_state
+
+    src = inspect.getsource(load_state)
+    assert "json.load" in src
+
+    import app.services.report_generator as rg
+    assert hasattr(rg, "json")

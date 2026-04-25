@@ -222,3 +222,6 @@ backend/test.ipynb
 # Git worktrees
 .worktrees/
 docs/superpowers/*
+
+# Ignore debug json
+*/_debug_*.json.worktrees/

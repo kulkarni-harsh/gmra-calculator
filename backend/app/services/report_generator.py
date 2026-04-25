@@ -657,13 +657,14 @@ async def run_html_report(
     #         f.write(json.dumps([p.model_dump() for p in providers_in_radius], indent=2))
 
     _google_places_keywords = get_google_places_keywords(state.specialty_lookup, payload.specialty_name)
-    _nearby_google_places = find_nearby_google_places(
+    _google_places_result = find_nearby_google_places(
         source_latitude=source_lat,
         source_longitude=source_lon,
         keywords=_google_places_keywords,
         # Google Places uses a straight-line radius, so we can be more generous here than the drive-time fetch radius.
         radius_miles=_DRIVE_TIME_FETCH_MILES * 1.5,
     )
+    _nearby_google_places = _google_places_result.deduped
     # Stamp Nearest Google Place on each Provider in Radius
     for p in providers_in_radius:
         p.stamp_nearest_google_place(_nearby_google_places)

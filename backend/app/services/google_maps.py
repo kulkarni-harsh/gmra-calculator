@@ -1,6 +1,7 @@
 import json
 import math
 import time
+from typing import NamedTuple
 
 import requests
 
@@ -9,6 +10,12 @@ from app.services.geocoding import calculate_distance_miles
 from app.types.alphasophia import Provider
 from app.types.cpt import CPT
 from app.types.google_maps import GooglePlace, SiteOfCare
+
+
+class GooglePlacesResult(NamedTuple):
+    raw: list[GooglePlace]
+    deduped: list[GooglePlace]
+
 
 # Google Places Nearby Search API hard cap is 50,000 m ≈ 31.07 miles.
 # Requests with a larger radius are silently clamped to this value.
@@ -21,7 +28,7 @@ def find_nearby_google_places(
     keywords: list[str],
     radius_miles: float = 3.0,
     dedup_threshold_miles: float = 0.03,  # ~50m in miles
-) -> list[GooglePlace]:
+) -> GooglePlacesResult:
     tile_radius = min(radius_miles, _MAX_API_RADIUS_MILES)
 
     if radius_miles <= _MAX_API_RADIUS_MILES:
@@ -70,7 +77,7 @@ def find_nearby_google_places(
     # with open("debug_google_places_deduped.json", "w") as f:
     #     f.write(json.dumps([p.model_dump() for p in deduped], indent=2))
 
-    return deduped
+    return GooglePlacesResult(raw=parsed, deduped=deduped)
 
 
 def _fetch_places_raw(

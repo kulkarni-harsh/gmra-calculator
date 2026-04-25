@@ -54,3 +54,32 @@ def test_upload_debug_json_returns_empty_string_on_error():
         result = upload_debug_json("job123", "01_providers_raw", [])
 
     assert result == ""
+
+
+def test_find_nearby_google_places_returns_raw_and_deduped():
+    """find_nearby_google_places must return GooglePlacesResult with .raw and .deduped."""
+    from unittest.mock import patch
+
+    fake_place = {
+        "name": "Clinic A",
+        "vicinity": "123 Main St",
+        "geometry": {"location": {"lat": 37.0, "lng": -122.0}},
+        "place_id": "abc123",
+    }
+    with (
+        patch("app.services.google_maps._fetch_places_raw", return_value=[fake_place]),
+        patch("app.services.google_maps.calculate_distance_miles", return_value=1.0),
+    ):
+        from app.services.google_maps import find_nearby_google_places
+        result = find_nearby_google_places(
+            source_longitude=-122.0,
+            source_latitude=37.0,
+            keywords=["family medicine"],
+        )
+
+    assert hasattr(result, "raw"), "result must have .raw"
+    assert hasattr(result, "deduped"), "result must have .deduped"
+    assert isinstance(result.raw, list)
+    assert isinstance(result.deduped, list)
+    assert len(result.raw) >= 1
+    assert len(result.deduped) >= 1

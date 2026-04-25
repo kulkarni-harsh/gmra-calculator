@@ -24,6 +24,7 @@ interface StepAddressWithCptProps {
   location: T1Location
   driveTimeMinutes: DriveTimeOption
   cptCodes: string[]
+  maxCptCodes?: number
   onLocationChange: (loc: T1Location) => void
   onDriveTimeChange: (v: DriveTimeOption) => void
   onCptCodesChange: (codes: string[]) => void
@@ -35,6 +36,7 @@ export default function StepAddressWithCpt({
   location,
   driveTimeMinutes,
   cptCodes,
+  maxCptCodes = 5,
   onLocationChange,
   onDriveTimeChange,
   onCptCodesChange,
@@ -53,7 +55,7 @@ export default function StepAddressWithCpt({
   }
 
   const addCptCode = () => {
-    if (cptCodes.length < 5) onCptCodesChange([...cptCodes, ''])
+    if (cptCodes.length < maxCptCodes) onCptCodesChange([...cptCodes, ''])
   }
 
   const removeCptCode = (index: number) => {
@@ -163,7 +165,7 @@ export default function StepAddressWithCpt({
       {/* CPT Codes section */}
       <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
         <div>
-          <p className="text-sm font-semibold text-white">CPT Codes (1–5)</p>
+          <p className="text-sm font-semibold text-white">CPT Codes (1–{maxCptCodes})</p>
           <p className="mt-0.5 text-xs text-white/50">
             Enter the procedure codes you perform. These will be benchmarked against your local market.
           </p>
@@ -200,7 +202,7 @@ export default function StepAddressWithCpt({
           ))}
         </div>
 
-        {cptCodes.length < 5 && (
+        {cptCodes.length < maxCptCodes && (
           <button
             type="button"
             onClick={addCptCode}

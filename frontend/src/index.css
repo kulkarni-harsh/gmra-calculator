@@ -6,60 +6,77 @@
 @import "@fontsource/montserrat/700.css";
 
 @theme {
-  /* MREC design system colors */
-  --color-navy: hsl(215 63% 14%);
-  --color-navy-panel: hsl(217 33% 17%);
-  --color-sky: hsl(204 66% 52%);
-  --color-brand-blue: hsl(211 73% 38%);
-  --color-brand-ice: hsl(209 76% 95%);
-  --color-success: hsl(149 64% 29%);
+  /* MCREC V5 palette — keys mirror the CSS variables in the reference HTML */
+  --color-mcrec-navy:  #1B2A4A;
+  --color-mcrec-blue:  #2B6CB0;
+  --color-mcrec-teal:  #4A8FA8;
+  --color-mcrec-gold:  #C8A96E;
+  --color-mcrec-off:   #F7F9FC;
+  --color-mcrec-light: #EEF2F8;
+  --color-mcrec-gray:  #6B7A99;
+  --color-mcrec-gray2: #9BAAC4;
+  --color-mcrec-gray3: #C8D3E3;
+  --color-mcrec-green: #1A7A4A;
+  --color-mcrec-amber: #B8860B;
 
-  /* shadcn CSS variable mappings */
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(215 63% 14%);
-  --color-primary: hsl(215 63% 14%);
-  --color-primary-foreground: hsl(0 0% 100%);
-  --color-secondary: hsl(210 40% 96%);
-  --color-secondary-foreground: hsl(215 63% 14%);
-  --color-muted: hsl(210 40% 96%);
-  --color-muted-foreground: hsl(215 20% 55%);
-  --color-accent: hsl(204 66% 52%);
-  --color-accent-foreground: hsl(0 0% 100%);
+  /* Keep legacy aliases so the Buy/Status pages continue to render unchanged */
+  --color-navy: #1B2A4A;
+  --color-navy-panel: hsl(217 33% 17%);
+  --color-sky: #2B6CB0;
+  --color-brand-blue: #2B6CB0;
+  --color-brand-ice: #EEF2F8;
+  --color-success: #1A7A4A;
+
+  /* shadcn variable mappings (kept for shadcn/ui primitives) */
+  --color-background: #FFFFFF;
+  --color-foreground: #1B2A4A;
+  --color-primary: #1B2A4A;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #EEF2F8;
+  --color-secondary-foreground: #1B2A4A;
+  --color-muted: #EEF2F8;
+  --color-muted-foreground: #6B7A99;
+  --color-accent: #2B6CB0;
+  --color-accent-foreground: #FFFFFF;
   --color-destructive: hsl(0 84% 60%);
-  --color-destructive-foreground: hsl(0 0% 100%);
-  --color-border: hsl(214 32% 91%);
-  --color-input: hsl(214 32% 91%);
-  --color-ring: hsl(211 73% 38%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(215 63% 14%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(215 63% 14%);
+  --color-destructive-foreground: #FFFFFF;
+  --color-border: #EEF2F8;
+  --color-input: #EEF2F8;
+  --color-ring: #2B6CB0;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1B2A4A;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #1B2A4A;
 
   /* Typography */
   --font-heading: "Bebas Neue", sans-serif;
   --font-body: "Montserrat", sans-serif;
 
-  --radius: 0.5rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-sm: 0.25rem;
+  --radius: 0.25rem;
+  --radius-md: 0.1875rem;
+  --radius-lg: 0.25rem;
+  --radius-sm: 0.125rem;
 }
 
 @layer base {
-  * {
-    box-sizing: border-box;
-  }
+  html { scroll-behavior: smooth; }
+  * { box-sizing: border-box; }
 
   body {
     font-family: var(--font-body);
-    background-color: hsl(0 0% 100%);
-    color: hsl(215 63% 14%);
+    background-color: #FFFFFF;
+    color: #1B2A4A;
     margin: 0;
+    font-size: 14px;
+    line-height: 1.7;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-heading);
-  }
+  h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); }
+}
+
+@layer utilities {
+  @keyframes mcrec-tick { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+  .animate-mcrec-tick { animation: mcrec-tick 45s linear infinite; }
 }

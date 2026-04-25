@@ -42,12 +42,13 @@ def get_anchor_cpt_severity_scoring(
     # If actual visits are less than target visits, then it means that current providers are enough to handle the demand
     # If actual visits are more than target visits, then it means that there is a gap in the market
     capacity_percent = round((actual_anchor_visits_count / target_anchor_visits_count) * 100, 1)
-    print(
-        f"CPT Stats: Target={target_anchor_visits_count}, "
-        f"Actual={actual_anchor_visits_count} visits_diff={visits_diff} "
-        f"capacity_percent={capacity_percent}%"
+    logging.debug(
+        "Anchor CPT scoring: target=%d actual=%d diff=%d capacity=%.1f%%",
+        target_anchor_visits_count,
+        actual_anchor_visits_count,
+        visits_diff,
+        capacity_percent,
     )
-    print(f"Anchor CPT visits capacity percent: {capacity_percent}%")
     if visits_diff < 0:
         return (
             visits_diff,

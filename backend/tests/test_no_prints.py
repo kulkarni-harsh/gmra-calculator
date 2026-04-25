@@ -3,6 +3,7 @@
 import inspect
 
 from app.services import cpt as svc_cpt
+from app.services import fee_schedule as svc_fee_schedule
 from app.services import google_maps as svc_gmaps
 from app.services import ppt as svc_ppt
 from app.services import specialty as svc_specialty
@@ -42,3 +43,9 @@ def test_no_prints_in_services_google_maps():
 
 def test_no_prints_in_services_ppt():
     _assert_no_print(svc_ppt)
+
+
+def test_fee_schedule_has_no_commented_print_block():
+    """Cleanup: stale commented-out print() debug lines should be deleted."""
+    src = inspect.getsource(svc_fee_schedule)
+    assert src.count("# print(") == 0, "remove stale commented print() lines"

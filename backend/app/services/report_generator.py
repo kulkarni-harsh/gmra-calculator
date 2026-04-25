@@ -610,7 +610,7 @@ async def run_html_report(
 ) -> tuple[str, bytes | None]:
     """Generate the Tier 0 HTML report from an address. Returns (html, debug_excel_bytes)."""
     # Manual set-up for backward compatibility
-    use_site_of_care = True
+    use_site_of_care = True  # When True, group providers by site of care for all peer calculations
 
     log = logging.getLogger(__name__)
 
@@ -668,7 +668,7 @@ async def run_html_report(
     for p in providers_in_radius:
         p.stamp_nearest_google_place(_nearby_google_places)
 
-    # Save sites of care list for debugging / potential future use.
+    # Group providers by physical site; used as `peers` when use_site_of_care=True.
     _sites_of_care_list = get_sites_of_care_list(providers_in_radius)
     peers: list[Provider | SiteOfCare] = _sites_of_care_list if use_site_of_care else providers_in_radius
     # with open("_debug_nearby_google_places.json", "w") as f:

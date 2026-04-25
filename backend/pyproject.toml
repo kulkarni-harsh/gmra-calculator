@@ -61,18 +61,33 @@ ignore = ["B008", "N815"]
 
 [tool.mypy]
 python_version = "3.11"
-strict = true
 warn_unreachable = true
 warn_return_any = true
-disallow_untyped_defs = true
+disallow_untyped_defs = false  # relaxed for legacy code; tighten per-module via overrides
+ignore_missing_imports = true  # third-party libs without stubs (boto3, pandas, etc.)
 plugins = []
+
+[[tool.mypy.overrides]]
+module = "app.core.*"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "app.schemas.*"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "app.api.endpoints.*"
+disallow_untyped_defs = true
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
 addopts = "-q"
+asyncio_mode = "auto"
 
 [dependency-groups]
 dev = [
+    "mypy>=1.20.2",
     "pytest>=9.0.3",
+    "pytest-asyncio>=1.3.0",
 ]

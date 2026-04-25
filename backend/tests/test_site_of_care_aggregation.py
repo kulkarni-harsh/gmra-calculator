@@ -1,8 +1,10 @@
-import pytest
+"""Tests for SiteOfCare aggregation, locum classification, and CPT roll-ups."""
+
+from app.services.google_maps import get_sites_of_care_list
+from app.services.report_generator import _aggregate_cpt_data
 from app.types.alphasophia import Provider
 from app.types.cpt import CPT
 from app.types.google_maps import GooglePlace, SiteOfCare
-from app.services.google_maps import get_sites_of_care_list
 
 
 def _make_soc(cpt_services: dict[str, int]) -> SiteOfCare:
@@ -33,9 +35,6 @@ def test_get_cpt_profile_found():
 def test_get_cpt_profile_missing_returns_none():
     soc = _make_soc({"99213": 100})
     assert soc.get_cpt_profile("00000") is None
-
-
-from app.services.report_generator import _aggregate_cpt_data
 
 
 def test_aggregate_cpt_data_with_sites_of_care():

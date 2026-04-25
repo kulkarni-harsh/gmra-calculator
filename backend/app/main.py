@@ -1,4 +1,5 @@
 import json
+import logging
 from contextlib import asynccontextmanager
 
 import pandas as pd
@@ -25,7 +26,7 @@ async def lifespan(app: FastAPI):
     validate_speciality_master_df(app.state.specialty_master_df)
     # Load fee schedule tables (RVU + GPCI)
     app.state.rvu_table, app.state.gpci_table = load_fee_schedule_tables()
-    print("Lookup data loaded successfully.")
+    logging.info("Lookup data loaded successfully.")
 
     yield
     del app.state.zip_centroids_df

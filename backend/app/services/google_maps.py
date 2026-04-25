@@ -1,3 +1,4 @@
+import logging
 import math
 import time
 from typing import NamedTuple
@@ -55,8 +56,8 @@ def find_nearby_google_places(
                     place_id=place.get("place_id", ""),
                 )
             )
-        except Exception as e:
-            print(f"Skipping place '{place.get('name', '?')}': {e}")
+        except (KeyError, TypeError, ValueError) as exc:
+            logging.warning("Skipping malformed Google place '%s': %s", place.get("name", "?"), exc)
 
     # Filter to the actual requested radius (tiles may have fetched places outside it)
     parsed = [

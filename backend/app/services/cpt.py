@@ -1,3 +1,5 @@
+import logging
+
 import pandas as pd
 
 
@@ -159,9 +161,9 @@ def parse_anchor_codes_filters(
             if start and end and start.isalnum() and end.isalnum():
                 ranges.append((start.strip(), end.strip()))
             else:
-                print(f"Unrecognized range format: {part}")
+                logging.warning("Unrecognized CPT range format: %s", part)
         else:
-            print(f"Unrecognized code format: {part}")
+            logging.warning("Unrecognized CPT code format: %s", part)
     return ranges, individual_codes
 
 

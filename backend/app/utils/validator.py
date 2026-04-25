@@ -1,3 +1,5 @@
+import logging
+
 import pandas as pd
 
 
@@ -32,11 +34,11 @@ def validate_speciality_master_df(df: pd.DataFrame) -> None:
     ]
     for col in required_columns:
         if col not in df.columns:
-            print("Error: Missing required column", col)
+            logging.error("Missing required column in Specialty Master sheet: %s", col)
             raise ValueError(f"Missing required column: {col}")
         if set(df[col].unique()).difference({"Y", "N"}):
-            print("Warning: Column", col, "contains values other than 'Y' and 'N'")
-    print("Specialty Master DataFrame validation completed.")
+            logging.warning("Column '%s' contains values outside {'Y','N'}", col)
+    logging.info("Specialty Master DataFrame validation completed.")
 
 
 def validate_geocoding_inputs(

@@ -9,6 +9,7 @@ No provider NPI lookup — market-level aggregate only.
 
 import asyncio
 import base64
+import json
 import logging
 from dataclasses import dataclass
 from io import BytesIO

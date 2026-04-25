@@ -1,3 +1,5 @@
+"""Selenium-based site screenshot capture for embedding in PPT reports."""
+
 import os
 import time
 

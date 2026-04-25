@@ -85,7 +85,7 @@ export default function StepAddressWithCpt({
           STEP 2: YOUR LOCATION & CPT CODES
         </h2>
         <p className="mt-1 text-sm text-white/60">
-          Enter the address you want to analyze and the CPT codes you perform (up to 5).
+          Enter the address you want to analyze and the CPT codes you perform (up to {maxCptCodes}).
         </p>
       </div>
 

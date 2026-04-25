@@ -90,7 +90,7 @@ export default function Buy() {
   }
 
   const radiusLabel =
-    state.selectedTierId === 0
+    state.selectedTierId <= 2
       ? `${state.driveTimeMinutes} min drive`
       : `${state.milesRadius} miles`
 

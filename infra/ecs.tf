@@ -43,6 +43,10 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "SQS_QUEUE_URL", value = aws_sqs_queue.jobs.url },
         { name = "S3_BUCKET_NAME", value = aws_s3_bucket.reports.bucket },
         { name = "FRONTEND_URL", value = "https://${var.domain_name}" },
+        { name = "ECS_CLUSTER_ARN",       value = aws_ecs_cluster.main.arn },
+        { name = "WORKER_TASK_DEF_ARN",   value = aws_ecs_task_definition.worker.arn },
+        { name = "WORKER_SUBNETS",        value = "${aws_subnet.public_a.id},${aws_subnet.public_b.id}" },
+        { name = "WORKER_SECURITY_GROUP", value = aws_security_group.backend.id },
       ]
 
       secrets = [
@@ -176,23 +180,8 @@ resource "aws_ecs_task_definition" "worker" {
   ])
 }
 
-# --- Worker ECS Service ---
-
-resource "aws_ecs_service" "worker" {
-  name            = "${var.app_name}-worker"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.worker.arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
-
-  network_configuration {
-    subnets          = [aws_subnet.public_a.id, aws_subnet.public_b.id]
-    security_groups  = [aws_security_group.backend.id]  # same SG — needs outbound internet for APIs
-    assign_public_ip = true
-  }
-
-  # No load_balancer block — worker is not HTTP-facing, it polls SQS
-}
+# Worker runs on-demand via ensure_worker_running() → ecs:RunTask (see iam.tf).
+# The task definition above is kept; no always-on service is needed.
 
 # --- Frontend ECS Service ---
 

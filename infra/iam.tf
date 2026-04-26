@@ -84,6 +84,25 @@ resource "aws_iam_role_policy" "ecs_task_permissions" {
           aws_sqs_queue.jobs_dlq.arn,
         ]
       },
+      {
+        Sid    = "ECSOnDemandWorker"
+        Effect = "Allow"
+        Action = [
+          "ecs:RunTask",
+          "ecs:ListTasks",
+          "ecs:DescribeTasks",
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "PassRoleForRunTask"
+        Effect = "Allow"
+        Action = ["iam:PassRole"]
+        Resource = [
+          aws_iam_role.ecs_execution.arn,
+          aws_iam_role.ecs_task.arn,
+        ]
+      },
     ]
   })
 }

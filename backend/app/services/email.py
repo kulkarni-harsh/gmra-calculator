@@ -148,21 +148,21 @@ def send_report_ready(
     # ── Attachments ──────────────────────────────────────────────────────────
     attachments: list[dict] = [
         {
-            "filename": f"MERC_Report_{job_id}.pdf",
+            "filename": f"MREC_Report_{job_id}.pdf",
             "content": base64.b64encode(pdf_bytes).decode("ascii"),
         }
     ]
     if _ATTACH_HTML and html_content:
         attachments.append(
             {
-                "filename": f"MERC_Report_{job_id}.html",
+                "filename": f"MREC_Report_{job_id}.html",
                 "content": base64.b64encode(html_content.encode("utf-8")).decode("ascii"),
             }
         )
     if debug_excel_bytes:
         attachments.append(
             {
-                "filename": f"MERC_Debug_Providers_{job_id}.xlsx",
+                "filename": f"MREC_Debug_Providers_{job_id}.xlsx",
                 "content": base64.b64encode(debug_excel_bytes).decode("ascii"),
             }
         )

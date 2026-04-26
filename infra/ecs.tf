@@ -43,10 +43,6 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "SQS_QUEUE_URL", value = aws_sqs_queue.jobs.url },
         { name = "S3_BUCKET_NAME", value = aws_s3_bucket.reports.bucket },
         { name = "FRONTEND_URL", value = "https://${var.domain_name}" },
-        { name = "ECS_CLUSTER_ARN",       value = aws_ecs_cluster.main.arn },
-        { name = "WORKER_TASK_DEF_ARN",   value = aws_ecs_task_definition.worker.arn },
-        { name = "WORKER_SUBNETS",        value = "${aws_subnet.public_a.id},${aws_subnet.public_b.id}" },
-        { name = "WORKER_SECURITY_GROUP", value = aws_security_group.worker.id },
       ]
 
       secrets = [
@@ -56,6 +52,7 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "RESEND_API_KEY",        valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:RESEND_API_KEY::" },
         { name = "STRIPE_SECRET_KEY",     valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:STRIPE_SECRET_KEY::" },
         { name = "STRIPE_WEBHOOK_SECRET", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:STRIPE_WEBHOOK_SECRET::" },
+        { name = "GOOGLE_API_KEY", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:GOOGLE_API_KEY::" },
       ]
 
       logConfiguration = {
@@ -166,6 +163,7 @@ resource "aws_ecs_task_definition" "worker" {
         { name = "RESEND_API_KEY",        valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:RESEND_API_KEY::" },
         { name = "STRIPE_SECRET_KEY",     valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:STRIPE_SECRET_KEY::" },
         { name = "STRIPE_WEBHOOK_SECRET", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:STRIPE_WEBHOOK_SECRET::" },
+        { name = "GOOGLE_API_KEY", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:GOOGLE_API_KEY::" },
       ]
 
       logConfiguration = {
@@ -180,8 +178,23 @@ resource "aws_ecs_task_definition" "worker" {
   ])
 }
 
-# Worker runs on-demand via ensure_worker_running() → ecs:RunTask (see iam.tf).
-# The task definition above is kept; no always-on service is needed.
+# --- Worker ECS Service ---
+
+resource "aws_ecs_service" "worker" {
+  name            = "${var.app_name}-worker"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.worker.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = [aws_subnet.public_a.id, aws_subnet.public_b.id]
+    security_groups  = [aws_security_group.worker.id]
+    assign_public_ip = true
+  }
+
+  # No load_balancer block — worker is not HTTP-facing, it polls SQS
+}
 
 # --- Frontend ECS Service ---
 

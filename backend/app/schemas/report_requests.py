@@ -19,6 +19,11 @@ class T1ReportRequest(BaseModel):
     payment_intent_id: str = Field(..., description="Stripe PaymentIntent ID — verified before job enqueue")
 
     tier_name: ClassVar[str] = "Market Entry Report"
+    tier_description: ClassVar[str] = (
+        "Comprehensive market entry report with through the door CPT code analysis, "
+        "and actionable insights to help you understand the competitive landscape and "
+        "identify growth opportunities in your target market."
+    )
 
     @field_validator("customer_email")
     @classmethod
@@ -49,6 +54,10 @@ class T2ReportRequest(T1ReportRequest):
     )
 
     tier_name: ClassVar[str] = "Current Market Analysis"
+    tier_description: ClassVar[str] = (
+        "Focused market analysis with through the door CPT code and up to 1-5 additional CPT codes, "
+        "to help you understand the competitive landscape and identify growth opportunities in your target market."
+    )
 
     @field_validator("cpt_codes")
     @classmethod
@@ -71,6 +80,11 @@ class T3ReportRequest(T1ReportRequest):
     )
 
     tier_name: ClassVar[str] = "In-depth Market Analysis"
+    tier_description: ClassVar[str] = (
+        "In-depth market analysis with through the door CPT code and up to 1-15 additional CPT codes, "
+        "to help you understand the competitive landscape and identify growth opportunities in your target market."
+        "Includes additional gaps analysis to help you identify areas for improvement."
+    )
 
     @field_validator("cpt_codes")
     @classmethod

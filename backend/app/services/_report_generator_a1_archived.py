@@ -357,7 +357,7 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
         population_label = "Geriatric (60+)"
     elif "pediatric" in payload.specialty_name.lower():
         logging.info("[9/10] Checking for pediatric population")
-        population_label = "Pediatric (0-24)"
+        population_label = "Pediatric"
         relevant_pop = get_pediatric_population(combined_demo)
     else:
         logging.info("[9/10] Checking for general population")

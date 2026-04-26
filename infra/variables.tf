@@ -47,6 +47,12 @@ variable "alphasophia_api_key" {
   sensitive   = true
 }
 
+variable "google_api_key" {
+  description = "Google API key"
+  type        = string
+  sensitive   = true
+}
+
 variable "resend_api_key" {
   description = "Resend API key for transactional email (starts with re_…)"
   type        = string

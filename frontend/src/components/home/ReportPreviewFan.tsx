@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import reportTemplateHtml from '../../../../backend/resources/templates/MREC_Report_TEMPLATE_T1.html?raw'
+import reportTemplateHtml from '../../assets/MREC_Report_TEMPLATE_T1.html?raw'
 
 interface PreviewCard {
   id: string

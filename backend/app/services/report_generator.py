@@ -31,7 +31,7 @@ from app.services.geocoder import geocode_address
 from app.services.google_maps import find_nearby_google_places, get_sites_of_care_list
 from app.services.html_imputers import render_report
 from app.services.mapbox import fetch_isochrones, generate_map, stamp_provider_drive_times_by_isochrone
-from app.services.payment import T2_DISPLAY_PRICE, T3_DISPLAY_PRICE
+from app.services.payment import T2_DISPLAY_PRICE, T3_DISPLAY_PRICE, T4_DISPLAY_PRICE
 from app.services.s3 import upload_debug_excel, upload_debug_json
 from app.types.alphasophia import CPT, Provider
 from app.types.baseline_report_template import (
@@ -467,7 +467,7 @@ def _fetch_population_data(
         population_label = "Geriatric (60+)"
     elif "pediatric" in name_lower:
         relevant_pop = get_pediatric_population(combined_demo)
-        population_label = "Pediatric (0-24)"
+        population_label = "Pediatric"
     else:
         relevant_pop = total_population
         population_label = "General Population"
@@ -597,6 +597,49 @@ def _build_debug_excel(
     except Exception as exc:
         log.warning("Failed to upload debug Excel: %s", exc)
         return None
+
+
+def _get_upgrade_recommendations(
+    payload: T1ReportRequest | T2ReportRequest | T3ReportRequest,
+) -> list[Upgrade]:
+    """Determine which upgrades to recommend based on the request payload."""
+    upgrades = []
+    # If T1 instance, return T2 and T3 upgrades; if T2, return T3 upgrade; if T3, return no upgrades.
+    if isinstance(payload, T1ReportRequest):
+        upgrades.append(
+            Upgrade(
+                price=T2_DISPLAY_PRICE,
+                name=T2ReportRequest.tier_name,
+                desc=T2ReportRequest.tier_description,
+            )
+        )
+        upgrades.append(
+            Upgrade(
+                price=T3_DISPLAY_PRICE,
+                name=T3ReportRequest.tier_name,
+                desc=T3ReportRequest.tier_description,
+            )
+        )
+    elif isinstance(payload, T2ReportRequest):
+        upgrades.append(
+            Upgrade(
+                price=T3_DISPLAY_PRICE,
+                name=T3ReportRequest.tier_name,
+                desc=T3ReportRequest.tier_description,
+            )
+        )
+    else:
+        upgrades.append(
+            Upgrade(
+                price=T4_DISPLAY_PRICE,
+                name="Custom Market Analysis",
+                desc=(
+                    "Reach out to our team for consulting services, including custom data analysis, "
+                    "market research, and strategic advisory to support your market entry decisions."
+                ),
+            )
+        )
+    return upgrades
 
 
 # ── Public entry point ────────────────────────────────────────────────────────
@@ -823,37 +866,8 @@ async def run_html_report(
     # 13. Assemble and render report
     report_id = job_id or f"MERC-{ulid.ulid()}"
 
-    # Upgrades: T2 only shows the tier above it; T1 shows both upper tiers
-    if custom_cpt_codes:
-        upgrades = [
-            Upgrade(
-                price=T3_DISPLAY_PRICE,
-                name="10-Code Full Analysis + Add-On",
-                desc=(
-                    "Complete procedure mix, NP/PA competitive presence, payer mix,"
-                    " infrastructure sizing, and lease term optimization."
-                ),
-            ),
-        ]
-    else:
-        upgrades = [
-            Upgrade(
-                price=T2_DISPLAY_PRICE,
-                name="Through-the-Door Codes Report",
-                desc=(
-                    "Your 5 custom CPT codes benchmarked against every competitor within your drive time."
-                    " Procedure-specific demand and visit-mix optimization."
-                ),
-            ),
-            Upgrade(
-                price=T3_DISPLAY_PRICE,
-                name="10-Code Full Analysis + Add-On",
-                desc=(
-                    "Complete procedure mix, NP/PA competitive presence, payer mix,"
-                    " infrastructure sizing, and lease term optimization."
-                ),
-            ),
-        ]
+    # Upgrades
+    upgrades = _get_upgrade_recommendations(payload)
 
     report_data = ReportTemplateDataV2(
         reportId=report_id,

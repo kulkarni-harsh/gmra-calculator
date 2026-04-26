@@ -40,12 +40,6 @@ class Settings(BaseSettings):
     S3_REPORTS_PREFIX: str = "reports"
     S3_PRESIGN_EXPIRY_SECONDS: int = 604800  # 7 days
 
-    # On-demand worker launch (used by backend API, not by the worker itself)
-    ECS_CLUSTER_ARN: str = ""
-    WORKER_TASK_DEF_ARN: str = ""
-    WORKER_SUBNETS: str = ""  # comma-separated subnet IDs
-    WORKER_SECURITY_GROUP: str = ""
-
     # Debug artifact uploads — set False to skip intermediate S3 dumps
     ENABLE_DEBUG_ARTIFACTS: bool = True
 

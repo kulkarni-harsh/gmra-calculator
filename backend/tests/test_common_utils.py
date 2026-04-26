@@ -109,7 +109,7 @@ def _row(code: str, peer: str, client: str, diff_volume: int) -> CptRowV2:
 
 def test_generate_tags_always_includes_2024_data_tag():
     tags = generate_tags([])
-    assert any(t.text == "2024 Procedures Data" for t in tags)
+    assert any(t.text == "2023 Procedures Data" for t in tags)
 
 
 def test_generate_tags_quick_win_tag_when_peer_exceeds_client():

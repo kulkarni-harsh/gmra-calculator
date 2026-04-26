@@ -80,6 +80,44 @@ and it's now being processed.</p>
         return False
 
 
+def _log_summary_html(log_summary: dict[str, int], log_s3_url: str) -> str:
+    """Render a log-level count table for inclusion in the report-ready email."""
+    level_colors: dict[str, str] = {
+        "WARNING": "#fff3cd",
+        "ERROR": "#f8d7da",
+        "CRITICAL": "#f8d7da",
+    }
+    rows_html = ""
+    for level in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
+        count = log_summary.get(level, 0)
+        bg = level_colors.get(level, "#ffffff") if count > 0 else "#ffffff"
+        rows_html += (
+            f'<tr style="background:{bg};">'
+            f'<td style="padding:4px 12px;border:1px solid #ddd;">{level}</td>'
+            f'<td style="padding:4px 12px;border:1px solid #ddd;text-align:right;">{count}</td>'
+            f"</tr>"
+        )
+
+    log_link = (
+        f'<p><a href="{log_s3_url}" style="font-size:12px;">View full job log</a> (link valid for 7 days)</p>'
+        if log_s3_url
+        else ""
+    )
+
+    return (
+        '<hr style="border:none;border-top:1px solid #eee;margin:16px 0;">'
+        "<p><strong>Job Log Summary</strong></p>"
+        '<table style="border-collapse:collapse;font-size:13px;">'
+        '<tr style="background:#f4f4f4;">'
+        '<th style="padding:4px 12px;border:1px solid #ddd;text-align:left;">Level</th>'
+        '<th style="padding:4px 12px;border:1px solid #ddd;text-align:right;">Count</th>'
+        "</tr>"
+        f"{rows_html}"
+        "</table>"
+        f"{log_link}"
+    )
+
+
 def send_report_ready(
     to: str,
     job_id: str,
@@ -89,6 +127,8 @@ def send_report_ready(
     html_url: str = "",
     pdf_url: str = "",
     debug_excel_bytes: bytes | None = None,
+    log_summary: dict[str, int] | None = None,
+    log_s3_url: str = "",
 ) -> bool:
     """
     Email the completed report to the customer.
@@ -96,6 +136,7 @@ def send_report_ready(
     Always attaches the PDF.  HTML attachment and HTML download link are
     controlled by the module-level toggles _ATTACH_HTML and _LINK_HTML.
     Debug Excel is attached when provided.
+    When log_summary is provided, a log-level count table is appended to the email body.
     Never raises — logs error instead so a failed email never crashes the worker.
     """
     if not settings.RESEND_API_KEY:
@@ -141,6 +182,9 @@ def send_report_ready(
         body_lines.append(f'<p><a href="{html_url}">Download interactive HTML report</a> (link valid for 7 days)</p>')
 
     body_lines.append(f"<p style='color:#888;font-size:12px;'>Job reference: {job_id}</p>")
+
+    if log_summary is not None:
+        body_lines.append(_log_summary_html(log_summary, log_s3_url))
 
     params: resend.Emails.SendParams = {
         "from": _FROM,

@@ -149,7 +149,7 @@ class Provider(BaseModel):
     def cpt_total_services(self) -> int:
         if self._cpt_fetched:
             return sum(cpt.totalServices for cpt in self.cpt_list)
-        logging.warning(
+        logging.critical(
             f"Provider {self.id} (NPI: {self.npi}): CPT profiles have not been fetched yet;"
             " returning 0 for cpt_total_services"
         )

@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">MERC Procedure Intelligence Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700;800&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --navy:    #0d1f3c;
+  --blue:    #1a5fa8;
+  --sky:     #2d9cdb;
+  --ice:     #e8f2fb;
+  --light:   #f4f7fb;
+  --border:  #dce8f4;
+  --text:    #1a2535;
+  --muted:   #6b82a0;
+  --white:   #ffffff;
+  --green:   #1a7a4a;
+  --green-bg:#e8f5ee;
+  --amber:   #b85c00;
+  --amber-bg:#fff3e0;
+  --red:     #9b1c1c;
+  --red-bg:  #fef2f2;
+}
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  background: #d0dae8;
+  color: var(--text);
+  padding: 40px 20px;
+  min-height: 100vh;
+}
+
+.page {
+  width: 900px;
+  margin: 0 auto;
+  background: var(--white);
+  box-shadow: 0 24px 80px rgba(13,31,60,0.18);
+  position: relative;
+}
+
+/* ══════════════════════════════════
+   HEADER
+══════════════════════════════════ */
+.header {
+  background: var(--navy);
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+}
+.header::after {
+  content: '';
+  position: absolute; top: 0; right: 0;
+  width: 320px; height: 100%;
+  background: linear-gradient(135deg, transparent 40%, rgba(45,156,219,0.08) 100%);
+  pointer-events: none;
+}
+.header-top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 28px 40px 20px 40px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.merc-wordmark  { display: flex; flex-direction: column; gap: 0; }
+.merc-line1, .merc-line2 { display: flex; align-items: baseline; line-height: 1; }
+.merc-line2 { margin-top: -3px; }
+.w-medical, .w-estate { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacing: 3px; color: #fff; }
+.w-real       { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacing: 3px; color: var(--sky); margin-left: 10px; }
+.w-calculator { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 3px; color: var(--sky); margin-left: 10px; padding-bottom: 4px; align-self: flex-end; opacity: 0.85; }
+.tm { font-family: 'Montserrat', sans-serif; font-size: 9px; font-weight: 600; vertical-align: super; color: var(--sky); }
+.header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.report-badge { background: linear-gradient(135deg, var(--sky), var(--blue)); color: white; font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 3px; padding: 4px 12px; border-radius: 2px; }
+.header-band {
+  background: linear-gradient(90deg, var(--blue) 0%, #1a4a78 50%, var(--navy) 100%);
+  padding: 10px 40px; display: flex; align-items: center; justify-content: space-between;
+}
+.catch-text { font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 5px; color: rgba(255,255,255,0.9); }
+.catch-text em { font-style: normal; color: var(--sky); }
+.header-meta  { font-family: 'Montserrat', sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 3px; color: rgba(255,255,255,0.45); text-transform: uppercase; }
+
+/* ══════════════════════════════════
+   TAGS / BADGES
+══════════════════════════════════ */
+.tag { display: inline-block; background: var(--ice); border: 1px solid var(--blue); color: var(--blue); font-size: 8px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 2px 7px; border-radius: 1px; }
+.tag.green { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+.tag.amber { background: var(--amber-bg); border-color: var(--amber); color: var(--amber); }
+.tag.red   { background: var(--red-bg); border-color: var(--red); color: var(--red); }
+
+.cat-badge {
+  display: inline-block; font-size: 7.5px; font-weight: 700; letter-spacing: 0.8px;
+  text-transform: uppercase; padding: 2px 5px; border-radius: 2px; white-space: nowrap;
+}
+.cat-em         { background: #e8f2fb; color: var(--blue); }
+.cat-preventive { background: var(--green-bg); color: var(--green); }
+.cat-diagnostic { background: #f0edf9; color: #5c3ab4; }
+.cat-procedure  { background: var(--amber-bg); color: var(--amber); }
+.cat-care-mgmt  { background: #fdf3e3; color: #8b4a00; }
+.cat-telehealth { background: #e0f7fa; color: #00696b; }
+.cat-counseling { background: #fde8f0; color: #8e0b45; }
+.cat-other      { background: var(--light); color: var(--muted); }
+
+/* ══════════════════════════════════
+   BODY / BEATS
+══════════════════════════════════ */
+.body-content { padding: 0 40px 32px 40px; }
+.beat { padding: 28px 0; border-bottom: 1px solid var(--border); }
+.beat:last-child { border-bottom: none; padding-bottom: 8px; }
+.beat-header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.beat-kicker { font-size: 8px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: var(--sky); }
+.beat-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; color: var(--navy); line-height: 1; }
+.beat-subtitle { font-size: 10px; line-height: 1.6; color: var(--muted); max-width: 420px; text-align: right; }
+
+.hero-beat {
+  margin: 0 -40px;
+  padding: 34px 40px 30px 40px;
+  background:
+    radial-gradient(circle at top right, rgba(45,156,219,0.18), transparent 34%),
+    linear-gradient(180deg, #f7fbff 0%, #edf4fb 100%);
+  border-bottom: 1px solid var(--border);
+}
+.hero-meta-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.hero-practice { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--blue); }
+.hero-tags { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.hero-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 22px; align-items: stretch; }
+.hero-copy { display: flex; flex-direction: column; }
+.hero-title { font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 2px; color: var(--navy); line-height: 0.94; margin-bottom: 10px; }
+.hero-title .accent { color: var(--red); }
+.hero-lead { font-size: 13px; line-height: 1.65; color: var(--text); max-width: 470px; }
+.hero-detail-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+.hero-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.hero-card {
+  background: rgba(255,255,255,0.86);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--navy);
+  border-radius: 4px;
+  padding: 16px 14px;
+  min-height: 124px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.hero-card.red-top { border-top-color: var(--red); }
+.hero-card.amber-top { border-top-color: var(--amber); }
+.hero-card.green-top { border-top-color: var(--green); }
+.hero-card-label { font-size: 8px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.hero-card-value { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 1px; color: var(--navy); line-height: 0.92; }
+.hero-card-value.red { color: var(--red); }
+.hero-card-value.amber { color: var(--amber); }
+.hero-card-value.green { color: var(--green); }
+.hero-card-sub { font-size: 9px; line-height: 1.55; color: var(--muted); }
+
+.ai-box {
+  background: var(--navy);
+  color: white;
+  border-radius: 4px;
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+}
+.ai-box::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 0%, rgba(45,156,219,0.08) 100%);
+  pointer-events: none;
+}
+.ai-label { position: relative; font-size: 8px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: var(--sky); margin-bottom: 8px; }
+.ai-text { position: relative; font-family: 'Source Serif 4', serif; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,0.92); }
+.ai-text strong { color: white; font-weight: 600; }
+.ai-box.compact { padding: 12px 14px; }
+.ai-box.compact .ai-text { font-size: 11.5px; line-height: 1.55; }
+.ai-box.consultant .ai-label { color: var(--sky); }
+
+.foundation-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 16px; }
+.foundation-card {
+  background: linear-gradient(180deg, #fafffc 0%, #eff8f3 100%);
+  border: 1px solid #bedfcb;
+  border-top: 4px solid var(--green);
+  border-radius: 4px;
+  padding: 16px;
+  min-height: 172px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.foundation-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.foundation-code { font-family: 'Courier New', monospace; font-size: 11px; font-weight: 700; color: var(--navy); }
+.foundation-star { font-size: 18px; color: var(--green); line-height: 1; }
+.foundation-desc { font-size: 11px; font-weight: 700; line-height: 1.45; color: var(--navy); }
+.foundation-position { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--green); }
+.foundation-copy { font-size: 9.5px; line-height: 1.55; color: #1f5037; }
+
+.gap-stack { display: flex; flex-direction: column; gap: 16px; }
+.gap-card {
+  border: 1px solid var(--border);
+  border-left: 7px solid var(--amber);
+  border-radius: 4px;
+  padding: 18px 18px 16px 18px;
+  background: linear-gradient(180deg, #fffdfa 0%, #ffffff 100%);
+}
+.gap-card.critical {
+  border-left-color: var(--red);
+  background: linear-gradient(180deg, #fff8f8 0%, #ffffff 100%);
+}
+.gap-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 10px; }
+.gap-card-main { display: flex; flex-direction: column; gap: 6px; }
+.gap-code-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gap-code { font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: var(--navy); }
+.peer-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase;
+  border-radius: 999px; padding: 4px 10px;
+}
+.peer-badge.red { background: var(--red-bg); color: var(--red); border: 1px solid #efb3b3; }
+.peer-badge.amber { background: var(--amber-bg); color: var(--amber); border: 1px solid #f1c694; }
+.gap-desc { font-size: 13px; font-weight: 700; color: var(--navy); line-height: 1.4; }
+.gap-copy { font-size: 11px; line-height: 1.7; color: var(--text); }
+.gap-side { min-width: 180px; }
+.signal-label { font-size: 8px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.signal-track { height: 10px; background: var(--border); border-radius: 999px; overflow: hidden; }
+.signal-fill { height: 100%; border-radius: 999px; }
+.signal-fill.high { background: linear-gradient(90deg, var(--red), #d43d3d); }
+.signal-fill.medium { background: linear-gradient(90deg, var(--amber), #de8b2b); }
+.signal-fill.low { background: linear-gradient(90deg, var(--sky), var(--blue)); }
+.signal-value { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 1px; line-height: 1; color: var(--navy); margin-top: 8px; }
+.signal-sub { font-size: 9px; line-height: 1.5; color: var(--muted); margin-top: 3px; }
+
+.mix-panel {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 18px;
+  background: linear-gradient(180deg, #fbfdff 0%, #ffffff 100%);
+  margin-bottom: 16px;
+}
+.mix-top { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 18px; align-items: start; }
+.mix-highlight-label { font-size: 8px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.mix-highlight-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 1.5px; color: var(--navy); line-height: 1; margin-bottom: 8px; }
+.mix-highlight-copy { font-size: 11px; line-height: 1.65; color: var(--text); }
+.mix-delta {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 12px; padding: 5px 10px;
+  border-radius: 999px; font-size: 9px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase;
+}
+.mix-delta.behind { background: var(--amber-bg); color: var(--amber); }
+.mix-delta.ahead { background: var(--green-bg); color: var(--green); }
+.mix-bars { display: flex; flex-direction: column; gap: 10px; }
+.mix-bar-row { display: grid; grid-template-columns: 88px 1fr 48px; align-items: center; gap: 10px; }
+.mix-bar-name { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); text-align: right; }
+.mix-bar-track { height: 16px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.mix-bar-fill-you { height: 100%; background: var(--navy); }
+.mix-bar-fill-market { height: 100%; background: var(--sky); opacity: 0.65; }
+.mix-bar-value { font-family: 'Bebas Neue', sans-serif; font-size: 18px; line-height: 1; color: var(--navy); text-align: right; }
+.mix-supporting { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+.mix-support-item { background: var(--light); border-radius: 3px; padding: 10px 12px; }
+.mix-support-label { font-size: 8px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.mix-support-track { height: 8px; background: rgba(13,31,60,0.08); border-radius: 999px; overflow: hidden; margin-bottom: 5px; }
+.mix-support-fill-you { height: 100%; background: rgba(13,31,60,0.78); }
+.mix-support-fill-market { height: 100%; background: rgba(107,130,160,0.5); }
+.mix-support-meta { display: flex; justify-content: space-between; font-size: 8px; color: var(--muted); }
+
+.priority-stack { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
+.priority-item {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px 18px;
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 16px;
+  align-items: start;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+.priority-number {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: var(--navy); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Bebas Neue', sans-serif; font-size: 34px; letter-spacing: 1px;
+}
+.priority-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.priority-label {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+  padding: 4px 8px; border-radius: 999px;
+}
+.priority-label.quick { background: var(--green-bg); color: var(--green); }
+.priority-label.next { background: var(--amber-bg); color: var(--amber); }
+.priority-label.long { background: var(--ice); color: var(--blue); }
+.priority-code { font-family: 'Courier New', monospace; font-size: 11px; font-weight: 700; color: var(--navy); }
+.priority-desc { font-size: 13px; font-weight: 700; color: var(--navy); line-height: 1.35; margin-top: 4px; }
+.priority-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 8px 0; }
+.priority-pill {
+  font-size: 8px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase;
+  padding: 4px 8px; border-radius: 999px;
+}
+.priority-pill.effort-low { background: var(--green-bg); color: var(--green); }
+.priority-pill.effort-medium { background: var(--amber-bg); color: var(--amber); }
+.priority-pill.effort-high { background: var(--red-bg); color: var(--red); }
+.priority-pill.signal { background: var(--ice); color: var(--blue); }
+.priority-action { font-size: 10.5px; line-height: 1.7; color: var(--text); }
+
+.cta-row { display: flex; gap: 10px; margin-top: 14px; }
+.cta-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 190px; padding: 12px 18px;
+  border-radius: 3px; text-decoration: none;
+  font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+}
+.cta-btn.primary { background: var(--navy); color: white; }
+.cta-btn.secondary { background: var(--ice); color: var(--blue); border: 1px solid var(--sky); }
+
+/* Appendix ranked table reused as reference */
+.ranked-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 20px;
+  margin-top: 10px;
+}
+.ranked-col-header {
+  font-size: 7.5px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--muted); padding: 0 0 6px 0; margin-bottom: 0;
+  border-bottom: 2px solid var(--border);
+  display: grid; grid-template-columns: 26px 64px 1fr; gap: 0 8px;
+}
+.ranked-item {
+  display: grid;
+  grid-template-columns: 26px 64px 1fr;
+  gap: 0 8px;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+.ranked-item:last-child { border-bottom: none; }
+.ranked-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px; line-height: 1; text-align: right;
+}
+.ranked-num.t10 { color: var(--navy); }
+.ranked-num.t25 { color: var(--blue); }
+.ranked-num.t50 { color: var(--muted); }
+.ranked-code-wrap { display: flex; align-items: center; }
+.ranked-code { font-family: 'Courier New', monospace; font-size: 9px; font-weight: 700; color: var(--blue); line-height: 1; }
+.ranked-desc-wrap { display: flex; flex-direction: column; gap: 3px; }
+.ranked-desc-line  { display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; }
+.ranked-desc { font-size: 9px; font-weight: 500; color: var(--text); line-height: 1.3; }
+.ranked-bar-track { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.ranked-bar-fill  { height: 100%; border-radius: 2px; }
+.ranked-bar-fill.t10 { background: var(--navy); }
+.ranked-bar-fill.t25 { background: var(--blue); }
+.ranked-bar-fill.t50 { background: var(--sky); opacity: 0.5; }
+
+/* ══════════════════════════════════
+   APPENDIX & FOOTER
+══════════════════════════════════ */
+.appendix { border-top: 2px solid var(--border); padding: 12px 40px; background: var(--light); }
+.appendix-title { font-size: 7px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.appendix-block { margin-bottom: 8px; }
+.appendix-block:last-child { margin-bottom: 0; }
+.appendix-block-label { font-size: 7px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--navy); margin-bottom: 4px; }
+.appendix-chips { display: flex; flex-wrap: wrap; gap: 3px; }
+.appendix-chip  { font-family: 'Courier New', monospace; font-size: 8px; padding: 2px 6px; background: white; border: 1px solid var(--border); border-radius: 2px; color: var(--text); letter-spacing: 0.3px; white-space: nowrap; }
+
+.footer { background: var(--navy); padding: 18px 40px; display: flex; align-items: center; justify-content: space-between; border-top: 3px solid var(--blue); }
+.footer-left  { display: flex; flex-direction: column; gap: 3px; }
+.footer-brand { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 3px; color: white; }
+.footer-legal { font-size: 8px; font-weight: 500; letter-spacing: 1px; color: rgba(255,255,255,0.35); max-width: 420px; line-height: 1.5; }
+.footer-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.footer-codes { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 3px; color: var(--sky); }
+.footer-codes span { color: rgba(255,255,255,0.25); margin: 0 4px; }
+.footer-page  { font-size: 8px; font-weight: 600; letter-spacing: 2px; color: rgba(255,255,255,0.3); text-transform: uppercase; }
+
+</style>
+</head>
+<body>
+
+<script>
+const DATA = {
+  reportId:     "MERC-2026-0117",
+  dateIssued:   "April 25, 2026",
+  specialty:    "Family Medicine",
+  market:       "Frisco, TX",
+  radius:       "7 mi",
+  reportTier:   "T4 Procedure Intelligence",
+  practiceName: "Frisco Family Health Center",
+  doctorLastName: "Smith",
+  address:      "5757 Warren Pkwy Suite 240, Frisco TX 75034",
+
+  taxonomyCodes:    ["207Q00000X", "207R00000X", "207QA0401X", "207QA0000X"],
+  searchedZipCodes: ["75034", "75035", "75068", "75070", "75071", "75078"],
+  peerNpis:         ["1234567890", "0987654321", "1122334455", "5544332211", "9988776655"],
+
+  tags: [
+    { text: "Procedure Intelligence Report", color: "" },
+    { text: "Competitive Gap Analysis", color: "amber" },
+    { text: "5 Peer Providers", color: "" }
+  ],
+
+  competitorCount: 5,
+
+  subjectProcedures: [
+    { rank:  1, code: "99213",  desc: "Office visit - low complexity, est. patient",      category: "E&M" },
+    { rank:  2, code: "99214",  desc: "Office visit - moderate complexity, est. patient", category: "E&M" },
+    { rank:  3, code: "99212",  desc: "Office visit - straightforward, est. patient",     category: "E&M" },
+    { rank:  4, code: "99396",  desc: "Preventive visit, est. patient 40-64 yrs",         category: "Preventive" },
+    { rank:  5, code: "99395",  desc: "Preventive visit, est. patient 18-39 yrs",         category: "Preventive" },
+    { rank:  6, code: "99203",  desc: "Office visit - low complexity, new patient",       category: "E&M" },
+    { rank:  7, code: "36415",  desc: "Routine venipuncture",                             category: "Diagnostic" },
+    { rank:  8, code: "99204",  desc: "Office visit - moderate complexity, new patient",  category: "E&M" },
+    { rank:  9, code: "81002",  desc: "Urinalysis, non-automated",                        category: "Diagnostic" },
+    { rank: 10, code: "90460",  desc: "Immunization admin, first component",              category: "Preventive" },
+    { rank: 11, code: "99215",  desc: "Office visit - high complexity, est. patient",     category: "E&M" },
+    { rank: 12, code: "99391",  desc: "Preventive visit, new patient < 1 yr",             category: "Preventive" },
+    { rank: 13, code: "99392",  desc: "Preventive visit, new patient 1-4 yrs",            category: "Preventive" },
+    { rank: 14, code: "85025",  desc: "Complete blood count w/ differential",             category: "Diagnostic" },
+    { rank: 15, code: "96372",  desc: "Therapeutic injection, subcutaneous/IM",           category: "Procedure" },
+    { rank: 16, code: "83036",  desc: "Hemoglobin A1c",                                    category: "Diagnostic" },
+    { rank: 17, code: "99397",  desc: "Preventive visit, est. patient 65+ yrs",           category: "Preventive" },
+    { rank: 18, code: "G0438",  desc: "Annual wellness visit, initial",                   category: "Preventive" },
+    { rank: 19, code: "99393",  desc: "Preventive visit, new patient 5-11 yrs",           category: "Preventive" },
+    { rank: 20, code: "90471",  desc: "Immunization admin, first injection",              category: "Preventive" },
+    { rank: 21, code: "99394",  desc: "Preventive visit, new patient 12-17 yrs",          category: "Preventive" },
+    { rank: 22, code: "80053",  desc: "Comprehensive metabolic panel",                    category: "Diagnostic" },
+    { rank: 23, code: "99202",  desc: "Office visit - straightforward, new patient",      category: "E&M" },
+    { rank: 24, code: "G0439",  desc: "Annual wellness visit, subsequent",                category: "Preventive" },
+    { rank: 25, code: "99211",  desc: "Office visit - nurse/staff visit",                 category: "E&M" },
+    { rank: 26, code: "99490",  desc: "Chronic care management, first 20 min",            category: "Care Mgmt" },
+    { rank: 27, code: "20610",  desc: "Aspiration/injection, major joint",                category: "Procedure" },
+    { rank: 28, code: "10060",  desc: "Incision & drainage, simple abscess",              category: "Procedure" },
+    { rank: 29, code: "69210",  desc: "Cerumen disimpaction, unilateral",                 category: "Procedure" },
+    { rank: 30, code: "11200",  desc: "Removal of skin tags, <=15 lesions",               category: "Procedure" },
+    { rank: 31, code: "87880",  desc: "Rapid strep A test",                               category: "Diagnostic" },
+    { rank: 32, code: "93000",  desc: "Electrocardiogram, routine 12-lead",               category: "Diagnostic" },
+    { rank: 33, code: "84443",  desc: "TSH (thyroid stimulating hormone)",                category: "Diagnostic" },
+    { rank: 34, code: "82947",  desc: "Glucose, quantitative",                            category: "Diagnostic" },
+    { rank: 35, code: "84703",  desc: "Pregnancy test, urine",                            category: "Diagnostic" },
+    { rank: 36, code: "90472",  desc: "Immunization admin, each additional injection",    category: "Preventive" },
+    { rank: 37, code: "99205",  desc: "Office visit - high complexity, new patient",      category: "E&M" },
+    { rank: 38, code: "J0702",  desc: "Betamethasone acetate/sodium phosphate inj.",      category: "Procedure" },
+    { rank: 39, code: "99406",  desc: "Smoking cessation counseling, 3-10 min",           category: "Counseling" },
+    { rank: 40, code: "17000",  desc: "Destruction of premalignant lesion, first",        category: "Procedure" },
+    { rank: 41, code: "12011",  desc: "Simple repair, facial, 2.5 cm or less",           category: "Procedure" },
+    { rank: 42, code: "99441",  desc: "Phone E&M, 5-10 min",                              category: "E&M" },
+    { rank: 43, code: "87086",  desc: "Urine culture",                                    category: "Diagnostic" },
+    { rank: 44, code: "82306",  desc: "Vitamin D, 25-hydroxy",                            category: "Diagnostic" },
+    { rank: 45, code: "99487",  desc: "Complex chronic care management, first 60 min",    category: "Care Mgmt" },
+    { rank: 46, code: "G0101",  desc: "Cervical/vaginal cancer screening",                category: "Preventive" },
+    { rank: 47, code: "Q0091",  desc: "Pap smear collection",                             category: "Preventive" },
+    { rank: 48, code: "97110",  desc: "Therapeutic exercise",                             category: "Procedure" },
+    { rank: 49, code: "99201",  desc: "Office visit - minimal, new patient",              category: "E&M" },
+    { rank: 50, code: "G0402",  desc: "Welcome to Medicare preventive visit",             category: "Preventive" }
+  ],
+
+  presenceGrid: [
+    { code: "99213",    desc: "Office visit - low complexity, est.",       category: "E&M",        subjectRank: 1,  competitorPresence: [1, 2, 1, 1, 1] },
+    { code: "99214",    desc: "Office visit - moderate complexity, est.",  category: "E&M",        subjectRank: 2,  competitorPresence: [2, 1, 2, 2, 2] },
+    { code: "99212",    desc: "Office visit - straightforward, est.",      category: "E&M",        subjectRank: 3,  competitorPresence: [3, 3, 3, 3, 4] },
+    { code: "99396",    desc: "Preventive visit, est. 40-64 yrs",          category: "Preventive", subjectRank: 4,  competitorPresence: [5, 6, 4, 5, 3] },
+    { code: "99395",    desc: "Preventive visit, est. 18-39 yrs",          category: "Preventive", subjectRank: 5,  competitorPresence: [4, 5, 5, 4, 5] },
+    { code: "99490",    desc: "Chronic care management, 20 min",           category: "Care Mgmt",  subjectRank: 26, competitorPresence: [null, null, 22, null, 25] },
+    { code: "96372",    desc: "Therapeutic injection, subq/IM",            category: "Procedure",  subjectRank: 15, competitorPresence: [12, 11, null, 12, 13] },
+    { code: "99441",    desc: "Phone E&M, 5-10 min",                       category: "E&M",        subjectRank: 42, competitorPresence: [null, null, null, null, null] },
+    { code: "G2211",    desc: "Complexity add-on, primary care E&M",       category: "E&M",        subjectRank: null, competitorPresence: [11, 13, 10, 11, 10] },
+    { code: "G0444",    desc: "Annual depression screening",               category: "Preventive", subjectRank: null, competitorPresence: [16, 16, 16, 15, 16] },
+    { code: "Tele-E&M", desc: "Telehealth office visit, low complexity",   category: "Telehealth", subjectRank: null, competitorPresence: [10, 12, 11, 10, null] },
+    { code: "20552",    desc: "Trigger point injection, 1-2 muscles",      category: "Procedure",  subjectRank: null, competitorPresence: [20, 19, null, null, 20] },
+    { code: "99483",    desc: "Cognitive assessment & care planning",      category: "Care Mgmt",  subjectRank: null, competitorPresence: [null, 17, null, 18, 17] },
+    { code: "99213-25", desc: "E&M w/ separate procedure (mod. 25)",       category: "E&M",        subjectRank: null, competitorPresence: [9, 10, 9, 9, 9] }
+  ],
+
+  strengths: [
+    {
+      code: "99441",
+      desc: "Phone E&M, 5-10 min",
+      category: "E&M",
+      insight: "You are the only provider in this market with phone E&M in your top 50 - a real patient-access differentiator while peers stay fully office-bound."
+    },
+    {
+      code: "99490",
+      desc: "Chronic care management, 20 min",
+      category: "Care Mgmt",
+      insight: "You rank #1 among the providers who bill chronic care management, which gives you a stronger foothold with higher-complexity panels than most peers."
+    },
+    {
+      code: "96372",
+      desc: "Therapeutic injection, subq/IM",
+      category: "Procedure",
+      insight: "You sit in the top tier for in-office therapeutic injections, showing operational capability many primary care groups never build."
+    },
+    {
+      code: "99396",
+      desc: "Preventive visit, est. patient 40-64 yrs",
+      category: "Preventive",
+      insight: "Your preventive profile for the 40-64 cohort is already competitive, which is exactly the kind of core visit base that supports fast add-on revenue."
+    }
+  ],
+
+  gaps: [
+    {
+      code: "G2211",
+      desc: "Complexity add-on for primary care E&M",
+      category: "E&M",
+      competitorCount: 5,
+      effortLevel: "Low",
+      insight: "All 5 peers bill this CMS add-on for complex primary care visits. No new procedure is required - only updated documentation. You may be under-reimbursed on visits you already perform."
+    },
+    {
+      code: "G0444",
+      desc: "Annual depression screening",
+      category: "Preventive",
+      competitorCount: 5,
+      effortLevel: "Low",
+      insight: "Universal among your peers. Adding structured PHQ-9 documentation to existing wellness visits qualifies those encounters for this billing code with minimal workflow change."
+    },
+    {
+      code: "Telehealth E&M",
+      desc: "Telehealth office visit, low complexity",
+      category: "Telehealth",
+      competitorCount: 4,
+      effortLevel: "High",
+      insight: "4 of 5 competitors have telehealth in their top 15 procedures. Without a telehealth offering, you are likely losing after-hours and remote patients to better-positioned peers."
+    },
+    {
+      code: "20552",
+      desc: "Trigger point injection, 1-2 muscles",
+      category: "Procedure",
+      competitorCount: 3,
+      effortLevel: "Medium",
+      insight: "3 peers offer trigger point injections - a brief, high-value in-office procedure well-suited to primary care musculoskeletal panels. Setup cost is minimal."
+    },
+    {
+      code: "99483",
+      desc: "Cognitive assessment & care planning",
+      category: "Care Mgmt",
+      competitorCount: 2,
+      effortLevel: "Medium",
+      insight: "2 competitors perform structured cognitive assessments. This code pairs naturally with annual wellness visits in aging patient panels and is becoming standard in primary care."
+    }
+  ],
+
+  subjectMix: { em: 58, diagnostic: 20, preventive: 14, procedural: 8 },
+  marketMix:  { em: 51, diagnostic: 17, preventive: 13, procedural: 19 },
+
+  upgrades: [
+    {
+      price: "$799",
+      name:  "CPT Revenue Opportunity Model",
+      desc:  "Map your top 50 procedures to Medicare fee schedule rates and model the revenue lift from closing your top three coding gaps."
+    },
+    {
+      price: "$999",
+      name:  "Full 50-Code Peer Benchmarking",
+      desc:  "Expand this analysis to all 50 procedures rank-by-rank with a strategy call and payer mix overlay."
+    }
+  ]
+};
+</script>
+
+<div class="page" id="report-page"><!-- rendered by JS --></div>
+
+<script>
+(function () {
+  const D = DATA;
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  const CAT_CLASS = {
+    'E&M': 'cat-em',
+    'Preventive': 'cat-preventive',
+    'Diagnostic': 'cat-diagnostic',
+    'Procedure': 'cat-procedure',
+    'Care Mgmt': 'cat-care-mgmt',
+    'Telehealth': 'cat-telehealth',
+    'Counseling': 'cat-counseling'
+  };
+
+  const MIX_ROWS = [
+    { key: 'em', label: 'Evaluation & Management', related: ['E&M'] },
+    { key: 'diagnostic', label: 'Diagnostic & Lab', related: ['Diagnostic'] },
+    { key: 'preventive', label: 'Preventive Care', related: ['Preventive'] },
+    { key: 'procedural', label: 'In-Office Procedures', related: ['Procedure', 'Telehealth', 'Care Mgmt'] }
+  ];
+
+  const EFFORT_DEFAULT = {
+    'E&M': 'Low',
+    'Preventive': 'Low',
+    'Care Mgmt': 'Medium',
+    'Procedure': 'Medium',
+    'Telehealth': 'High'
+  };
+
+  function catBadge(cat) {
+    const cls = CAT_CLASS[cat] || 'cat-other';
+    return `<span class="cat-badge ${cls}">${escapeHtml(cat)}</span>`;
+  }
+
+  function scoreTone(score) {
+    if (score >= 75) return 'green';
+    if (score >= 50) return 'amber';
+    return 'red';
+  }
+
+  function getEffortLevel(gap) {
+    return gap.effortLevel || EFFORT_DEFAULT[gap.category] || 'Medium';
+  }
+
+  function effortClass(level) {
+    return `effort-${level.toLowerCase()}`;
+  }
+
+  function priorityScore(gap) {
+    const effortLevel = getEffortLevel(gap);
+    const effortScore = effortLevel === 'Low' ? 1 : effortLevel === 'Medium' ? 2 : 3;
+    return (gap.competitorCount / Math.max(1, D.competitorCount)) * (1 / effortScore);
+  }
+
+  function revenueSignal(gap) {
+    const ratio = gap.competitorCount / Math.max(1, D.competitorCount);
+    if (ratio >= 0.8) return { label: 'HIGH', width: 100, cls: 'high' };
+    if (ratio >= 0.5) return { label: 'MEDIUM', width: 68, cls: 'medium' };
+    return { label: 'LOW', width: 40, cls: 'low' };
+  }
+
+  function getStrengthRow(code) {
+    return (D.presenceGrid || []).find(row => row.code === code) || null;
+  }
+
+  function strengthPositionLabel(strength) {
+    const row = getStrengthRow(strength.code);
+    if (!row) return 'Differentiator in market';
+    const present = (row.competitorPresence || []).filter(r => r != null).sort((a, b) => a - b);
+    if (present.length === 0) return 'Only you in market';
+    const placement = 1 + present.filter(r => r < row.subjectRank).length;
+    if (placement === 1) return `#1 of ${present.length + 1} peers`;
+    if (placement === 2) return 'Top 2 in market';
+    return `Top ${placement} in market`;
+  }
+
+  function strengthDifferentiationScore(strength) {
+    const row = getStrengthRow(strength.code);
+    if (!row) return 0;
+    const present = (row.competitorPresence || []).filter(r => r != null);
+    return (D.competitorCount - present.length) * 100 + (50 - (row.subjectRank || 50));
+  }
+
+  function categoryFoundationPhrase(category) {
+    const phrases = {
+      'E&M': 'primary-care visit foundation',
+      'Preventive': 'preventive care foundation',
+      'Procedure': 'in-office procedure foundation',
+      'Care Mgmt': 'care-management foundation',
+      'Telehealth': 'access and follow-up foundation',
+      'Diagnostic': 'diagnostic workup foundation'
+    };
+    return phrases[category] || 'clinical foundation';
+  }
+
+  function actionLine(gap) {
+    if (gap.code === 'G2211') return 'No new patients, no new procedures. Tighten visit complexity documentation and bill it consistently.';
+    if (gap.code === 'G0444') return 'Add PHQ-9 workflow to annual wellness and follow-up visits so the screening is captured every time.';
+    if (gap.category === 'Telehealth') return 'Stand up telehealth scheduling, templates, and follow-up slots for patients you already serve.';
+    if (gap.category === 'Procedure') return 'Pilot one room setup, one supply list, and one documentation template to start billing this in-office.';
+    if (gap.category === 'Care Mgmt') return 'Assign one owner to the assessment workflow and standardize the documentation requirements in the chart.';
+    if (gap.category === 'Preventive') return 'Attach this to existing preventive visits with a checklist and scripted rooming prompt.';
+    return 'Update documentation workflow so current visits qualify without changing your patient mix.';
+  }
+
+  const tagsHtml = (D.tags || []).map(tag =>
+    `<span class="tag${tag.color ? ' ' + tag.color : ''}">${escapeHtml(tag.text)}</span>`
+  ).join('');
+
+  const sortedStrengths = [...(D.strengths || [])]
+    .sort((a, b) => strengthDifferentiationScore(b) - strengthDifferentiationScore(a))
+    .slice(0, 3);
+
+  const criticalGaps = [...(D.gaps || [])].filter(gap => gap.competitorCount >= 2);
+  const gapsByPeerCount = [...criticalGaps]
+    .sort((a, b) => b.competitorCount - a.competitorCount || priorityScore(b) - priorityScore(a) || a.code.localeCompare(b.code));
+  const priorityGaps = [...(D.gaps || [])]
+    .sort((a, b) => priorityScore(b) - priorityScore(a) || b.competitorCount - a.competitorCount || a.code.localeCompare(b.code));
+
+  const peersAhead = criticalGaps.reduce((max, gap) => Math.max(max, gap.competitorCount), 0);
+  const gapPenalty = criticalGaps.length * 8;
+  const gapHigh = criticalGaps.filter(gap => gap.competitorCount >= D.competitorCount).length * 4;
+  const strengthBonus = (D.strengths || []).length * 5;
+  const score = Math.min(100, Math.max(0, 100 - gapPenalty - gapHigh + strengthBonus));
+  const scoreClass = scoreTone(score);
+  const topStrength = sortedStrengths[0] || null;
+  const topCategory = topStrength ? categoryFoundationPhrase(topStrength.category) : 'clinical foundation';
+  const doctorLastName = D.doctorLastName || 'Doctor';
+
+  const heroConsultantText = `Dr. ${escapeHtml(doctorLastName)}, your ${escapeHtml(D.market)} practice has a strong <strong>${escapeHtml(topCategory)}</strong> - but <strong>${peersAhead} of ${D.competitorCount}</strong> competitors are billing codes you are not. This report shows you exactly where the gap is and what to do first.`;
+
+  const foundationNames = sortedStrengths.slice(0, 2).map(item => item.code).join(' and ');
+  const foundationInsight = sortedStrengths.length
+    ? `You are not starting from zero. <strong>${escapeHtml(foundationNames)}</strong> already gives this practice real leverage in ${escapeHtml(D.market)}. The gap work below is additive - not a rebuild.`
+    : `You already have enough market traction to move fast. The gap work below is about capturing revenue peers are already taking.`;
+
+  const foundationCardsHtml = sortedStrengths.map(strength => `
+    <div class="foundation-card">
+      <div class="foundation-top">
+        <div>
+          <div class="foundation-code">${escapeHtml(strength.code)}</div>
+          <div style="margin-top:6px;">${catBadge(strength.category)}</div>
+        </div>
+        <div class="foundation-star">★</div>
+      </div>
+      <div class="foundation-desc">${escapeHtml(strength.desc)}</div>
+      <div class="foundation-position">${escapeHtml(strengthPositionLabel(strength))}</div>
+      <div class="foundation-copy">${escapeHtml(strength.insight)}</div>
+    </div>
+  `).join('');
+
+  const gapCardsHtml = gapsByPeerCount.map(gap => {
+    const critical = gap.competitorCount === D.competitorCount;
+    const signal = revenueSignal(gap);
+    const effortLevel = getEffortLevel(gap);
+    const aiCopy = critical
+      ? `This is already standard in ${escapeHtml(D.market)}. When every peer bills <strong>${escapeHtml(gap.code)}</strong> and you do not, the leak is margin on care you already deliver.`
+      : `<strong>${escapeHtml(gap.code)}</strong> is not fringe activity - it is showing up across the market. That means competitors are widening revenue per patient while your practice leaves this lane open.`;
+
+    return `
+      <div class="gap-card${critical ? ' critical' : ''}">
+        <div class="gap-card-header">
+          <div class="gap-card-main">
+            <div class="gap-code-row">
+              <span class="gap-code">${escapeHtml(gap.code)}</span>
+              ${catBadge(gap.category)}
+              <span class="peer-badge ${critical ? 'red' : 'amber'}">${gap.competitorCount} of ${D.competitorCount} peers bill this</span>
+            </div>
+            <div class="gap-desc">${escapeHtml(gap.desc)}</div>
+          </div>
+          <div class="gap-side">
+            <div class="signal-label">Revenue Signal</div>
+            <div class="signal-track"><div class="signal-fill ${signal.cls}" style="width:${signal.width}%"></div></div>
+            <div class="signal-value">${signal.label}</div>
+            <div class="signal-sub">Effort: ${escapeHtml(effortLevel)} - ${gap.competitorCount}/${D.competitorCount} peers</div>
+          </div>
+        </div>
+        <div class="gap-copy">${escapeHtml(gap.insight)}</div>
+        <div class="ai-box compact" style="margin-top:12px;">
+          <div class="ai-label">🤖 AI INSIGHT</div>
+          <div class="ai-text">${aiCopy}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const mixWithDiffs = MIX_ROWS.map(row => {
+    const yourValue = D.subjectMix[row.key] || 0;
+    const marketValue = D.marketMix[row.key] || 0;
+    return {
+      ...row,
+      yourValue,
+      marketValue,
+      diff: yourValue - marketValue,
+      gap: marketValue - yourValue
+    };
+  });
+
+  const highlightedMix = [...mixWithDiffs].sort((a, b) => {
+    const aScore = a.gap > 0 ? a.gap + 100 : Math.abs(a.diff);
+    const bScore = b.gap > 0 ? b.gap + 100 : Math.abs(b.diff);
+    return bScore - aScore;
+  })[0];
+
+  const supportingMix = mixWithDiffs.filter(row => row.key !== highlightedMix.key);
+  const mixGapCodes = gapsByPeerCount.filter(gap => highlightedMix.related.indexOf(gap.category) !== -1).slice(0, 2).map(gap => gap.code);
+  const mixAiText = mixGapCodes.length
+    ? `Your <strong>${escapeHtml(highlightedMix.label)}</strong> base is workable. The <strong>${Math.abs(highlightedMix.diff)}-point ${highlightedMix.diff < 0 ? 'gap' : 'lead'}</strong> connects directly to <strong>${escapeHtml(mixGapCodes.join(' and '))}</strong> - the codes most likely to move revenue fastest.`
+    : `Your <strong>${escapeHtml(highlightedMix.label)}</strong> mix is where the market spread is clearest. That difference is the clearest signal for where your next revenue lift sits.`;
+
+  const mixBarsHtml = `
+    <div class="mix-bar-row">
+      <div class="mix-bar-name">Your Practice</div>
+      <div class="mix-bar-track"><div class="mix-bar-fill-you" style="width:${Math.min(highlightedMix.yourValue, 100)}%"></div></div>
+      <div class="mix-bar-value">${highlightedMix.yourValue}%</div>
+    </div>
+    <div class="mix-bar-row">
+      <div class="mix-bar-name">Market Avg</div>
+      <div class="mix-bar-track"><div class="mix-bar-fill-market" style="width:${Math.min(highlightedMix.marketValue, 100)}%"></div></div>
+      <div class="mix-bar-value">${highlightedMix.marketValue}%</div>
+    </div>
+  `;
+
+  const mixSupportHtml = supportingMix.map(row => `
+    <div class="mix-support-item">
+      <div class="mix-support-label">${escapeHtml(row.label)}</div>
+      <div class="mix-support-track"><div class="mix-support-fill-you" style="width:${Math.min(row.yourValue, 100)}%"></div></div>
+      <div class="mix-support-track"><div class="mix-support-fill-market" style="width:${Math.min(row.marketValue, 100)}%"></div></div>
+      <div class="mix-support-meta"><span>You ${row.yourValue}%</span><span>Mkt ${row.marketValue}%</span></div>
+    </div>
+  `).join('');
+
+  const priorityLabels = [
+    { num: '①', label: 'Quick Win', cls: 'quick' },
+    { num: '②', label: 'Next Step', cls: 'next' },
+    { num: '③', label: 'Long Game', cls: 'long' }
+  ];
+
+  const priorityItems = priorityGaps.slice(0, 3);
+  const priorityHtml = priorityItems.map((gap, index) => {
+    const effortLevel = getEffortLevel(gap);
+    const labelMeta = priorityLabels[index] || priorityLabels[priorityLabels.length - 1];
+    return `
+      <div class="priority-item">
+        <div class="priority-number">${labelMeta.num}</div>
+        <div>
+          <div class="priority-head">
+            <div>
+              <div class="priority-label ${labelMeta.cls}">${labelMeta.label}</div>
+              <div class="priority-code" style="margin-top:10px;">${escapeHtml(gap.code)}</div>
+              <div class="priority-desc">${escapeHtml(gap.desc)}</div>
+            </div>
+            <div>${catBadge(gap.category)}</div>
+          </div>
+          <div class="priority-meta">
+            <span class="priority-pill ${effortClass(effortLevel)}">Effort: ${escapeHtml(effortLevel)}</span>
+            <span class="priority-pill signal">Signal: ${gap.competitorCount} of ${D.competitorCount} peers</span>
+          </div>
+          <div class="priority-action">${escapeHtml(actionLine(gap))}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const closeCodes = priorityItems.slice(0, 2).map(item => item.code).join(' and ');
+  const closingText = priorityItems.length >= 2
+    ? `Dr. ${escapeHtml(doctorLastName)}, if you act on items ① and ② alone, you close the highest-signal revenue gap on <strong>${escapeHtml(closeCodes)}</strong> - where ${priorityItems[0].competitorCount} of ${D.competitorCount} and ${priorityItems[1].competitorCount} of ${D.competitorCount} peers are already getting paid. That is movement without adding a single new patient.`
+    : `Dr. ${escapeHtml(doctorLastName)}, the fastest path is to act on the highest-signal code first and close the most obvious revenue leak before the next quarter.`;
+
+  const sortedProcedures = [...(D.subjectProcedures || [])].sort((a, b) => a.rank - b.rank);
+  const half = Math.ceil(sortedProcedures.length / 2);
+  const col1 = sortedProcedures.slice(0, half);
+  const col2 = sortedProcedures.slice(half);
+
+  function rankedItemHtml(proc) {
+    const tier = proc.rank <= 10 ? 't10' : proc.rank <= 25 ? 't25' : 't50';
+    const barW = Math.max(2, Math.round(((50 - proc.rank + 1) / 50) * 100));
+    return `
+      <div class="ranked-item">
+        <div class="ranked-num ${tier}">${proc.rank}</div>
+        <div class="ranked-code-wrap"><div class="ranked-code">${escapeHtml(proc.code)}</div></div>
+        <div class="ranked-desc-wrap">
+          <div class="ranked-desc-line">${catBadge(proc.category)}<span class="ranked-desc">${escapeHtml(proc.desc)}</span></div>
+          <div class="ranked-bar-track"><div class="ranked-bar-fill ${tier}" style="width:${barW}%"></div></div>
+        </div>
+      </div>
+    `;
+  }
+
+  const colHeader = `
+    <div class="ranked-col-header">
+      <div style="text-align:right">Rank</div>
+      <div>CPT</div>
+      <div>Procedure</div>
+    </div>
+  `;
+
+  const rankedTableHtml = `
+    <div class="ranked-cols">
+      <div>${colHeader}${col1.map(rankedItemHtml).join('')}</div>
+      <div>${colHeader}${col2.map(rankedItemHtml).join('')}</div>
+    </div>
+  `;
+
+  const zipChips = (D.searchedZipCodes || []).map(zip => `<span class="appendix-chip">${escapeHtml(zip)}</span>`).join('');
+  const taxChips = (D.taxonomyCodes || []).map(code => `<span class="appendix-chip">${escapeHtml(code)}</span>`).join('');
+  const npiChips = (D.peerNpis || []).map(npi => `<span class="appendix-chip">${escapeHtml(npi)}</span>`).join('');
+
+  document.getElementById('report-page').innerHTML = `
+    <div class="header">
+      <div class="header-top">
+        <div class="merc-wordmark">
+          <div class="merc-line1">
+            <span class="w-medical">MEDICAL</span>
+            <span class="w-real">REAL</span>
+          </div>
+          <div class="merc-line2">
+            <span class="w-estate">ESTATE</span>
+            <span class="w-calculator">CALCULATOR<span class="tm">™</span></span>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="report-badge">${escapeHtml(D.reportTier)}</div>
+          <div style="font-family:'Montserrat',sans-serif;font-size:9px;font-weight:600;letter-spacing:2px;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-top:2px;">
+            ${escapeHtml(D.market)} &nbsp;·&nbsp; ${escapeHtml(D.dateIssued)}
+          </div>
+        </div>
+      </div>
+      <div class="header-band">
+        <div class="catch-text">PROCEDURE MIX <em>INTELLIGENCE</em> - COMPETITIVE PROFILE</div>
+        <div class="header-meta">${escapeHtml(D.specialty)} &nbsp;·&nbsp; ${escapeHtml(D.radius)} radius</div>
+      </div>
+    </div>
+
+    <div class="body-content">
+      <div class="hero-beat">
+        <div class="hero-meta-row">
+          <div class="hero-practice">${escapeHtml(D.practiceName)} - ${escapeHtml(D.market)} - ${D.competitorCount} peer providers analyzed</div>
+          <div class="hero-tags">${tagsHtml}</div>
+        </div>
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <div class="beat-kicker">Beat 1 - The Hook</div>
+            <div class="hero-title">YOU HAVE REVENUE <span class="accent">LEAKS</span><br>YOUR PEERS ALREADY FIXED</div>
+            <div class="hero-lead">This report is built for the first ten seconds. Your practice already has enough foundation to win - but peers in ${escapeHtml(D.market)} are monetizing visit types and workflows you still leave unpaid.</div>
+            <div class="hero-detail-row">
+              <span>${escapeHtml(D.reportId)}</span>
+              <span>${escapeHtml(D.specialty)}</span>
+              <span>${escapeHtml(D.address)}</span>
+            </div>
+          </div>
+          <div class="hero-metrics">
+            <div class="hero-card red-top">
+              <div class="hero-card-label">Critical Gaps</div>
+              <div class="hero-card-value red">${criticalGaps.length}</div>
+              <div class="hero-card-sub">Missing codes that at least two competitors already bill.</div>
+            </div>
+            <div class="hero-card amber-top">
+              <div class="hero-card-label">Peers Ahead</div>
+              <div class="hero-card-value amber">${peersAhead} of ${D.competitorCount}</div>
+              <div class="hero-card-sub">Highest peer consensus on a code you are not capturing today.</div>
+            </div>
+            <div class="hero-card green-top">
+              <div class="hero-card-label">Your Score</div>
+              <div class="hero-card-value ${scoreClass}">${score}/100</div>
+              <div class="hero-card-sub">Built from gap drag and strength lift. ${score >= 75 ? 'Healthy foundation.' : score >= 50 ? 'Recoverable, but leaking.' : 'Urgent correction needed.'}</div>
+            </div>
+          </div>
+        </div>
+        <div class="ai-box consultant" style="margin-top:18px;">
+          <div class="ai-label">Consultant Take</div>
+          <div class="ai-text">${heroConsultantText}</div>
+        </div>
+      </div>
+
+      <div class="beat">
+        <div class="beat-header">
+          <div>
+            <div class="beat-kicker">Beat 2 - Validation</div>
+            <div class="beat-title">Your Foundation</div>
+          </div>
+          <div class="beat-subtitle">These are the parts of your billing profile that already separate you from the pack. We lead with them because the next moves work best on top of a real base.</div>
+        </div>
+        <div class="foundation-grid">${foundationCardsHtml}</div>
+        <div class="ai-box">
+          <div class="ai-label">🤖 AI INSIGHT</div>
+          <div class="ai-text">${foundationInsight}</div>
+        </div>
+      </div>
+
+      <div class="beat">
+        <div class="beat-header">
+          <div>
+            <div class="beat-kicker">Beat 3 - Peak Urgency</div>
+            <div class="beat-title">Your Critical Gaps - ${criticalGaps.length} Identified</div>
+          </div>
+          <div class="beat-subtitle">Sorted by peer signal first. These are the codes most likely to be costing you money right now because other practices have already operationalized them.</div>
+        </div>
+        <div class="gap-stack">${gapCardsHtml}</div>
+      </div>
+
+      <div class="beat">
+        <div class="beat-header">
+          <div>
+            <div class="beat-kicker">Beat 4 - Context</div>
+            <div class="beat-title">Where Your Mix Falls Behind</div>
+          </div>
+          <div class="beat-subtitle">One category matters most here: the one with the clearest spread between your mix and the market average. That is where Beat 3 turns into practical revenue context.</div>
+        </div>
+        <div class="mix-panel">
+          <div class="mix-top">
+            <div>
+              <div class="mix-highlight-label">Largest Category Spread</div>
+              <div class="mix-highlight-title">${escapeHtml(highlightedMix.label)}</div>
+              <div class="mix-highlight-copy">Your practice is ${highlightedMix.diff < 0 ? 'underweight' : 'overweight'} in this category relative to market peers. That difference shapes what kinds of revenue you capture without changing patient volume.</div>
+              <div class="mix-delta ${highlightedMix.diff < 0 ? 'behind' : 'ahead'}">↑ ${Math.abs(highlightedMix.diff)} pts ${highlightedMix.diff < 0 ? 'behind' : 'ahead'}</div>
+            </div>
+            <div class="mix-bars">${mixBarsHtml}</div>
+          </div>
+          <div class="mix-supporting">${mixSupportHtml}</div>
+        </div>
+        <div class="ai-box">
+          <div class="ai-label">🤖 AI INSIGHT</div>
+          <div class="ai-text">${mixAiText}</div>
+        </div>
+      </div>
+
+      <div class="beat">
+        <div class="beat-header">
+          <div>
+            <div class="beat-kicker">Beat 5 - Empowerment + Action</div>
+            <div class="beat-title">Your Play</div>
+          </div>
+          <div class="beat-subtitle">This stack is ranked by peer adoption and implementation effort. The idea is simple: close the easiest high-signal leaks first, then build the harder moat after.</div>
+        </div>
+        <div class="priority-stack">${priorityHtml}</div>
+        <div class="ai-box consultant">
+          <div class="ai-label">Consultant Close</div>
+          <div class="ai-text">${closingText}</div>
+        </div>
+        <div class="cta-row">
+          <a class="cta-btn primary" href="#">Book Your Strategy Call</a>
+          <a class="cta-btn secondary" href="#">Get Full Revenue Model</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="appendix">
+      <div class="appendix-title">Reference Appendix</div>
+      <div class="appendix-block">
+        <div class="appendix-block-label">Ranked 50-Procedure Table - Reference Only</div>
+        ${rankedTableHtml}
+      </div>
+      <div class="appendix-block">
+        <div class="appendix-block-label">ZIP Codes Searched - ${(D.searchedZipCodes || []).length} ZIPs within ${escapeHtml(D.radius)}</div>
+        <div class="appendix-chips">${zipChips || '<span style="font-size:9px;color:var(--muted)">-</span>'}</div>
+      </div>
+      <div class="appendix-block">
+        <div class="appendix-block-label">Specialty Taxonomy Codes - NPI Registry (${(D.taxonomyCodes || []).length} codes)</div>
+        <div class="appendix-chips">${taxChips || '<span style="font-size:9px;color:var(--muted)">-</span>'}</div>
+      </div>
+      <div class="appendix-block">
+        <div class="appendix-block-label">Methodology</div>
+        <div style="font-size:8px;line-height:1.6;color:var(--muted);">
+          Procedure ranks are derived from CMS Part B claims data. No raw claim counts are displayed. Rankings reflect relative frequency within each provider's billing profile. Competitor identities remain anonymized in the report narrative.
+        </div>
+      </div>
+      <div class="appendix-block">
+        <div class="appendix-block-label">Peer NPIs</div>
+        <div class="appendix-chips">${npiChips || '<span style="font-size:9px;color:var(--muted)">-</span>'}</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="footer-left">
+        <div class="footer-brand">MCREC Reports LLC &nbsp;·&nbsp; Powered by Medical Real Estate Calculator™</div>
+        <div class="footer-legal">
+          Report prepared exclusively for named recipient. AlphaSophia data utilized under applicable license terms - end customer is direct licensee.
+          MCREC Reports LLC acts solely as commercial facilitator. This report does not constitute legal, financial, or investment advice.
+          © 2026 MCREC Reports LLC. All rights reserved.
+        </div>
+      </div>
+      <div class="footer-right">
+        <div class="footer-codes">CPT<span>·</span>DRG<span>·</span>ICD-10</div>
+        <div class="footer-page">Page 1 of 1 &nbsp;·&nbsp; Report ${escapeHtml(D.reportId)}</div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('page-title').textContent = `MERC T4 Report ${D.reportId} - ${D.market} ${D.specialty}`;
+})();
+</script>
+
+</body>
+</html>

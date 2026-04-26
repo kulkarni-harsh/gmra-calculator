@@ -14,7 +14,7 @@ import json
 import logging
 
 from app.core.config import settings
-from app.core.logging import configure_logging
+from app.core.logging import JobLogHandler, configure_logging
 from app.schemas.report_requests import T3ReportRequest
 from app.services.email import send_report_ready
 from app.services.job_store import get_job, update_job
@@ -28,7 +28,7 @@ async def process_job(job_id: str, state: ReportState) -> None:
     from app.services._report_generator_a1_archived import run_report
     from app.services.pdf import html_to_pdf
     from app.services.report_generator import run_html_report
-    from app.services.s3 import upload_report, upload_report_pdf
+    from app.services.s3 import upload_job_log, upload_report, upload_report_pdf
 
     job = get_job(job_id)
     if not job:
@@ -37,6 +37,9 @@ async def process_job(job_id: str, state: ReportState) -> None:
 
     update_job(job_id, status="running")
     logging.info("Job %s: status → running", job_id)
+
+    log_handler = JobLogHandler()
+    logging.getLogger().addHandler(log_handler)
 
     try:
         raw = json.loads(job["payload"])
@@ -73,6 +76,11 @@ async def process_job(job_id: str, state: ReportState) -> None:
             "Job %s: status → done  html_url=%s  pdf_url=%s", job_id, html_url or "<none>", pdf_url or "<none>"
         )
 
+        # Snapshot log before email so the summary is included in the email.
+        log_summary = log_handler.summary
+        log_s3_url = upload_job_log(job_id, log_handler.get_text())
+        update_job(job_id, log_s3_url=log_s3_url, log_counts=log_summary)
+
         # Build email context from whichever payload branch was taken — avoids unbound variable refs.
         if report_type == "t3":
             email_to = str(t3_payload.customer_email)
@@ -97,12 +105,19 @@ async def process_job(job_id: str, state: ReportState) -> None:
                 html_url=html_url or "",
                 pdf_url=pdf_url or "",
                 debug_excel_bytes=debug_excel_bytes,
+                log_summary=log_summary,
+                log_s3_url=log_s3_url,
             )
 
     except Exception as exc:
         logging.error("Job %s: status → failed  error=%s", job_id, exc, exc_info=True)
-        update_job(job_id, status="failed", error=str(exc))
+        log_summary = log_handler.summary
+        log_s3_url = upload_job_log(job_id, log_handler.get_text())
+        update_job(job_id, status="failed", error=str(exc), log_s3_url=log_s3_url, log_counts=log_summary)
         raise
+
+    finally:
+        logging.getLogger().removeHandler(log_handler)
 
 
 async def main() -> None:

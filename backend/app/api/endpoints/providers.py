@@ -30,7 +30,7 @@ async def search_providers(zip_code: str, specialty_name: str, request: Request)
     """Search for providers by ZIP code and specialty name."""
     taxonomy_codes = get_taxonomy_codes(request.app.state.specialty_lookup, specialty_name)
     if not taxonomy_codes:
-        logging.warning("No taxonomy codes found for specialty %s", specialty_name)
+        logging.critical("No taxonomy codes found for specialty %s", specialty_name)
         return []
     try:
         providers = await get_hcp_data(
@@ -51,7 +51,7 @@ async def get_provider(zip_code: str, npi: str, specialty_name: str, request: Re
     """Fetch a single provider by ZIP code, NPI, and specialty."""
     taxonomy_codes = get_taxonomy_codes(request.app.state.specialty_lookup, specialty_name)
     if not taxonomy_codes:
-        logging.warning("No taxonomy codes found for specialty %s", specialty_name)
+        logging.critical("No taxonomy codes found for specialty %s", specialty_name)
         raise HTTPException(status_code=404, detail="Provider not found")
 
     try:

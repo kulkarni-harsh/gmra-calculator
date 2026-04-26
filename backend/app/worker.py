@@ -21,6 +21,7 @@ from app.services.job_store import get_job, update_job
 from app.services.queue import delete_message, receive_jobs
 from app.services.report_generator import ReportState, load_state
 
+
 async def process_job(job_id: str, state: ReportState) -> None:
     from app.schemas.provider_request import ProviderRequest
     from app.schemas.report_requests import T1ReportRequest, T2ReportRequest

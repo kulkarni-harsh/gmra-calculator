@@ -129,5 +129,3 @@ def test_delete_message_uses_queue_url_from_settings():
 
     kwargs = mock_client.delete_message.call_args.kwargs
     assert "QueueUrl" in kwargs
-
-

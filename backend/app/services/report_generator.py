@@ -844,6 +844,10 @@ async def run_html_report(
             provider_shares=cpt_agg.provider_shares,
             top_cpt_descriptions=[r.desc for r in cpt_agg.cpt_rows[:5] if r.desc],
             verdict_type=verdict.verdict_type,
+            verdict_value=verdict.verdict_value,
+            verdict_sub=verdict.verdict_sub,
+            density_scope=density_scope,
+            locum_count=locum_count,
             nearest_competitor_drive_min=competitor_drive_times[0] if competitor_drive_times else None,
             median_competitor_drive_min=competitor_drive_times[len(competitor_drive_times) // 2]
             if competitor_drive_times
@@ -853,7 +857,11 @@ async def run_html_report(
             else None,
             provider_drive_volume_pairs=sorted(
                 [
-                    (p.drive_time_minutes, round(p.cpt_total_services / cpt_agg.share_denom * 100))
+                    (
+                        p.drive_time_minutes,
+                        round(p.cpt_total_services / cpt_agg.share_denom * 100),
+                        p.is_locum,
+                    )
                     for p in peers
                     if p.drive_time_minutes is not None
                 ],

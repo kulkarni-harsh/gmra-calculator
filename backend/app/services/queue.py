@@ -35,5 +35,3 @@ def receive_jobs(max_messages: int = 1, wait_seconds: int = 20) -> list[dict]:
 def delete_message(receipt_handle: str) -> None:
     """Remove a message after successful processing."""
     _sqs().delete_message(QueueUrl=settings.SQS_QUEUE_URL, ReceiptHandle=receipt_handle)
-
-

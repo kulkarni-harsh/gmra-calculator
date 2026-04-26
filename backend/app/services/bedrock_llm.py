@@ -37,7 +37,7 @@ class MarketAnalysisInput:
     total_population: int
     relevant_pop: int
     population_label: str
-    peer_providers_count: int
+    peer_providers_count: int  # Active (non-locum) providers only
     expected_providers: float
     provider_gap: float
     target_density: float | None
@@ -47,44 +47,62 @@ class MarketAnalysisInput:
     # Top CPT procedure descriptions
     top_cpt_descriptions: list[str] = field(default_factory=list)
     verdict_type: str = "caution"  # "opportunity" | "avoid" | "caution"
-    # Geographic distribution of competitors (drive time)
+    verdict_value: str = ""  # Short headline, e.g. "Underserved Market"
+    verdict_sub: str = ""  # Sub-line explaining the verdict
+    # "State" or "National (US Avg.)" — clarifies which benchmark target_density refers to
+    density_scope: str = "State"
+    # Locum / part-time providers in the radius (CPT volume ≤ 2% of total market).
+    # Excluded from peer_providers_count but present in proximity/share lists for context.
+    locum_count: int = 0
+    # Geographic distribution of competitors (drive time) — INCLUDES locum providers
     nearest_competitor_drive_min: float | None = None
     median_competitor_drive_min: float | None = None
     providers_within_10_min: int | None = None
-    # List of (drive_time_minutes, cpt_volume_share_pct) pairs, sorted by drive time ASC.
-    # Enables LLM to reason about proximity risk vs. volume dominance together.
-    provider_drive_volume_pairs: list[tuple[float, int]] = field(default_factory=list)
+    # List of (drive_time_minutes, cpt_volume_share_pct, is_locum) triples, sorted by drive ASC.
+    # Enables LLM to reason about proximity vs. volume vs. permanence together.
+    provider_drive_volume_pairs: list[tuple[float, int, bool]] = field(default_factory=list)
 
 
 def _build_prompt(d: MarketAnalysisInput) -> str:
     # ── Provider density narrative ─────────────────────────────────────────
+    locum_line = (
+        f"- Locum / part-time providers in market (≤2% volume each, excluded from active count): {d.locum_count}\n"
+        if d.locum_count
+        else ""
+    )
     if d.target_density is not None and d.expected_providers > 0:
         density_pct = round((d.peer_providers_count / d.expected_providers) * 100)
         density_context = (
-            f"- State benchmark density: {d.target_density:.1f} providers per 100k residents\n"
+            f"- {d.density_scope} benchmark density: {d.target_density:.1f} providers per 100k residents\n"
             f"- Expected providers for this population: {d.expected_providers:.1f}\n"
-            f"- Active providers in market: {d.peer_providers_count}\n"
+            f"- Active providers in market (locum-excluded): {d.peer_providers_count}\n"
+            f"{locum_line}"
             f"- Operating at {density_pct}% of benchmark\n"
             f"- Provider gap: {d.provider_gap:+.1f} (positive = underserved, negative = saturated)\n"
         )
     else:
         density_context = (
-            f"- State benchmark density: Not available for this specialty/state\n"
-            f"- Active providers in market: {d.peer_providers_count}\n"
+            f"- {d.density_scope} benchmark density: Not available for this specialty/state\n"
+            f"- Active providers in market (locum-excluded): {d.peer_providers_count}\n"
+            f"{locum_line}"
         )
 
     # ── Market concentration ───────────────────────────────────────────────
     if d.provider_shares:
-        top_share = d.provider_shares[0].share
-        top3_share = (
-            sum(e.share for e in d.provider_shares[:3])
-            if len(d.provider_shares) >= 3
-            else sum(e.share for e in d.provider_shares)
+        non_locum_shares = [e for e in d.provider_shares if not e.is_locum]
+        ranked = non_locum_shares or d.provider_shares
+        top_share = ranked[0].share
+        top3_share = sum(e.share for e in ranked[:3])
+        top_lines = "\n".join(
+            f"  {i + 1}. {e.share}% — {e.taxonomy}{' [LOCUM]' if e.is_locum else ''}"
+            for i, e in enumerate(d.provider_shares[:5])
         )
         concentration_context = (
-            f"- Top provider CPT volume share: {top_share}%\n"
-            f"- Top 3 providers combined share: {top3_share}%\n"
-            f"- Total providers with volume data: {len(d.provider_shares)}\n"
+            f"- Top non-locum provider CPT volume share: {top_share}%\n"
+            f"- Top 3 non-locum providers combined share: {top3_share}%\n"
+            f"- Total providers with volume data: {len(d.provider_shares)} "
+            f"({len(non_locum_shares)} active, {len(d.provider_shares) - len(non_locum_shares)} locum)\n"
+            f"Top 5 providers (by share):\n{top_lines}\n"
         )
     else:
         concentration_context = "- Provider share data not available\n"
@@ -122,9 +140,15 @@ def _build_prompt(d: MarketAnalysisInput) -> str:
     # ── Competitor proximity vs CPT volume ──────────────────────────────────
     if d.provider_drive_volume_pairs:
         lines = "\n".join(
-            f"  - {round(dt)} min drive · {share}% volume share" for dt, share in d.provider_drive_volume_pairs[:10]
+            f"  - {round(dt)} min drive · {share}% volume share"
+            f"{' · LOCUM (transient capacity, not a permanent competitor)' if is_locum else ''}"
+            for dt, share, is_locum in d.provider_drive_volume_pairs[:10]
         )
-        proximity_volume_context = f"Competitors sorted by drive time (nearest first):\n{lines}\n"
+        proximity_volume_context = (
+            "Competitors sorted by drive time (nearest first; locum-tagged rows are "
+            "part-time / transient and should not be weighted as permanent competition):\n"
+            f"{lines}\n"
+        )
     else:
         proximity_volume_context = "- Competitor proximity-volume data not available\n"
 
@@ -148,10 +172,13 @@ def _build_prompt(d: MarketAnalysisInput) -> str:
         "1. Market Overview — Population size, total annual patient visits, and "
         "what this implies about raw demand in the market.\n"
         "2. Provider Density & Location Advantage — Compare active providers "
-        "to the benchmark, state whether this market is underserved/saturated/neutral. "
-        "Comment on drive-time competition and volume: if the nearest competitor is within "
+        "to the benchmark (note whether the benchmark is State or National when relevant), "
+        "state whether this market is underserved/saturated/neutral. "
+        "Treat locum-tagged providers as transient capacity, NOT permanent competitors — "
+        "do not let a nearby locum overstate competitive pressure. "
+        "Comment on drive-time competition and volume: if the nearest non-locum competitor is within "
         "5–10 minutes AND has high CPT volume share, note direct proximity+dominance risk; "
-        "if nearby competitors have low volume share, note the opportunity despite proximity. "
+        "if nearby competitors have low volume share or are locum, note the opportunity despite proximity. "
         "If most high-volume competitors are 15+ minutes away, highlight the catchment advantage. "
         "Give a clear site-selection opinion.\n"
         "3. Market Concentration & Procedure Mix — How concentrated is provider "
@@ -173,7 +200,9 @@ def _build_prompt(d: MarketAnalysisInput) -> str:
         f"Total population: {d.total_population:,}\n"
         f"{pop_note}"
         f"Annual patient visits (CPT services across all providers): {d.total_market_services:,}\n"
-        f"Market verdict: {d.verdict_type.upper()}\n\n"
+        f"Market verdict: {d.verdict_type.upper()}"
+        f"{f' — {d.verdict_value}' if d.verdict_value else ''}"
+        f"{f' ({d.verdict_sub})' if d.verdict_sub else ''}\n\n"
         f"Provider Density:\n{density_context}\n"
         f"Competitor Geographic Distribution:\n{geo_context}\n"
         f"Competitor Proximity vs Volume:\n{proximity_volume_context}\n"

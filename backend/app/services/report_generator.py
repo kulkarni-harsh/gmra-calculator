@@ -506,7 +506,7 @@ def _compute_verdict(
     if provider_gap < -1:
         return _Verdict(
             "avoid",
-            "AVOID",
+            "SATURATED",
             f"Saturated — {abs(provider_gap):.1f} providers above {density_scope.lower()} density baseline.",
         )
     return _Verdict(

@@ -158,6 +158,19 @@ def test_send_job_calls_ensure_even_after_successful_send():
     assert mock_ensure.called
 
 
+def test_send_job_does_not_call_ensure_if_send_message_raises():
+    """ensure_worker_running must not be called when the SQS send fails."""
+    mock_client = _make_sqs_mock()
+    mock_client.send_message.side_effect = Exception("SQS unavailable")
+    with patch("app.services.queue._sqs", return_value=mock_client), \
+         patch("app.services.ecs_worker.ensure_worker_running") as mock_ensure:
+        import pytest
+        from app.services.queue import send_job
+        with pytest.raises(Exception, match="SQS unavailable"):
+            send_job("MERC-fail")
+    mock_ensure.assert_not_called()
+
+
 # ---------------------------------------------------------------------------
 # get_queue_depth
 # ---------------------------------------------------------------------------

@@ -12,11 +12,13 @@ def _sqs():
 
 
 def send_job(job_id: str) -> None:
+    """Enqueue a job and ensure the on-demand worker is running."""
     _sqs().send_message(
         QueueUrl=settings.SQS_QUEUE_URL,
         MessageBody=json.dumps({"job_id": job_id}),
     )
-    # Import here to avoid circular imports (ecs_worker → config, queue → config)
+    # Lazy import: avoids coupling queue.py to ecs_worker.py at module level,
+    # keeping test isolation clean (ecs_worker triggers boto3 on import).
     from app.services.ecs_worker import ensure_worker_running
     ensure_worker_running()
 
@@ -45,4 +47,4 @@ def get_queue_depth() -> int:
         QueueUrl=settings.SQS_QUEUE_URL,
         AttributeNames=["ApproximateNumberOfMessages"],
     )
-    return int(resp["Attributes"]["ApproximateNumberOfMessages"])
+    return int(resp.get("Attributes", {}).get("ApproximateNumberOfMessages", 0))

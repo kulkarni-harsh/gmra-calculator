@@ -1,6 +1,7 @@
 """Ensure exactly one worker ECS task is running when jobs are queued."""
 
 import logging
+from typing import Any
 
 import boto3
 
@@ -9,7 +10,7 @@ from app.core.config import settings
 _ACTIVE_STATUSES = frozenset({"PROVISIONING", "PENDING", "ACTIVATING", "RUNNING"})
 
 
-def _get_ecs():
+def _get_ecs() -> Any:
     return boto3.client("ecs")
 
 
@@ -73,5 +74,5 @@ def ensure_worker_running() -> None:
                 result["tasks"][0]["taskArn"],
             )
 
-    except Exception:
+    except Exception:  # intentionally broad — fire-and-forget; job is safe in SQS
         logging.exception("ensure_worker_running: failed to launch worker — job remains in SQS")

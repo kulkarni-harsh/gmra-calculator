@@ -129,3 +129,57 @@ def test_delete_message_uses_queue_url_from_settings():
 
     kwargs = mock_client.delete_message.call_args.kwargs
     assert "QueueUrl" in kwargs
+
+
+# ---------------------------------------------------------------------------
+# ensure_worker_running wiring
+# ---------------------------------------------------------------------------
+
+
+def test_send_job_calls_ensure_worker_running():
+    """send_job triggers ensure_worker_running after enqueuing."""
+    mock_client = _make_sqs_mock()
+    with patch("app.services.queue._sqs", return_value=mock_client), \
+         patch("app.services.ecs_worker.ensure_worker_running") as mock_ensure:
+        from app.services.queue import send_job
+        send_job("MERC-123")
+    mock_ensure.assert_called_once()
+
+
+def test_send_job_calls_ensure_even_after_successful_send():
+    """ensure_worker_running is called after a successful send_message."""
+    mock_client = _make_sqs_mock()
+    mock_client.send_message.return_value = {"MessageId": "abc"}
+    with patch("app.services.queue._sqs", return_value=mock_client), \
+         patch("app.services.ecs_worker.ensure_worker_running") as mock_ensure:
+        from app.services.queue import send_job
+        send_job("MERC-xyz")
+    assert mock_client.send_message.called
+    assert mock_ensure.called
+
+
+# ---------------------------------------------------------------------------
+# get_queue_depth
+# ---------------------------------------------------------------------------
+
+
+def test_get_queue_depth_returns_int():
+    """get_queue_depth parses ApproximateNumberOfMessages as int."""
+    mock_client = _make_sqs_mock()
+    mock_client.get_queue_attributes.return_value = {
+        "Attributes": {"ApproximateNumberOfMessages": "7"}
+    }
+    with patch("app.services.queue._sqs", return_value=mock_client):
+        from app.services.queue import get_queue_depth
+        assert get_queue_depth() == 7
+
+
+def test_get_queue_depth_returns_zero_on_empty_queue():
+    """get_queue_depth returns 0 when queue is empty."""
+    mock_client = _make_sqs_mock()
+    mock_client.get_queue_attributes.return_value = {
+        "Attributes": {"ApproximateNumberOfMessages": "0"}
+    }
+    with patch("app.services.queue._sqs", return_value=mock_client):
+        from app.services.queue import get_queue_depth
+        assert get_queue_depth() == 0

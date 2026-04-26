@@ -21,10 +21,10 @@ def test_create_job_writes_pending_item():
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import create_job
 
-        create_job("MERC-1", '{"k":"v"}', "Family Medicine", "Dr A")
+        create_job("MREC-1", '{"k":"v"}', "Family Medicine", "Dr A")
 
     item = table.put_item.call_args.kwargs["Item"]
-    assert item["job_id"] == "MERC-1"
+    assert item["job_id"] == "MREC-1"
     assert item["status"] == "pending"
     assert item["specialty_name"] == "Family Medicine"
     assert item["provider_name"] == "Dr A"
@@ -43,7 +43,7 @@ def test_create_job_raises_job_already_exists_on_conditional_failure():
         from app.services.job_store import JobAlreadyExistsError, create_job
 
         with pytest.raises(JobAlreadyExistsError):
-            create_job("MERC-1", "{}", "x", "y")
+            create_job("MREC-1", "{}", "x", "y")
 
 
 def test_create_job_reraises_other_client_errors():
@@ -57,7 +57,7 @@ def test_create_job_reraises_other_client_errors():
         from app.services.job_store import create_job
 
         with pytest.raises(ClientError):
-            create_job("MERC-1", "{}", "x", "y")
+            create_job("MREC-1", "{}", "x", "y")
 
 
 def test_create_job_awaiting_payment_sets_correct_status():
@@ -66,7 +66,7 @@ def test_create_job_awaiting_payment_sets_correct_status():
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import create_job_awaiting_payment
 
-        create_job_awaiting_payment("MERC-2", "{}", "FM", "Dr B")
+        create_job_awaiting_payment("MREC-2", "{}", "FM", "Dr B")
     item = table.put_item.call_args.kwargs["Item"]
     assert item["status"] == "awaiting_payment"
 
@@ -77,7 +77,7 @@ def test_create_job_awaiting_payment_has_ttl():
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import create_job_awaiting_payment
 
-        create_job_awaiting_payment("MERC-2", "{}", "FM", "Dr B")
+        create_job_awaiting_payment("MREC-2", "{}", "FM", "Dr B")
     item = table.put_item.call_args.kwargs["Item"]
     assert "ttl" in item
     assert isinstance(item["ttl"], int)
@@ -94,7 +94,7 @@ def test_create_job_awaiting_payment_raises_job_already_exists_on_conditional_fa
         from app.services.job_store import JobAlreadyExistsError, create_job_awaiting_payment
 
         with pytest.raises(JobAlreadyExistsError):
-            create_job_awaiting_payment("MERC-2", "{}", "FM", "Dr B")
+            create_job_awaiting_payment("MREC-2", "{}", "FM", "Dr B")
 
 
 def test_claim_job_for_generation_returns_payload():
@@ -103,7 +103,7 @@ def test_claim_job_for_generation_returns_payload():
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import claim_job_for_generation
 
-        payload = claim_job_for_generation("MERC-3")
+        payload = claim_job_for_generation("MREC-3")
     assert payload == '{"k":"v"}'
 
 
@@ -113,7 +113,7 @@ def test_claim_job_for_generation_transitions_status():
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import claim_job_for_generation
 
-        claim_job_for_generation("MERC-3")
+        claim_job_for_generation("MREC-3")
 
     kwargs = table.update_item.call_args.kwargs
     expr_values = kwargs["ExpressionAttributeValues"]
@@ -132,17 +132,17 @@ def test_claim_job_for_generation_raises_when_already_claimed():
         from app.services.job_store import JobAlreadyExistsError, claim_job_for_generation
 
         with pytest.raises(JobAlreadyExistsError):
-            claim_job_for_generation("MERC-3")
+            claim_job_for_generation("MREC-3")
 
 
 def test_get_job_returns_item():
     """get_job returns the item dict when found."""
-    table = _make_table(get_item_return={"Item": {"job_id": "MERC-4", "status": "done"}})
+    table = _make_table(get_item_return={"Item": {"job_id": "MREC-4", "status": "done"}})
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import get_job
 
-        out = get_job("MERC-4")
-    assert out is not None and out["job_id"] == "MERC-4"
+        out = get_job("MREC-4")
+    assert out is not None and out["job_id"] == "MREC-4"
 
 
 def test_get_job_returns_none_when_missing():
@@ -151,7 +151,7 @@ def test_get_job_returns_none_when_missing():
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import get_job
 
-        assert get_job("MERC-x") is None
+        assert get_job("MREC-x") is None
 
 
 def test_update_job_sets_arbitrary_fields():
@@ -160,7 +160,7 @@ def test_update_job_sets_arbitrary_fields():
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import update_job
 
-        update_job("MERC-5", status="done", report_s3_url="https://x/y.html")
+        update_job("MREC-5", status="done", report_s3_url="https://x/y.html")
     kwargs = table.update_item.call_args.kwargs
     expr = kwargs["UpdateExpression"]
     assert expr.startswith("SET ")
@@ -172,7 +172,7 @@ def test_update_job_includes_updated_at():
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import update_job
 
-        update_job("MERC-5", status="done")
+        update_job("MREC-5", status="done")
     kwargs = table.update_item.call_args.kwargs
     expr_names = kwargs["ExpressionAttributeNames"]
     assert "#updated_at" in expr_names
@@ -184,6 +184,6 @@ def test_update_job_passes_correct_key():
     with patch("app.services.job_store._table", return_value=table):
         from app.services.job_store import update_job
 
-        update_job("MERC-99", status="error")
+        update_job("MREC-99", status="error")
     kwargs = table.update_item.call_args.kwargs
-    assert kwargs["Key"] == {"job_id": "MERC-99"}
+    assert kwargs["Key"] == {"job_id": "MREC-99"}

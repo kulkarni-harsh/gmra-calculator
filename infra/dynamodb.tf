@@ -1,5 +1,5 @@
 resource "aws_dynamodb_table" "jobs" {
-  name         = "merc-jobs"
+  name         = "mrec-jobs"
   billing_mode = "PAY_PER_REQUEST"  # no capacity planning needed; pay per read/write
   hash_key     = "job_id"
 

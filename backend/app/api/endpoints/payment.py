@@ -33,7 +33,7 @@ async def create_payment_intent_endpoint(payload: CreatePaymentIntentRequest):
     generation payload in DynamoDB with status 'awaiting_payment'. This ensures the webhook
     can enqueue the job even if the user's browser closes before /generate is called.
     """
-    job_id = f"MERC-{ulid.ulid()}"
+    job_id = f"MREC-{ulid.ulid()}"
     try:
         client_secret = create_payment_intent(
             job_id=job_id,
@@ -150,7 +150,7 @@ async def stripe_webhook(request: Request):
 @router.post("/create-t1-payment-intent")
 async def create_t1_payment_intent_endpoint(payload: CreateT1PaymentIntentRequest):
     """Pre-generate job_id, create Stripe PaymentIntent for $399, store T1 job in DynamoDB."""
-    job_id = f"MERC-{ulid.ulid()}"
+    job_id = f"MREC-{ulid.ulid()}"
     address_label = f"{payload.address_line_1}, {payload.city} {payload.state} {payload.zip_code}"
 
     try:
@@ -196,7 +196,7 @@ async def create_t1_payment_intent_endpoint(payload: CreateT1PaymentIntentReques
 @router.post("/create-t2-payment-intent")
 async def create_t2_payment_intent_endpoint(payload: CreateT2PaymentIntentRequest):
     """Pre-generate job_id, create Stripe PaymentIntent for $599, store T2 job in DynamoDB."""
-    job_id = f"MERC-{ulid.ulid()}"
+    job_id = f"MREC-{ulid.ulid()}"
     address_label = f"{payload.address_line_1}, {payload.city} {payload.state} {payload.zip_code}"
 
     try:
@@ -244,7 +244,7 @@ async def create_t2_payment_intent_endpoint(payload: CreateT2PaymentIntentReques
 @router.post("/create-t3-payment-intent")
 async def create_t3_payment_intent_endpoint(payload: CreateT3PaymentIntentRequest):
     """Pre-generate job_id, create Stripe PaymentIntent for $599, store T3 job in DynamoDB."""
-    job_id = f"MERC-{ulid.ulid()}"
+    job_id = f"MREC-{ulid.ulid()}"
     address_label = f"{payload.address_line_1}, {payload.city} {payload.state} {payload.zip_code}"
 
     try:

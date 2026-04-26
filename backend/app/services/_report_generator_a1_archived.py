@@ -403,7 +403,7 @@ async def run_report(payload: ProviderRequest, state: ReportState, job_id: str =
     )
 
     log.info("[10/10] Rendering HTML report template (V2)")
-    report_id = job_id or f"MERC-{ulid.ulid()}"
+    report_id = job_id or f"MREC-{ulid.ulid()}"
     address_str = (
         f"{payload.client_provider.location.address_line_1 or ''} "
         f"{payload.client_provider.location.address_line_2 or ''}, "

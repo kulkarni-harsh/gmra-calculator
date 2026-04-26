@@ -33,7 +33,7 @@ resource "aws_ecs_task_definition" "backend" {
       ]
 
       environment = [
-        { name = "PROJECT_NAME", value = "MERC" },
+        { name = "PROJECT_NAME", value = "MREC" },
         { name = "VERSION", value = "2.0.0" },
         { name = "API_PREFIX", value = "/api" },
         { name = "DEBUG", value = "false" },
@@ -145,7 +145,7 @@ resource "aws_ecs_task_definition" "worker" {
       command = ["uv", "run", "python", "-m", "app.worker"]
 
       environment = [
-        { name = "PROJECT_NAME", value = "MERC" },
+        { name = "PROJECT_NAME", value = "MREC" },
         { name = "VERSION", value = "2.0.0" },
         { name = "API_PREFIX", value = "/api" },
         { name = "DEBUG", value = "false" },

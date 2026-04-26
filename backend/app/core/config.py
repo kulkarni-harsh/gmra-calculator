@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     AWS_ENDPOINT_URL: str = ""
 
     # Async job infrastructure
-    DYNAMODB_TABLE_NAME: str = "merc-jobs"
+    DYNAMODB_TABLE_NAME: str = "mrec-jobs"
     SQS_QUEUE_URL: str = ""
 
     # Email (Resend)
@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     BEDROCK_ENDPOINT_URL: str = ""  # leave blank to use real AWS even when AWS_ENDPOINT_URL points to LocalStack
 
     # S3 report storage
-    S3_BUCKET_NAME: str = "merc-reports"
+    S3_BUCKET_NAME: str = "mrec-reports"
     S3_REPORTS_PREFIX: str = "reports"
     S3_PRESIGN_EXPIRY_SECONDS: int = 604800  # 7 days
 

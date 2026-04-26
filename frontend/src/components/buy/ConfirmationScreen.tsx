@@ -107,7 +107,7 @@ export default function ConfirmationScreen({
 
       {providerName && (
         <p className="mt-2 text-white/70">
-          Your MERC report for{' '}
+          Your MREC report for{' '}
           <span className="font-semibold text-white">{providerName}</span> is being generated.
         </p>
       )}

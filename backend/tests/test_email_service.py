@@ -38,9 +38,9 @@ def test_send_request_confirmation_includes_job_id_in_html():
         s.RESEND_API_KEY = "re_test"
         from app.services.email import send_request_confirmation
 
-        send_request_confirmation(to="x@y.com", job_id="MERC-42", provider_name="Dr B")
+        send_request_confirmation(to="x@y.com", job_id="MREC-42", provider_name="Dr B")
     params = send.call_args.args[0]
-    assert "MERC-42" in params["html"]
+    assert "MREC-42" in params["html"]
 
 
 def test_send_request_confirmation_includes_status_url_when_provided():
@@ -133,7 +133,7 @@ def test_send_report_ready_attaches_pdf():
         pdf_data = b"%PDF-1.4"
         send_report_ready(
             to="x@y.com",
-            job_id="MERC-7",
+            job_id="MREC-7",
             provider_name="Dr A",
             html_content="<html></html>",
             pdf_bytes=pdf_data,
@@ -141,7 +141,7 @@ def test_send_report_ready_attaches_pdf():
     params = send.call_args.args[0]
     attachments = params["attachments"]
     filenames = [a["filename"] for a in attachments]
-    assert any("MERC-7.pdf" in fn for fn in filenames)
+    assert any("MREC-7.pdf" in fn for fn in filenames)
     # Verify PDF content is base64-encoded correctly
     pdf_attach = next(a for a in attachments if ".pdf" in a["filename"])
     assert pdf_attach["content"] == base64.b64encode(pdf_data).decode("ascii")
@@ -159,7 +159,7 @@ def test_send_report_ready_attaches_html_when_attach_html_true():
 
         send_report_ready(
             to="x@y.com",
-            job_id="MERC-8",
+            job_id="MREC-8",
             provider_name="Dr A",
             html_content="<html>report</html>",
             pdf_bytes=b"%PDF",
@@ -181,7 +181,7 @@ def test_send_report_ready_skips_html_attachment_when_attach_html_false():
 
         send_report_ready(
             to="x@y.com",
-            job_id="MERC-9",
+            job_id="MREC-9",
             provider_name="Dr A",
             html_content="<html>report</html>",
             pdf_bytes=b"%PDF",
@@ -202,7 +202,7 @@ def test_send_report_ready_attaches_debug_excel_when_provided():
         excel_data = b"PK\x03\x04"  # minimal xlsx header
         send_report_ready(
             to="x@y.com",
-            job_id="MERC-10",
+            job_id="MREC-10",
             provider_name="Dr A",
             html_content="<html></html>",
             pdf_bytes=b"%PDF",
@@ -225,7 +225,7 @@ def test_send_report_ready_omits_debug_excel_when_not_provided():
 
         send_report_ready(
             to="x@y.com",
-            job_id="MERC-11",
+            job_id="MREC-11",
             provider_name="Dr A",
             html_content="<html></html>",
             pdf_bytes=b"%PDF",

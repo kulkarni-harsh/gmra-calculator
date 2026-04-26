@@ -27,7 +27,7 @@ def test_create_payment_intent_returns_client_secret_and_job_id(client):
     assert r.status_code == 200
     body = r.json()
     assert body["client_secret"] == "cs_test_a1"
-    assert body["job_id"].startswith("MERC-")
+    assert body["job_id"].startswith("MREC-")
 
 
 def test_create_payment_intent_502_when_stripe_fails(client):
@@ -79,7 +79,7 @@ def test_create_t1_payment_intent_job_id_starts_with_merc(client):
     ):
         r = client.post("/api/payments/create-t1-payment-intent", json=payload)
     assert r.status_code == 200
-    assert r.json()["job_id"].startswith("MERC-")
+    assert r.json()["job_id"].startswith("MREC-")
 
 
 def test_create_t1_payment_intent_502_when_stripe_fails(client):
@@ -149,7 +149,7 @@ def test_create_t2_payment_intent_job_id_starts_with_merc(client):
     ):
         r = client.post("/api/payments/create-t2-payment-intent", json=payload)
     assert r.status_code == 200
-    assert r.json()["job_id"].startswith("MERC-")
+    assert r.json()["job_id"].startswith("MREC-")
 
 
 def test_create_t2_payment_intent_502_when_stripe_fails(client):
@@ -222,7 +222,7 @@ def test_stripe_webhook_enqueues_job_on_payment_intent_succeeded(client):
         "data": {
             "object": {
                 "id": "pi_test",
-                "metadata": {"job_id": "MERC-TEST"},
+                "metadata": {"job_id": "MREC-TEST"},
                 "amount": 50000,
             }
         },
@@ -251,4 +251,4 @@ def test_stripe_webhook_enqueues_job_on_payment_intent_succeeded(client):
         )
     assert r.status_code == 200
     assert r.json() == {"received": True}
-    mock_send_job.assert_called_once_with("MERC-TEST")
+    mock_send_job.assert_called_once_with("MREC-TEST")

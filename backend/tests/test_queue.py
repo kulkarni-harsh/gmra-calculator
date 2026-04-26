@@ -20,12 +20,12 @@ def test_send_job_serializes_job_id_to_message_body():
     with patch("app.services.queue._sqs", return_value=mock_client):
         from app.services.queue import send_job
 
-        send_job("MERC-abc")
+        send_job("MREC-abc")
 
     mock_client.send_message.assert_called_once()
     kwargs = mock_client.send_message.call_args.kwargs
     body = json.loads(kwargs["MessageBody"])
-    assert body == {"job_id": "MERC-abc"}
+    assert body == {"job_id": "MREC-abc"}
 
 
 def test_send_job_uses_queue_url_from_settings():
@@ -34,7 +34,7 @@ def test_send_job_uses_queue_url_from_settings():
     with patch("app.services.queue._sqs", return_value=mock_client):
         from app.services.queue import send_job
 
-        send_job("MERC-xyz")
+        send_job("MREC-xyz")
 
     kwargs = mock_client.send_message.call_args.kwargs
     assert "QueueUrl" in kwargs
@@ -48,7 +48,7 @@ def test_send_job_uses_queue_url_from_settings():
 def test_receive_jobs_returns_messages_list():
     """receive_jobs forwards max_messages and wait_seconds and returns Messages."""
     mock_client = _make_sqs_mock()
-    mock_client.receive_message.return_value = {"Messages": [{"Body": '{"job_id":"MERC-1"}', "ReceiptHandle": "r1"}]}
+    mock_client.receive_message.return_value = {"Messages": [{"Body": '{"job_id":"MREC-1"}', "ReceiptHandle": "r1"}]}
     with patch("app.services.queue._sqs", return_value=mock_client):
         from app.services.queue import receive_jobs
 

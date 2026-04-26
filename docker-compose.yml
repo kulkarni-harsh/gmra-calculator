@@ -40,7 +40,7 @@ services:
     environment:
       # Override host-style endpoint with Docker-network-style endpoint
       - AWS_ENDPOINT_URL=http://localstack:4566
-      - SQS_QUEUE_URL=http://localstack:4566/000000000000/merc-jobs
+      - SQS_QUEUE_URL=http://localstack:4566/000000000000/mrec-jobs
     depends_on:
       localstack:
         condition: service_healthy
@@ -58,7 +58,7 @@ services:
       - ./backend/.env
     environment:
       - AWS_ENDPOINT_URL=http://localstack:4566
-      - SQS_QUEUE_URL=http://localstack:4566/000000000000/merc-jobs
+      - SQS_QUEUE_URL=http://localstack:4566/000000000000/mrec-jobs
     depends_on:
       localstack:
         condition: service_healthy

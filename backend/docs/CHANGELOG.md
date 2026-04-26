@@ -15,7 +15,7 @@ Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `ci`.
 
 ## 2026-04-25
 
-- docs: README rewritten to reflect MERC backend; living docs (CLAUDE, ARCHITECTURE, MODULES, CHANGELOG) wired up (Phase 6)
+- docs: README rewritten to reflect MREC backend; living docs (CLAUDE, ARCHITECTURE, MODULES, CHANGELOG) wired up (Phase 6)
 - test: API endpoint tests landed for /providers, /jobs/status, /payments (Phase 5)
 - test: service-layer tests with mocks landed for s3, queue, job_store, payment, email, geocoder, alphasophia (Phase 4)
 - test: pure-function unit tests landed for cpt parsing, specialty lookups, validator, fee_schedule, common (severity/population/tags), distance helpers, google_maps internals (Phase 3)

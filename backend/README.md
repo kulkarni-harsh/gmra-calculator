@@ -1,6 +1,6 @@
-# MERC Backend
+# MREC Backend
 
-FastAPI service that powers the MERC (Medical Estate Real Calculator) report pipeline.
+FastAPI service that powers the MREC (Medical Estate Real Calculator) report pipeline.
 
 ## What it does
 

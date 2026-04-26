@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title id="page-title">MERC Clinical Demand Report</title>
+<title id="page-title">MREC Clinical Demand Report</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700;800&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
 <style>
 
@@ -70,20 +70,20 @@ body {
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
-/* MERC wordmark inline */
-.merc-wordmark {
+/* MREC wordmark inline */
+.mrec-wordmark {
   display: flex;
   flex-direction: column;
   gap: 0px;
 }
 
-.merc-line1 {
+.mrec-line1 {
   display: flex;
   align-items: baseline;
   line-height: 1;
 }
 
-.merc-line2 {
+.mrec-line2 {
   display: flex;
   align-items: baseline;
   line-height: 1;
@@ -941,7 +941,7 @@ body {
 const DATA = {
 
   // ── Report Metadata ───────────────────────────────────────
-  reportId:    "MERC-2026-0042",
+  reportId:    "MREC-2026-0042",
   dateIssued:  "March 5, 2026",
   specialty:   "Family Medicine",
   market:      "Frisco, TX",
@@ -1229,12 +1229,12 @@ const DATA = {
   <!-- HEADER -->
   <div class="header">
     <div class="header-top">
-      <div class="merc-wordmark">
-        <div class="merc-line1">
+      <div class="mrec-wordmark">
+        <div class="mrec-line1">
           <span class="w-medical">Medical</span>
           <span class="w-real">Real</span>
         </div>
-        <div class="merc-line2">
+        <div class="mrec-line2">
           <span class="w-estate">Estate</span>
           <span class="w-calculator">Calculator<span class="tm">™</span></span>
         </div>
@@ -1490,7 +1490,7 @@ const DATA = {
 
   // Update page title
   document.getElementById('page-title').textContent =
-    `MERC Report ${D.reportId} — ${D.market} ${D.specialty}`;
+    `MREC Report ${D.reportId} — ${D.market} ${D.specialty}`;
 
 })();
 </script>

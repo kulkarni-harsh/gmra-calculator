@@ -45,7 +45,7 @@ def test_create_payment_intent_passes_amount_and_metadata():
         from app.services.payment import create_payment_intent
 
         cs = create_payment_intent(
-            job_id="MERC-1",
+            job_id="MREC-1",
             customer_email="x@y.com",
             provider_name="Dr A",
             specialty_name="Family Medicine",
@@ -54,7 +54,7 @@ def test_create_payment_intent_passes_amount_and_metadata():
     kwargs = m.call_args.kwargs
     assert kwargs["amount"] == 50_000
     assert kwargs["currency"] == "usd"
-    assert kwargs["metadata"]["job_id"] == "MERC-1"
+    assert kwargs["metadata"]["job_id"] == "MREC-1"
 
 
 def test_create_t1_payment_intent_uses_399_amount_and_t1_metadata():
@@ -63,7 +63,7 @@ def test_create_t1_payment_intent_uses_399_amount_and_t1_metadata():
         from app.services.payment import create_t1_payment_intent
 
         cs = create_t1_payment_intent(
-            job_id="MERC-2",
+            job_id="MREC-2",
             customer_email="x@y.com",
             specialty_name="FM",
             address_label="123 Main",
@@ -80,7 +80,7 @@ def test_create_t2_payment_intent_uses_599_amount_and_serializes_cpt_codes():
         from app.services.payment import create_t2_payment_intent
 
         cs = create_t2_payment_intent(
-            job_id="MERC-3",
+            job_id="MREC-3",
             customer_email="x@y.com",
             specialty_name="FM",
             address_label="123 Main",
@@ -99,7 +99,7 @@ def test_create_t2_payment_intent_no_cpt_codes_serializes_empty_string():
         from app.services.payment import create_t2_payment_intent
 
         cs = create_t2_payment_intent(
-            job_id="MERC-4",
+            job_id="MREC-4",
             customer_email="x@y.com",
             specialty_name="FM",
             address_label="123 Main",
@@ -113,20 +113,20 @@ def test_verify_payment_intent_returns_job_id_on_success():
     fake_intent = MagicMock(
         status="succeeded",
         amount=50_000,
-        metadata={"customer_email": "X@Y.com", "job_id": "MERC-9"},
+        metadata={"customer_email": "X@Y.com", "job_id": "MREC-9"},
     )
     with patch("app.services.payment.stripe.PaymentIntent.retrieve", return_value=fake_intent):
         from app.services.payment import verify_payment_intent
 
         out = verify_payment_intent(payment_intent_id="pi_1", expected_email="x@y.com")
-    assert out == "MERC-9"
+    assert out == "MREC-9"
 
 
 def test_verify_payment_intent_raises_on_wrong_status():
     fake_intent = MagicMock(
         status="processing",
         amount=50_000,
-        metadata={"customer_email": "x@y.com", "job_id": "MERC-9"},
+        metadata={"customer_email": "x@y.com", "job_id": "MREC-9"},
     )
     with patch("app.services.payment.stripe.PaymentIntent.retrieve", return_value=fake_intent):
         from app.services.payment import verify_payment_intent
@@ -139,7 +139,7 @@ def test_verify_payment_intent_raises_on_wrong_amount():
     fake_intent = MagicMock(
         status="succeeded",
         amount=10_000,
-        metadata={"customer_email": "x@y.com", "job_id": "MERC-9"},
+        metadata={"customer_email": "x@y.com", "job_id": "MREC-9"},
     )
     with patch("app.services.payment.stripe.PaymentIntent.retrieve", return_value=fake_intent):
         from app.services.payment import verify_payment_intent
@@ -152,7 +152,7 @@ def test_verify_payment_intent_raises_on_email_mismatch():
     fake_intent = MagicMock(
         status="succeeded",
         amount=50_000,
-        metadata={"customer_email": "other@y.com", "job_id": "MERC-9"},
+        metadata={"customer_email": "other@y.com", "job_id": "MREC-9"},
     )
     with patch("app.services.payment.stripe.PaymentIntent.retrieve", return_value=fake_intent):
         from app.services.payment import verify_payment_intent
@@ -204,7 +204,7 @@ def test_verify_payment_intent_accepts_custom_expected_amount_for_t1():
     fake_intent = MagicMock(
         status="succeeded",
         amount=39_900,
-        metadata={"customer_email": "x@y.com", "job_id": "MERC-T1"},
+        metadata={"customer_email": "x@y.com", "job_id": "MREC-T1"},
     )
     with patch("app.services.payment.stripe.PaymentIntent.retrieve", return_value=fake_intent):
         from app.services.payment import T1_REPORT_AMOUNT_CENTS, verify_payment_intent
@@ -214,4 +214,4 @@ def test_verify_payment_intent_accepts_custom_expected_amount_for_t1():
             expected_email="x@y.com",
             expected_amount=T1_REPORT_AMOUNT_CENTS,
         )
-    assert out == "MERC-T1"
+    assert out == "MREC-T1"

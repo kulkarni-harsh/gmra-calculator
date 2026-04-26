@@ -63,7 +63,7 @@ export default function Status() {
             value={trackingId}
             onChange={(e) => setTrackingId(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
-            placeholder="MERC-XXXXXXXXXXXX"
+            placeholder="MREC-XXXXXXXXXXXX"
             className="flex-1 rounded-lg border border-white/15 bg-white/8 px-4 py-3 font-mono text-sm text-white placeholder:text-white/30 focus:border-[hsl(204_66%_52%)] focus:outline-none"
           />
           <Button

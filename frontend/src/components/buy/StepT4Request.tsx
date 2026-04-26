@@ -52,7 +52,7 @@ export default function StepT4Request({
       <div className="rounded-xl border border-[hsl(204_66%_52%)]/30 bg-[hsl(204_66%_52%)]/10 p-4 text-sm text-white/80">
         <p className="font-semibold text-white">What happens next?</p>
         <ul className="mt-2 space-y-1.5 text-white/70">
-          <li>• A MERC consultant will call or email you within 1 business day.</li>
+          <li>• A MREC consultant will call or email you within 1 business day.</li>
           <li>• You will define the scope, custom CPT codes, and analysis depth together.</li>
           <li>• Payment ($999+) is collected after scope is agreed upon.</li>
         </ul>

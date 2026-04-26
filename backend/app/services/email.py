@@ -47,19 +47,19 @@ def send_request_confirmation(
     status_block = (
         f'<p><a href="{status_url}" style="font-weight:bold;">Check your report status</a></p>'
         if status_url
-        else "<p>Visit the MERC app and go to <strong>Check Status</strong> to track progress.</p>"
+        else "<p>Visit the MREC app and go to <strong>Check Status</strong> to track progress.</p>"
     )
 
     html_body = f"""
 <p>Hi,</p>
-<p>We've received your MERC report request for <strong>{provider_name}</strong>
+<p>We've received your MREC report request for <strong>{provider_name}</strong>
 and it's now being processed.</p>
 <p>Your report will be ready and emailed to you within <strong>24-48 hours</strong>.</p>
 <hr style="border:none;border-top:1px solid #eee;margin:16px 0;">
 <p><strong>Tracking ID:</strong> <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">{job_id}</code></p>
 {status_block}
 <p style="color:#888;font-size:12px;margin-top:24px;">
-  You're receiving this because you submitted a report request on MERC.
+  You're receiving this because you submitted a report request on MREC.
   If this wasn't you, please ignore this email.
 </p>
 """
@@ -67,7 +67,7 @@ and it's now being processed.</p>
     params: resend.Emails.SendParams = {
         "from": _FROM,
         "to": [to, "harshsk17@gmail.com"],
-        "subject": f"We received your MERC report request — {provider_name}",
+        "subject": f"We received your MREC report request — {provider_name}",
         "html": html_body,
     }
 
@@ -170,7 +170,7 @@ def send_report_ready(
     # ── Body ─────────────────────────────────────────────────────────────────
     attach_desc = "PDF" + (" and HTML" if _ATTACH_HTML and html_content else "")
     body_lines = [
-        f"<p>Your MERC market analysis report for <strong>{provider_name}</strong> is ready.</p>",
+        f"<p>Your MREC market analysis report for <strong>{provider_name}</strong> is ready.</p>",
         f"<p>The full report is attached as a {attach_desc} file.</p>",
     ]
 
@@ -189,7 +189,7 @@ def send_report_ready(
     params: resend.Emails.SendParams = {
         "from": _FROM,
         "to": [to, "harshsk17@gmail.com"],
-        "subject": f"Your MERC Report — {provider_name}",
+        "subject": f"Your MREC Report — {provider_name}",
         "html": "\n".join(body_lines),
         "attachments": attachments,
     }

@@ -864,7 +864,7 @@ async def run_html_report(
     )
 
     # 13. Assemble and render report
-    report_id = job_id or f"MERC-{ulid.ulid()}"
+    report_id = job_id or f"MREC-{ulid.ulid()}"
 
     # Upgrades
     upgrades = _get_upgrade_recommendations(payload)

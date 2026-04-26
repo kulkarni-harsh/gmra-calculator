@@ -54,7 +54,7 @@ def send_request_confirmation(
 <p>Hi,</p>
 <p>We've received your MERC report request for <strong>{provider_name}</strong>
 and it's now being processed.</p>
-<p>Your report will be ready and emailed to you within <strong>1 hour</strong>.</p>
+<p>Your report will be ready and emailed to you within <strong>24-48 hours</strong>.</p>
 <hr style="border:none;border-top:1px solid #eee;margin:16px 0;">
 <p><strong>Tracking ID:</strong> <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">{job_id}</code></p>
 {status_block}

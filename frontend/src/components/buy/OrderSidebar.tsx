@@ -104,7 +104,7 @@ export default function OrderSidebar({
         </div>
         <div className="flex items-center gap-2">
           <Calendar size={13} className="shrink-0" />
-          Delivered within 5 business days
+          Delivered within 24-48 hours
         </div>
       </div>
     </div>

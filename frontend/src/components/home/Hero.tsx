@@ -66,7 +66,11 @@ export default function Hero() {
             ))}
           </div>
 
-          <div className="mt-8 flex flex-wrap gap-3.5">
+          <p className="mt-6 text-[11px] font-semibold uppercase tracking-[1.5px] text-mcrec-teal">
+            Reports delivered within 24–48 hours
+          </p>
+
+          <div className="mt-3 flex flex-wrap gap-3.5">
             <a
               href="#reports"
               className="inline-block rounded-sm bg-mcrec-blue px-7 py-3.5 text-xs font-bold uppercase tracking-wide text-white transition-all hover:-translate-y-px hover:bg-[#1E5A9A]"

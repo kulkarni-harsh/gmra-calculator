@@ -97,9 +97,10 @@ export default function StepConfirm({
         {isLoading ? 'Preparing Payment…' : `Proceed to Payment — ${price}`}
       </Button>
 
-      <p className="text-center text-xs text-white/40">
-        Comprehensive PDF report generated within ~5 minutes.
-      </p>
+      <div className="rounded-lg border border-[hsl(204_66%_52%)]/20 bg-[hsl(204_66%_52%)]/5 px-4 py-3 text-center text-xs text-white/60">
+        Your report will be delivered to <span className="font-semibold text-white/80">{email}</span> within{' '}
+        <span className="font-semibold text-[hsl(204_66%_52%)]">24–48 hours</span> of payment confirmation.
+      </div>
 
       <div className="flex justify-start">
         <Button

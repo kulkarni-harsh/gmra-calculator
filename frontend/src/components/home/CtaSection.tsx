@@ -11,6 +11,9 @@ export default function CtaSection() {
         any market. No Globe Medical Realty Advisors engagement required. No brokerage relationship
         created. Use the data however you choose.
       </p>
+      <p className="mx-auto mt-3 text-[12px] font-semibold uppercase tracking-[1.5px] text-mcrec-teal">
+        Reports delivered within 24–48 hours
+      </p>
       <div className="mt-6 flex flex-wrap justify-center gap-3.5">
         <Link
           to="/buy"

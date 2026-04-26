@@ -64,11 +64,11 @@ export default function GeneratingScreen({ providerName, email, jobId, onReset }
             {email ? (
               <p className="mt-0.5 text-sm text-white/60">
                 We&apos;ll deliver your completed report to{' '}
-                <span className="text-white/90">{email}</span> within <span className="text-white font-medium">1 hour</span>.
+                <span className="text-white/90">{email}</span> within <span className="text-white font-medium">24-48 hours</span>.
               </p>
             ) : (
               <p className="mt-0.5 text-sm text-white/60">
-                Your completed report will be delivered to your registered email within <span className="text-white font-medium">1 hour</span>.
+                Your completed report will be delivered to your registered email within <span className="text-white font-medium">24-48 hours</span>.
               </p>
             )}
           </div>
@@ -197,7 +197,7 @@ export default function GeneratingScreen({ providerName, email, jobId, onReset }
       </div>
 
       <p className="mt-6 text-xs text-white/30">
-        Your report will be delivered to your email within 1 hour.
+        Your report will be delivered to your email within 24-48 hours.
       </p>
     </div>
   )

@@ -130,7 +130,7 @@ export default function ConfirmationScreen({
       <div className="mt-3 flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 px-5 py-4 text-left max-w-md">
         <Clock size={20} className="mt-0.5 shrink-0 text-amber-400" />
         <div>
-          <p className="text-sm font-semibold text-white">Report delivery: within 1 hour</p>
+          <p className="text-sm font-semibold text-white">Report delivery: within 24-48 hours</p>
           <p className="mt-0.5 text-sm text-white/60">
             Your completed report will be delivered directly to your inbox — no need to stay on this page.
           </p>

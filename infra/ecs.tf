@@ -46,7 +46,7 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "ECS_CLUSTER_ARN",       value = aws_ecs_cluster.main.arn },
         { name = "WORKER_TASK_DEF_ARN",   value = aws_ecs_task_definition.worker.arn },
         { name = "WORKER_SUBNETS",        value = "${aws_subnet.public_a.id},${aws_subnet.public_b.id}" },
-        { name = "WORKER_SECURITY_GROUP", value = aws_security_group.backend.id },
+        { name = "WORKER_SECURITY_GROUP", value = aws_security_group.worker.id },
       ]
 
       secrets = [
@@ -171,7 +171,7 @@ resource "aws_ecs_task_definition" "worker" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = "/ecs/${var.app_name}-worker"
+          "awslogs-group"         = aws_cloudwatch_log_group.worker.name
           "awslogs-region"        = var.aws_region
           "awslogs-stream-prefix" = "ecs"
         }

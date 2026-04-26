@@ -8,6 +8,11 @@ Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `ci`.
 
 ---
 
+## 2026-04-26
+
+- feat: replace always-on ECS worker service with on-demand Fargate task; worker self-terminates after ~60 s idle (`docs/superpowers/plans/2026-04-04-on-demand-worker.md`)
+- infra: add dedicated `aws_security_group.worker` (no ingress); worker SG no longer inherits backend's ALB-facing port-8000 ingress rule
+
 ## 2026-04-25
 
 - docs: README rewritten to reflect MERC backend; living docs (CLAUDE, ARCHITECTURE, MODULES, CHANGELOG) wired up (Phase 6)

@@ -70,3 +70,18 @@ resource "aws_security_group" "backend" {
 
   tags = { Name = "${var.app_name}-backend-sg" }
 }
+
+resource "aws_security_group" "worker" {
+  name        = "${var.app_name}-worker-sg"
+  description = "On-demand worker: no ingress (SQS consumer only); egress to internet for AWS APIs"
+  vpc_id      = aws_vpc.main.id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = { Name = "${var.app_name}-worker-sg" }
+}

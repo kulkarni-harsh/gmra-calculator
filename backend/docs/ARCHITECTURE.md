@@ -5,7 +5,7 @@
 The backend ships as a single Docker image with two CMDs:
 
 1. **API** — `uvicorn app.main:app` — handles HTTP requests.
-2. **Worker** — `python -m app.worker` — long-polls SQS and generates reports.
+2. **Worker** — `python -m app.worker` — long-polls SQS and generates reports. Launched on-demand as a Fargate task by `ensure_worker_running()` when a job is enqueued; self-terminates after ~60 s idle.
 
 Both processes load the same lookup tables at startup (`app/utils/common.load_fee_schedule_tables`, specialty/CPT lookups via `app/services/report_generator.load_state`).
 
@@ -26,7 +26,7 @@ Customer
   │   └─ Resend "we received your request" email
   │
   ▼
-Worker (separate ECS service)
+Worker (on-demand Fargate task — spawned by API, self-terminates after 60 s idle)
   │
   ├─ SQS receive_message
   ├─ DynamoDB update(status="running")

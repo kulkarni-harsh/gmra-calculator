@@ -1,12 +1,13 @@
 """
-SQS worker — runs as a separate ECS service (same Docker image, different CMD).
+SQS worker — runs as a separate ECS task (same Docker image, different CMD).
 
 Lifecycle:
   1. Load all lookup data from disk (once at startup)
   2. Long-poll SQS in a loop
   3. For each message: mark job running → generate report → upload to S3
                        → store in DynamoDB → email report to customer → mark done
-  4. Delete SQS message (success or failure — DLQ catches repeated crashes)
+  4. Delete SQS message (success only — visibility timeout expiry retries on failure)
+  5. Exit automatically after ~60s idle (3 × 20s long-polls with no messages)
 """
 
 import asyncio
@@ -18,8 +19,10 @@ from app.core.logging import JobLogHandler, configure_logging
 from app.schemas.report_requests import T3ReportRequest
 from app.services.email import send_report_ready
 from app.services.job_store import get_job, update_job
-from app.services.queue import delete_message, receive_jobs
+from app.services.queue import delete_message, get_queue_depth, receive_jobs
 from app.services.report_generator import ReportState, load_state
+
+_IDLE_POLL_THRESHOLD = 3   # × 20s long-poll = 60s idle before exit
 
 
 async def process_job(job_id: str, state: ReportState) -> None:
@@ -120,29 +123,51 @@ async def process_job(job_id: str, state: ReportState) -> None:
         logging.getLogger().removeHandler(log_handler)
 
 
+async def main_loop(state: ReportState, max_idle_polls: int = _IDLE_POLL_THRESHOLD) -> None:
+    """Poll SQS and process jobs. Exits when queue is idle for max_idle_polls × 20s."""
+    idle_polls = 0
+
+    while True:
+        messages = receive_jobs(max_messages=1, wait_seconds=20)
+
+        if not messages:
+            idle_polls += 1
+            if idle_polls >= max_idle_polls:
+                # Final safety check: a message may have arrived during the last long-poll gap
+                depth = get_queue_depth()
+                if depth > 0:
+                    logging.info(
+                        "Worker: queue has %d message(s) during idle check — resetting counter",
+                        depth,
+                    )
+                    idle_polls = 0
+                    continue
+                logging.info("Worker: queue idle for %ds — shutting down", max_idle_polls * 20)
+                break
+            continue
+
+        idle_polls = 0
+        msg = messages[0]
+        body = json.loads(msg["Body"])
+        job_id = body.get("job_id", "<unknown>")
+        logging.info("Received job %s from SQS", job_id)
+        try:
+            await process_job(job_id, state)
+            delete_message(msg["ReceiptHandle"])
+        except Exception as exc:  # intentionally broad — SQS retry handles failures
+            logging.error(
+                "Job %s: leaving message in queue — SQS will retry then route to DLQ: %s",
+                job_id, exc,
+            )
+
+
 async def main() -> None:
     configure_logging()
     logging.info("Worker starting — loading lookup data...")
     state = load_state()
     logging.info("Worker ready — polling SQS at %s", settings.SQS_QUEUE_URL)
-
-    while True:
-        messages = receive_jobs(max_messages=1, wait_seconds=20)
-        for msg in messages:
-            body = json.loads(msg["Body"])
-            job_id = body.get("job_id", "<unknown>")
-            logging.info("Received job %s from SQS", job_id)
-            try:
-                await process_job(job_id, state)
-                delete_message(msg["ReceiptHandle"])  # only on success
-            except Exception as exc:
-                logging.error(
-                    "Job %s: leaving message in queue — SQS will retry then route to DLQ: %s",
-                    job_id,
-                    exc,
-                )
-                # Do NOT delete — visibility timeout expires, SQS retries up to
-                # maxReceiveCount, then moves the message to the DLQ automatically.
+    await main_loop(state)
+    logging.info("Worker shutdown complete")
 
 
 if __name__ == "__main__":

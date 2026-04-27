@@ -22,6 +22,7 @@ from app.services.payment import (
     create_t3_payment_intent,
 )
 from app.services.queue import send_job
+from app.utils.common import to_capital_case
 
 router = APIRouter()
 
@@ -138,7 +139,7 @@ async def stripe_webhook(request: Request):
                 send_request_confirmation(
                     to=customer_email,
                     job_id=job_id,
-                    provider_name=provider_name,
+                    provider_name=to_capital_case(provider_name),
                     status_url=status_url,
                 )
         except Exception as exc:
@@ -151,7 +152,7 @@ async def stripe_webhook(request: Request):
 async def create_t1_payment_intent_endpoint(payload: CreateT1PaymentIntentRequest):
     """Pre-generate job_id, create Stripe PaymentIntent for $399, store T1 job in DynamoDB."""
     job_id = f"MREC-{ulid.ulid()}"
-    address_label = f"{payload.address_line_1}, {payload.city} {payload.state} {payload.zip_code}"
+    address_label = to_capital_case(f"{payload.address_line_1}, {payload.city} {payload.state} {payload.zip_code}")
 
     try:
         client_secret = create_t1_payment_intent(
@@ -197,7 +198,7 @@ async def create_t1_payment_intent_endpoint(payload: CreateT1PaymentIntentReques
 async def create_t2_payment_intent_endpoint(payload: CreateT2PaymentIntentRequest):
     """Pre-generate job_id, create Stripe PaymentIntent for $599, store T2 job in DynamoDB."""
     job_id = f"MREC-{ulid.ulid()}"
-    address_label = f"{payload.address_line_1}, {payload.city} {payload.state} {payload.zip_code}"
+    address_label = to_capital_case(f"{payload.address_line_1}, {payload.city} {payload.state} {payload.zip_code}")
 
     try:
         client_secret = create_t2_payment_intent(
@@ -245,7 +246,7 @@ async def create_t2_payment_intent_endpoint(payload: CreateT2PaymentIntentReques
 async def create_t3_payment_intent_endpoint(payload: CreateT3PaymentIntentRequest):
     """Pre-generate job_id, create Stripe PaymentIntent for $599, store T3 job in DynamoDB."""
     job_id = f"MREC-{ulid.ulid()}"
-    address_label = f"{payload.address_line_1}, {payload.city} {payload.state} {payload.zip_code}"
+    address_label = to_capital_case(f"{payload.address_line_1}, {payload.city} {payload.state} {payload.zip_code}")
 
     try:
         client_secret = create_t3_payment_intent(

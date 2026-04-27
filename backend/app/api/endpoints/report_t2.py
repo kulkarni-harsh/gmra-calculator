@@ -9,6 +9,7 @@ from app.services.email import send_request_confirmation
 from app.services.job_store import JobAlreadyExistsError, claim_job_for_generation
 from app.services.payment import T2_REPORT_AMOUNT_CENTS, verify_payment_intent
 from app.services.queue import send_job
+from app.utils.common import to_capital_case
 
 router = APIRouter()
 
@@ -38,7 +39,7 @@ async def submit_t2_report_job(payload: T2ReportRequest):
     send_job(job_id)
 
     status_url = f"{settings.FRONTEND_URL}/status" if settings.FRONTEND_URL else ""
-    address_label = f"{payload.address_line_1}, {payload.city} {payload.state} {payload.zip_code}"
+    address_label = to_capital_case(f"{payload.address_line_1}, {payload.city} {payload.state} {payload.zip_code}")
     send_request_confirmation(
         to=str(payload.customer_email),
         job_id=job_id,

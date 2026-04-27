@@ -107,9 +107,10 @@ class Provider(BaseModel):
         """
         if not self._cpt_fetched:
             raise ValueError(
-                f"Provider {self.id} (NPI: {self.npi}): CPT profiles must be fetched before calling set_is_locum"
+                f"Provider {self.id} (NPI: {self.npi}): CPT profiles must be fetched before calling set_is_locum "
+                f"Total Volume: {share_volume}"
             )
-        self.is_locum = self.cpt_total_services <= 0.02 * share_volume
+        self.is_locum = self.cpt_total_services <= 400
 
     def stamp_nearest_google_place(
         self, google_places: list[GooglePlace], distance_threshold_miles: float = 0.125

@@ -1,4 +1,5 @@
 import logging
+import re
 
 import pandas as pd
 
@@ -299,3 +300,17 @@ def generate_tags(
     if quick_win_top_code:
         tags_list.append(Tag(text=f"{quick_win_top_code.code} - Top Gap", color="green"))
     return tags_list
+
+
+def to_capital_case(value: str | None) -> str:
+    """Convert a string to capital case, preserving all-uppercase words of 2 letters or fewer (e.g. "MD", "NY")."""
+    if not value:
+        return ""
+
+    def _format_word(match: re.Match[str]) -> str:
+        word = match.group(0)
+        if len(word) <= 2 and word.isalpha() and word.isupper():
+            return word.upper()
+        return word[0].upper() + word[1:].lower()
+
+    return re.sub(r"[A-Za-z]+(?:['-][A-Za-z]+)*", _format_word, value.strip())

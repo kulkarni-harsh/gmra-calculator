@@ -53,6 +53,7 @@ from app.utils.common import (
     get_source_tabs,
     get_taxonomy_codes,
     load_fee_schedule_tables,
+    to_capital_case,
 )
 from app.utils.specialty import get_google_places_keywords
 from app.utils.validator import validate_speciality_master_df
@@ -660,15 +661,15 @@ async def run_html_report(
 ) -> tuple[str, bytes | None]:
     """Generate the Tier 0 HTML report from an address. Returns (html, debug_excel_bytes)."""
     # Manual set-up for backward compatibility
-    use_site_of_care = True  # When True, group providers by site of care for all peer calculations
+    use_site_of_care = False  # When True, group providers by site of care for all peer calculations
 
     log = logging.getLogger(__name__)
 
     # 1. Specialty metadata
     log.info("[1] Resolving specialty meta for '%s'", payload.specialty_name)
     meta = _resolve_specialty_meta(state, payload.specialty_name)
-    # T2: override specialty CPT codes with caller-provided list
-    effective_cpt_codes = custom_cpt_codes if custom_cpt_codes else meta.cpt_codes
+    # T2: Append specialty CPT codes with caller-provided list
+    effective_cpt_codes = [*custom_cpt_codes, *meta.cpt_codes] if custom_cpt_codes else meta.cpt_codes
     provider_state = payload.state
 
     # 2. Geocode
@@ -881,11 +882,11 @@ async def run_html_report(
         reportId=report_id,
         dateIssued=pd.Timestamp.now().strftime("%m/%d/%Y"),
         specialty=payload.specialty_name,
-        market=f"{payload.zip_code} {payload.city}, {payload.state}",
+        market=f"{payload.zip_code} {to_capital_case(payload.city)}, {to_capital_case(payload.state)}",
         radius=f"{payload.drive_time_minutes} min drive",
         reportTier=payload.tier_name,
         showSection03="T1" not in payload.__class__.__name__,
-        address=f"{payload.address_line_1} {payload.address_line_2 if payload.address_line_2 else ''}",
+        address=to_capital_case(f"{payload.address_line_1} {payload.address_line_2 if payload.address_line_2 else ''}"),
         clientName="",
         tags=generate_tags(cpt_agg.cpt_rows),
         verdictType=verdict.verdict_type,

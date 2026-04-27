@@ -8,6 +8,7 @@ from app.services.email import send_request_confirmation
 from app.services.job_store import JobAlreadyExistsError, claim_job_for_generation
 from app.services.payment import verify_payment_intent
 from app.services.queue import send_job
+from app.utils.common import to_capital_case
 
 router = APIRouter()
 
@@ -38,7 +39,7 @@ async def submit_report_job(payload: ProviderRequest):
         send_request_confirmation(
             to=payload.customer_email,
             job_id=job_id,
-            provider_name=str(payload.client_provider.name),
+            provider_name=to_capital_case(str(payload.client_provider.name)),
             status_url=status_url,
         )
 

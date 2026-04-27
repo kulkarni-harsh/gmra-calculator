@@ -20,6 +20,7 @@ from app.services.email import send_report_ready
 from app.services.job_store import get_job, update_job
 from app.services.queue import delete_message, receive_jobs
 from app.services.report_generator import ReportState, load_state
+from app.utils.common import to_capital_case
 
 
 async def process_job(job_id: str, state: ReportState) -> None:
@@ -84,16 +85,16 @@ async def process_job(job_id: str, state: ReportState) -> None:
         # Build email context from whichever payload branch was taken — avoids unbound variable refs.
         if report_type == "t3":
             email_to = str(t3_payload.customer_email)
-            provider_label = f"{t3_payload.address_line_1}, {t3_payload.city}"
+            provider_label = to_capital_case(f"{t3_payload.address_line_1}, {t3_payload.city}")
         elif report_type == "t2":
             email_to = str(t2_payload.customer_email)
-            provider_label = f"{t2_payload.address_line_1}, {t2_payload.city}"
+            provider_label = to_capital_case(f"{t2_payload.address_line_1}, {t2_payload.city}")
         elif report_type == "t1":
             email_to = str(t1_payload.customer_email)
-            provider_label = f"{t1_payload.address_line_1}, {t1_payload.city}"
+            provider_label = to_capital_case(f"{t1_payload.address_line_1}, {t1_payload.city}")
         else:
             email_to = str(a1_payload.customer_email)
-            provider_label = str(a1_payload.client_provider.name)
+            provider_label = to_capital_case(str(a1_payload.client_provider.name))
 
         if email_to:
             send_report_ready(

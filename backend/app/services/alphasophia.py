@@ -1,7 +1,7 @@
-import asyncio
 import logging
 
 import httpx
+from aiolimiter import AsyncLimiter
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
@@ -17,9 +17,9 @@ _alphasophia_client = httpx.AsyncClient(
 )
 _npi_client = httpx.AsyncClient(base_url="https://npiregistry.cms.hhs.gov", limits=httpx.Limits(max_connections=200))
 
-# Cap concurrent requests to AlphaSophia to avoid triggering 504s under load.
-_ALPHASOPHIA_CONCURRENCY = 15
-_alphasophia_sem = asyncio.Semaphore(_ALPHASOPHIA_CONCURRENCY)
+# RPS limits
+_ALPHASOPHIA_RPS = 7  # requests per seconds
+_alphasophia_limiter = AsyncLimiter(max_rate=_ALPHASOPHIA_RPS, time_period=1)
 
 _MAX_HCP_PAGES = 20  # Safety cap to avoid runaway pagination
 _ZIP_CHUNK_SIZE = 30  # Max zip codes per request — large lists trigger 414/431 "request too large" errors
@@ -27,8 +27,8 @@ _ZIP_CHUNK_SIZE = 30  # Max zip codes per request — large lists trigger 414/43
 
 @retry(
     retry=retry_if_exception_type(httpx.TimeoutException),
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=2, max=10),
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=1, min=2, max=30),
     reraise=True,
 )
 async def _fetch_hcp_page(
@@ -99,7 +99,7 @@ async def get_hcp_data(
                 logging.warning("AlphaSophia HCP search hit page cap (%d pages)", _MAX_HCP_PAGES)
     except httpx.TimeoutException as e:
         logging.critical(
-            "Timed out requesting AlphaSophia HCP search API after 3 attempts. %s: %s", type(e).__name__, e
+            "Timed out requesting AlphaSophia HCP search API after 5 attempts. %s: %s", type(e).__name__, e
         )
         raise
     except httpx.RequestError as exc:
@@ -181,7 +181,7 @@ async def get_npi_address(npi: str | None) -> tuple[str | None, str | None, str 
 
 
 @retry(
-    retry=retry_if_exception_type((httpx.TimeoutException,)) | retry_if_exception_type(httpx.HTTPStatusError),
+    retry=retry_if_exception_type(httpx.TransportError) | retry_if_exception_type(httpx.HTTPStatusError),
     stop=stop_after_attempt(5),
     wait=wait_exponential(multiplier=1, min=2, max=30),
     reraise=True,
@@ -204,21 +204,8 @@ async def _fetch_hcp_procedure(hcp_id: int, page: int, code: str | None) -> list
         "x-api-key": settings.ALPHASOPHIA_API_KEY,
         "Accept": "application/json",
     }
-    try:
-        await asyncio.wait_for(_alphasophia_sem.acquire(), timeout=600)
-    except TimeoutError:
-        raise httpx.TimeoutException(
-            f"Timed out waiting for AlphaSophia semaphore slot (HCP {hcp_id}: {code})"
-        ) from None
-    except Exception as exc:
-        logging.critical(
-            f"An unexpected error occurred fetching HCP Procedure API. {type(exc).__name__}: {exc}", exc_info=True
-        )
-        raise
-    try:
+    async with _alphasophia_limiter:
         response = await _alphasophia_client.get(url, params=params, headers=headers, timeout=_PROCEDURE_TIMEOUT)
-    finally:
-        _alphasophia_sem.release()
     response.raise_for_status()
     response_dict = response.json()
     return [CPT(**cpt) for cpt in response_dict["data"]["procedures"]]
@@ -257,7 +244,7 @@ async def get_hcp_procedure(
         return await _fetch_hcp_procedure(hcp_id, page, code)
     except httpx.TimeoutException as e:
         logging.critical(
-            f"Timed out requesting HCP Procedure API for HCP {hcp_id}: {code} after 3 attempts. {type(e).__name__}: {e}"
+            f"Timed out requesting HCP Procedure API for HCP {hcp_id}: {code} after 5 attempts. {type(e).__name__}: {e}"
         )
         return []
     except httpx.RequestError as e:

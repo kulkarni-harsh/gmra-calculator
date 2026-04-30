@@ -154,3 +154,96 @@ def test_raw_report_input_instantiates():
     assert raw.specialty_name == "Family Medicine"
     assert len(raw.providers_df) == 1
     assert len(raw.zip_stats_df) == 1
+
+
+from app.services.report_generator import _aggregate_cpt_data_from_df
+
+
+def _make_peers_df() -> pd.DataFrame:
+    return pd.DataFrame({
+        "npi": ["111", "222"],
+        "drive_time_minutes": [10.0, 20.0],
+        "is_locum": [False, False],
+        "taxonomy_description": ["Family Medicine", "Family Medicine"],
+        "cpt_total_services": [500, 300],
+        "cpt_99213": [300, 200],
+        "cpt_99214": [200, 100],
+    })
+
+
+def test_aggregate_cpt_data_from_df_total_services():
+    df = _make_peers_df()
+    result = _aggregate_cpt_data_from_df(
+        peers_df=df,
+        cpt_codes=["99213", "99214"],
+        cpt_patient_type_map={"99213": "Established", "99214": "Established"},
+        cpt_descriptions={"99213": "Office visit, est", "99214": "Office visit, est"},
+        provider_state="NJ",
+        rvu_table={},
+        gpci_table={},
+    )
+    assert result.total_market_services == 800  # (300+200) + (200+100)
+
+
+def test_aggregate_cpt_data_from_df_share_denom():
+    df = _make_peers_df()
+    result = _aggregate_cpt_data_from_df(
+        peers_df=df,
+        cpt_codes=["99213", "99214"],
+        cpt_patient_type_map={},
+        cpt_descriptions={},
+        provider_state="NJ",
+        rvu_table={},
+        gpci_table={},
+    )
+    assert result.share_denom == 800  # sum of cpt_total_services
+
+
+def test_aggregate_cpt_data_from_df_cpt_rows_sorted():
+    df = _make_peers_df()
+    result = _aggregate_cpt_data_from_df(
+        peers_df=df,
+        cpt_codes=["99213", "99214"],
+        cpt_patient_type_map={},
+        cpt_descriptions={"99213": "Office visit, est"},
+        provider_state="NJ",
+        rvu_table={},
+        gpci_table={},
+    )
+    # 99213 has volume 500, 99214 has volume 300 — 99213 must be first
+    assert result.cpt_rows[0].code == "99213"
+    assert result.cpt_rows[0].desc == "Office visit, est"
+
+
+def test_aggregate_cpt_data_from_df_provider_shares():
+    df = _make_peers_df()
+    result = _aggregate_cpt_data_from_df(
+        peers_df=df,
+        cpt_codes=["99213", "99214"],
+        cpt_patient_type_map={},
+        cpt_descriptions={},
+        provider_state="NJ",
+        rvu_table={},
+        gpci_table={},
+    )
+    # Two providers; shares should be sorted descending
+    assert len(result.provider_shares) == 2
+    assert result.provider_shares[0].share >= result.provider_shares[1].share
+
+
+def test_aggregate_cpt_data_from_df_empty_df():
+    df = pd.DataFrame(columns=["npi", "drive_time_minutes", "is_locum",
+                                "taxonomy_description", "cpt_total_services",
+                                "cpt_99213"])
+    result = _aggregate_cpt_data_from_df(
+        peers_df=df,
+        cpt_codes=["99213"],
+        cpt_patient_type_map={},
+        cpt_descriptions={},
+        provider_state="NJ",
+        rvu_table={},
+        gpci_table={},
+    )
+    assert result.total_market_services == 0
+    assert result.share_denom == 1  # guard against divide-by-zero
+    assert len(result.provider_shares) == 0

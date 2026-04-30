@@ -461,6 +461,64 @@ def _aggregate_cpt_data(
     )
 
 
+def _aggregate_cpt_data_from_df(
+    peers_df: pd.DataFrame,
+    cpt_codes: list[str],
+    cpt_patient_type_map: dict[str, str],
+    cpt_descriptions: dict[str, str],
+    provider_state: str,
+    rvu_table: dict,
+    gpci_table: dict,
+) -> _CptAggregation:
+    """Aggregate CPT volume from a peers DataFrame (DataFrame-based counterpart to _aggregate_cpt_data)."""
+    share_denom = int(peers_df["cpt_total_services"].sum()) if not peers_df.empty else 0
+    share_denom = share_denom or 1  # guard divide-by-zero
+
+    provider_shares = sorted(
+        [
+            ProviderShareEntry(
+                share=round(int(row["cpt_total_services"]) / share_denom * 100),
+                taxonomy=str(row["taxonomy_description"]) if pd.notna(row["taxonomy_description"]) else "Unknown",
+                drive_time_minutes=float(row["drive_time_minutes"]) if pd.notna(row.get("drive_time_minutes")) else None,
+                is_locum=bool(row["is_locum"]),
+            )
+            for _, row in peers_df.iterrows()
+        ],
+        key=lambda e: e.share,
+        reverse=True,
+    )
+
+    cpt_rows: list[CptRowV2] = []
+    total_market_services = 0
+    for code in cpt_codes:
+        col = f"cpt_{code}"
+        vol = int(peers_df[col].sum()) if col in peers_df.columns and not peers_df.empty else 0
+        vol = max(vol, 0)
+        total_market_services += vol
+        rate = get_medicare_rate(code, provider_state, rvu_table, gpci_table)
+        cpt_rows.append(
+            CptRowV2(
+                code=code,
+                desc=cpt_descriptions.get(code),
+                patientType=cpt_patient_type_map.get(code),
+                medicareRate=f"${rate:,.2f}" if rate is not None else None,
+                totalVolume=f"{vol:,}" if vol > 0 else None,
+            )
+        )
+
+    cpt_rows.sort(
+        key=lambda r: int(r.totalVolume.replace(",", "")) if r.totalVolume else 0,
+        reverse=True,
+    )
+
+    return _CptAggregation(
+        cpt_rows=cpt_rows,
+        total_market_services=total_market_services,
+        provider_shares=provider_shares,
+        share_denom=share_denom,
+    )
+
+
 def _fetch_population_data(
     expanded_zips_df: pd.DataFrame,
     source_lat: float,

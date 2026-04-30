@@ -1,15 +1,18 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pandas as pd
 import pytest
 
+from app.schemas.report_requests import T1ReportRequest
 from app.services.report_generator import (
     RawReportInput,
+    ReportState,
     _aggregate_cpt_data_from_df,
     _build_zip_stats_df,
     _providers_to_df,
     _sites_of_care_to_df,
     assemble_and_render_report,
+    run_html_report,
 )
 from app.types.alphasophia import Provider
 from app.types.baseline_report_template import Upgrade
@@ -326,3 +329,72 @@ async def test_assemble_active_providers_excludes_locum(minimal_raw):
 
     assert captured["data"].activeProviders == 1
     assert captured["data"].locumCount == 1
+
+
+# ── run_html_report regression test ──────────────────────────────────────────
+
+
+def _mock_state() -> ReportState:
+    state = MagicMock(spec=ReportState)
+    state.zip_centroids_df = pd.DataFrame({
+        "zip": ["07001"], "lat": [40.0], "lon": [-74.0]
+    })
+    state.specialty_lookup = {}
+    state.anchor_cpt_lookup = {}
+    state.cpt_lookup_df = pd.DataFrame(columns=["code", "description"])
+    state.rvu_table = {}
+    state.gpci_table = {}
+    return state
+
+
+@pytest.mark.asyncio
+async def test_run_html_report_returns_html_string():
+    payload = T1ReportRequest(
+        specialty_name="Family Medicine",
+        address_line_1="123 Main St",
+        address_line_2=None,
+        city="Newark",
+        state="NJ",
+        zip_code="07001",
+        drive_time_minutes=30,
+        customer_email="harshsk17@gmail.com",
+        payment_intent_id="pi_test_123",
+    )
+    state = _mock_state()
+    mock_pop = MagicMock()
+    mock_pop.total_population = 10000
+    mock_pop.relevant_pop = 10000
+    mock_pop.population_label = "General Population"
+    mock_pop.combined_demo = {"M": {}, "F": {}, "Total": 10000}
+    mock_pop.zip_overlap_fractions = {"07001": 0.8}
+    mock_pop.zip_scaled_populations = {"07001": 8000}
+    mock_pop.actual_zips_df = pd.DataFrame({"zip": ["07001"], "lat": [40.0], "lon": [-74.0]})
+
+    from app.services.report_generator import _SpecialtyMeta
+    mock_meta = _SpecialtyMeta(
+        cpt_codes=["99213", "99214"],
+        cpt_patient_type_map={"99213": "Established", "99214": "Established"},
+        taxonomy_codes=["207Q00000X"],
+        source_tabs=["Family Medicine"],
+    )
+
+    with (
+        patch("app.services.report_generator._resolve_specialty_meta", return_value=mock_meta),
+        patch("app.services.report_generator._geocode_with_fallback", new_callable=AsyncMock,
+              return_value=(40.0, -74.0)),
+        patch("app.services.report_generator._fetch_and_enrich_providers", new_callable=AsyncMock,
+              return_value=[]),
+        patch("app.services.report_generator._stamp_and_filter_providers", new_callable=AsyncMock,
+              return_value=([], {})),
+        patch("app.services.report_generator._generate_map_image", new_callable=AsyncMock,
+              return_value=(None, {}, [])),
+        patch("app.services.report_generator.find_nearby_google_places",
+              return_value=MagicMock(deduped=[], raw=[])),
+        patch("app.services.report_generator.get_sites_of_care_list", return_value=[]),
+        patch("app.services.report_generator._fetch_population_data", return_value=mock_pop),
+        patch("app.services.report_generator.generate_market_analysis", new_callable=AsyncMock,
+              return_value="Analysis text."),
+        patch("app.services.report_generator.render_report", return_value="<html>REPORT</html>"),
+    ):
+        html, _ = await run_html_report(payload, state, job_id="")
+    assert html == "<html>REPORT</html>"

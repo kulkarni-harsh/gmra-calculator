@@ -198,6 +198,11 @@ class RawReportInput:
     analysis_text: str
     upgrades: list[Upgrade]
 
+    # Optional pre-computed map image (base64 data URI from a prior pipeline run).
+    # When set, assemble_and_render_report skips map generation — avoids double Mapbox calls.
+    # Leave as None for the Excel-replay use case; the map will be generated inside.
+    map_image_src: str | None = None
+
 
 # ── Private helpers ───────────────────────────────────────────────────────────
 
@@ -743,9 +748,12 @@ def _providers_to_df(providers: list[Provider], cpt_codes: list[str]) -> pd.Data
             cp = p.get_cpt_profile(code)
             row[f"cpt_{code}"] = cp.totalServices if cp is not None else 0
         rows.append(row)
+    if not rows:
+        base_cols = ["npi", "name", "latitude", "longitude", "drive_time_minutes",
+                     "is_locum", "taxonomy_description", "cpt_total_services"]
+        return pd.DataFrame(columns=base_cols + [f"cpt_{c}" for c in cpt_codes])
     df = pd.DataFrame(rows)
-    if not df.empty:
-        df["is_locum"] = df["is_locum"].astype(object)
+    df["is_locum"] = df["is_locum"].astype(object)
     return df
 
 
@@ -793,6 +801,23 @@ def _build_zip_stats_df(
     return pd.DataFrame(rows) if rows else pd.DataFrame(
         columns=["zip", "overlap_fraction", "scaled_population", "lat", "lon"]
     )
+
+
+def _extract_cpt_descriptions(
+    providers: list[Provider | SiteOfCare],
+    cpt_codes: list[str],
+) -> dict[str, str]:
+    """Extract CPT code → description mapping from the first provider that has each one."""
+    descriptions: dict[str, str] = {}
+    for p in providers:
+        for code in cpt_codes:
+            if code not in descriptions:
+                cp = p.get_cpt_profile(code)
+                if cp is not None and cp.description:
+                    descriptions[code] = cp.description
+        if len(descriptions) == len(cpt_codes):
+            break
+    return descriptions
 
 
 def _get_upgrade_recommendations(
@@ -853,25 +878,28 @@ async def assemble_and_render_report(raw: RawReportInput) -> str:
         else raw.providers_df
     )
 
-    # ── 1. Generate map ───────────────────────────────────────────────────────
-    # Build lightweight Provider proxies for map generation only.
-    # Drive times are already in providers_df; we do not update them from the map.
-    map_providers: list[Provider] = []
-    for _, row in raw.providers_df.iterrows():
-        if pd.notna(row.get("latitude")) and pd.notna(row.get("longitude")):
-            p = Provider(id=0, npi=None, name=None)
-            p.latitude = float(row["latitude"])
-            p.longitude = float(row["longitude"])
-            p.drive_time_minutes = (
-                float(row["drive_time_minutes"]) if pd.notna(row.get("drive_time_minutes")) else None
-            )
-            map_providers.append(p)
-
-    map_image_src, _iso, _proxies = await _generate_map_image(
-        map_providers, raw.source_lat, raw.source_lon, {}
-    )
-    # _proxies are discarded: drive-time data stays authoritative in providers_df
-    log.info("Map generated for report %s", raw.report_id)
+    # ── 1. Map image ──────────────────────────────────────────────────────────
+    if raw.map_image_src is not None:
+        map_image_src = raw.map_image_src
+        log.info("Using pre-computed map image for report %s", raw.report_id)
+    else:
+        # Build lightweight Provider proxies for map generation only.
+        # Drive times are already in providers_df; we do not update them from the map.
+        map_providers: list[Provider] = []
+        for _, row in raw.providers_df.iterrows():
+            if pd.notna(row.get("latitude")) and pd.notna(row.get("longitude")):
+                p = Provider(id=0, npi=None, name=None)
+                p.latitude = float(row["latitude"])
+                p.longitude = float(row["longitude"])
+                p.drive_time_minutes = (
+                    float(row["drive_time_minutes"]) if pd.notna(row.get("drive_time_minutes")) else None
+                )
+                map_providers.append(p)
+        map_image_src, _iso, _proxies = await _generate_map_image(
+            map_providers, raw.source_lat, raw.source_lon, {}
+        )
+        # _proxies are discarded: drive-time data stays authoritative in providers_df
+        log.info("Map generated for report %s", raw.report_id)
 
     # ── 2. Population totals (derived from zip_stats_df) ──────────────────────
     total_population = int(raw.zip_stats_df["scaled_population"].sum()) if not raw.zip_stats_df.empty else 0
@@ -1202,58 +1230,59 @@ async def run_html_report(
         fallback_text=fallback_analysis,
     )
 
-    # 13. Assemble and render report
+    # 13. Build RawReportInput and delegate assembly to assemble_and_render_report.
+    # Derived values (population totals, CPT rows, active providers, gap, verdict, tags)
+    # are recalculated inside assemble_and_render_report from the DataFrames.
+    log.info("[10] Building RawReportInput and rendering")
     report_id = job_id or f"MREC-{ulid.ulid()}"
-
-    # Upgrades
-    upgrades = _get_upgrade_recommendations(payload)
-
-    report_data = ReportTemplateDataV2(
-        reportId=report_id,
-        dateIssued=pd.Timestamp.now().strftime("%m/%d/%Y"),
-        specialty=payload.specialty_name,
-        market=f"{payload.zip_code} {to_capital_case(payload.city)}, {to_capital_case(payload.state)}",
-        radius=f"{payload.drive_time_minutes} min drive",
-        reportTier=payload.tier_name,
-        showSection03="T1" not in payload.__class__.__name__,
-        address=to_capital_case(f"{payload.address_line_1} {payload.address_line_2 if payload.address_line_2 else ''}"),
-        clientName="",
-        tags=generate_tags(cpt_agg.cpt_rows),
-        verdictType=verdict.verdict_type,
-        verdictValue=verdict.verdict_value,
-        verdictSub=verdict.verdict_sub,
-        totalPopulation=f"{pop.total_population:,}" if pop.total_population > 0 else "N/A",
-        relevantPopulation=f"{pop.relevant_pop:,}" if pop.relevant_pop > 0 else "N/A",
-        populationLabel=pop.population_label,
-        activeProviders=peer_providers_count,
-        targetDensity=round(expected_providers, 1),
-        providerGap=round(provider_gap, 1),
-        cptRows=cpt_agg.cpt_rows,
-        cptTotalVisits=f"{cpt_agg.total_market_services:,}",
-        analysisText=analysis_text,
-        upgrades=upgrades,
-        providerProfile=ProviderProfileV2(annualVisits=None),
-        competitorCount=peer_providers_count,
-        locumCount=locum_count,
-        showRelevantPopulation=pop.relevant_pop != pop.total_population,
-        taxonomyCodes=meta.taxonomy_codes,
-        searchedZipCodes=[
-            f"{z} ({round(pop.zip_overlap_fractions[z] * 100)}% · {pop.zip_scaled_populations.get(z, 0):,} pop)"
-            if z in pop.zip_overlap_fractions
-            else z
-            for z in sorted(pop.zip_overlap_fractions) or pop.actual_zips_df["zip"].astype(str).tolist()
-        ],
-        sourceTabs=meta.source_tabs,
-        peerNpis=(
-            [npi for s in peers for npi in s.npi_list]  # type: ignore[union-attr]
-            if use_site_of_care
-            else [p.npi for p in peers if p.npi]  # type: ignore[union-attr]
+    raw = RawReportInput(
+        report_id=report_id,
+        specialty_name=payload.specialty_name,
+        city=payload.city,
+        state=provider_state,
+        zip_code=payload.zip_code,
+        address_line_1=payload.address_line_1,
+        address_line_2=payload.address_line_2,
+        drive_time_minutes=payload.drive_time_minutes,
+        tier_name=payload.tier_name,
+        show_section03="T1" not in payload.__class__.__name__,
+        source_lat=source_lat,
+        source_lon=source_lon,
+        use_site_of_care=use_site_of_care,
+        cpt_codes=effective_cpt_codes,
+        cpt_patient_type_map=meta.cpt_patient_type_map,
+        cpt_descriptions=_extract_cpt_descriptions(providers_in_radius, effective_cpt_codes),
+        taxonomy_codes=meta.taxonomy_codes,
+        source_tabs=meta.source_tabs,
+        density_scope=density_scope,
+        target_density_per_100k=target_density,
+        rvu_table=state.rvu_table,
+        gpci_table=state.gpci_table,
+        providers_df=_providers_to_df(providers_in_radius, effective_cpt_codes),
+        sites_of_care_df=_sites_of_care_to_df(_sites_of_care_list, effective_cpt_codes)
+        if _sites_of_care_list
+        else None,
+        zip_stats_df=_build_zip_stats_df(
+            pop.zip_overlap_fractions,
+            pop.zip_scaled_populations,
+            pop.actual_zips_df,
         ),
-        providerShares=cpt_agg.provider_shares,
-        mapImageSrc=map_image_src,
-        densityScope=density_scope,
+        combined_demo=pop.combined_demo,
+        analysis_text=analysis_text,
+        upgrades=_get_upgrade_recommendations(payload),
+        map_image_src=map_image_src,
     )
-
-    html = render_report("T1", report_data)
-    log.info("[10] Done — T1 report '%s' rendered (%d bytes)", report_id, len(html))
+    _debug_upload(
+        job_id,
+        "10_raw_report_input_meta",
+        {
+            "report_id": raw.report_id,
+            "specialty_name": raw.specialty_name,
+            "cpt_codes": raw.cpt_codes,
+            "providers_count": len(raw.providers_df),
+            "zip_stats_count": len(raw.zip_stats_df),
+        },
+    )
+    html = await assemble_and_render_report(raw)
+    log.info("[11] Done — report '%s' rendered (%d bytes)", report_id, len(html))
     return html, debug_excel_bytes

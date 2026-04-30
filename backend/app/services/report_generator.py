@@ -662,6 +662,81 @@ def _build_debug_excel(
         return None
 
 
+def _providers_to_df(providers: list[Provider], cpt_codes: list[str]) -> pd.DataFrame:
+    """Convert in-radius Provider list to a flat DataFrame for RawReportInput."""
+    rows = []
+    for p in providers:
+        cpt_total = sum(
+            (p.get_cpt_profile(c).totalServices or 0) for c in cpt_codes
+            if p.get_cpt_profile(c) is not None
+        )
+        is_locum = bool(cpt_total <= 400)
+        row: dict = {
+            "npi": p.npi,
+            "name": p.name,
+            "latitude": p.latitude,
+            "longitude": p.longitude,
+            "drive_time_minutes": p.drive_time_minutes,
+            "is_locum": is_locum,
+            "taxonomy_description": p.taxonomy.description,
+            "cpt_total_services": cpt_total,
+        }
+        for code in cpt_codes:
+            cp = p.get_cpt_profile(code)
+            row[f"cpt_{code}"] = cp.totalServices if cp is not None else 0
+        rows.append(row)
+    df = pd.DataFrame(rows)
+    if not df.empty:
+        df["is_locum"] = df["is_locum"].astype(object)
+    return df
+
+
+def _sites_of_care_to_df(sites: list[SiteOfCare], cpt_codes: list[str]) -> pd.DataFrame:
+    """Convert SiteOfCare list to a flat DataFrame for RawReportInput."""
+    rows = []
+    for s in sites:
+        row: dict = {
+            "place_id": s.place_id,
+            "name": s.name,
+            "latitude": s.latitude,
+            "longitude": s.longitude,
+            "drive_time_minutes": s.drive_time_minutes,
+            "is_locum": s.is_locum,
+            "taxonomy_description": s.taxonomy.description,
+            "npi_list": ",".join(s.npi_list) if s.npi_list else "",
+            "cpt_total_services": s.cpt_total_services,
+        }
+        cpt_by_code = {c.code: c for c in s.cpt_list}
+        for code in cpt_codes:
+            cp = cpt_by_code.get(code)
+            row[f"cpt_{code}"] = cp.totalServices if cp is not None else 0
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def _build_zip_stats_df(
+    zip_overlap_fractions: dict[str, float],
+    zip_scaled_populations: dict[str, int],
+    actual_zips_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Build zip_stats_df from census output and candidate ZIP centroids."""
+    rows = []
+    for zip_code, frac in zip_overlap_fractions.items():
+        centroid_row = actual_zips_df[actual_zips_df["zip"].astype(str) == zip_code]
+        lat = float(centroid_row.iloc[0]["lat"]) if not centroid_row.empty else float("nan")
+        lon = float(centroid_row.iloc[0]["lon"]) if not centroid_row.empty else float("nan")
+        rows.append({
+            "zip": zip_code,
+            "overlap_fraction": frac,
+            "scaled_population": zip_scaled_populations.get(zip_code, 0),
+            "lat": lat,
+            "lon": lon,
+        })
+    return pd.DataFrame(rows) if rows else pd.DataFrame(
+        columns=["zip", "overlap_fraction", "scaled_population", "lat", "lon"]
+    )
+
+
 def _get_upgrade_recommendations(
     payload: T1ReportRequest | T2ReportRequest | T3ReportRequest,
 ) -> list[Upgrade]:

@@ -1,5 +1,4 @@
 import pandas as pd
-import pytest
 
 from app.services.report_generator import RawReportInput
 from app.types.baseline_report_template import Upgrade

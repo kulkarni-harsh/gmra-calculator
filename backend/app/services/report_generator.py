@@ -137,6 +137,68 @@ class _Verdict:
     verdict_sub: str
 
 
+@dataclass
+class RawReportInput:
+    """All raw data needed to assemble a report.
+
+    DataFrames use the column contracts documented in the plan.
+    Derived values (population totals, CPT rows, gap metrics) are
+    never stored here — they are always recalculated by assemble_and_render_report.
+    """
+
+    # Request metadata
+    report_id: str
+    specialty_name: str
+    city: str
+    state: str
+    zip_code: str
+    address_line_1: str
+    address_line_2: str | None
+    drive_time_minutes: int
+    tier_name: str
+    show_section03: bool
+    source_lat: float
+    source_lon: float
+    use_site_of_care: bool
+
+    # CPT configuration
+    cpt_codes: list[str]
+    cpt_patient_type_map: dict[str, str]
+    cpt_descriptions: dict[str, str]  # code → description string
+
+    # Taxonomy / specialty metadata
+    taxonomy_codes: list[str]
+    source_tabs: list[str]
+    density_scope: str
+    target_density_per_100k: float | None
+
+    # Fee schedule tables (passed by reference from ReportState)
+    rvu_table: dict
+    gpci_table: dict
+
+    # Provider data: in-radius providers, post CPT fetch
+    # Columns: npi, name, latitude, longitude, drive_time_minutes, is_locum,
+    #          taxonomy_description, cpt_total_services, cpt_{code} for each cpt_codes entry
+    providers_df: pd.DataFrame
+
+    # Site-of-care data (None when use_site_of_care=False)
+    # Columns: place_id, name, latitude, longitude, drive_time_minutes, is_locum,
+    #          taxonomy_description, npi_list, cpt_total_services, cpt_{code} per cpt_codes
+    sites_of_care_df: pd.DataFrame | None
+
+    # ZIP-level population data
+    # Columns: zip, overlap_fraction, scaled_population, lat, lon
+    zip_stats_df: pd.DataFrame
+
+    # Full SexAgeCounts from census: {"M": {age_bucket: count}, "F": {...}, "Total": int}
+    # Required to compute geriatric / pediatric relevant_pop slices.
+    combined_demo: dict
+
+    # Pre-computed content (not re-derived — produced by LLM / payment logic)
+    analysis_text: str
+    upgrades: list[Upgrade]
+
+
 # ── Private helpers ───────────────────────────────────────────────────────────
 
 

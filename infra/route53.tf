@@ -1,28 +1,20 @@
-# Route 53 hosted zone — AWS becomes the authoritative DNS for your domain.
-# These nameservers are already configured in Namecheap as Custom DNS.
-# The explicit NS record below locks them in so a zone re-creation doesn't
-# silently assign different nameservers (which would break DNS until Namecheap
-# is updated again).
-
 resource "aws_route53_zone" "main" {
   name = var.domain_name
 }
 
-# Explicit NS record — pins the nameservers to the ones already in Namecheap.
-# allow_overwrite = true so Terraform can update the auto-created NS record AWS adds on zone creation.
+# Pins nameservers once ns_records is populated in tfvars.
+# Leave ns_records empty on first deploy, then fill in the values AWS assigns
+# and run apply again to lock them in (prevents silent reassignment on zone re-creation).
 resource "aws_route53_record" "ns" {
+  count = length(var.ns_records) > 0 ? 1 : 0
+
   zone_id         = aws_route53_zone.main.zone_id
   name            = var.domain_name
   type            = "NS"
-  ttl             = 172800 # 48 hours — standard for NS records
+  ttl             = 172800
   allow_overwrite = true
 
-  records = [
-    "ns-1241.awsdns-27.org.",
-    "ns-1650.awsdns-14.co.uk.",
-    "ns-214.awsdns-26.com.",
-    "ns-750.awsdns-29.net.",
-  ]
+  records = var.ns_records
 }
 
 # Apex: yourdomain.com → ALB

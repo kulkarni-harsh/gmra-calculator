@@ -217,5 +217,5 @@ resource "aws_ecs_service" "frontend" {
     container_port   = 80
   }
 
-  depends_on = [aws_lb_listener.http]
+  depends_on = [aws_lb_listener.https]
 }

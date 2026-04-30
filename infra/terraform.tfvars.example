@@ -1,5 +1,13 @@
-aws_region          = "us-east-1"
-domain_name         = "yourdomain.com"
+aws_region  = "us-east-1"
+domain_name = "yourdomain.com"
+
+# Route 53 NS records — copy from your hosted zone after first apply or from registrar
+ns_records = [
+  "ns-xxx.awsdns-xx.org.",
+  "ns-xxx.awsdns-xx.co.uk.",
+  "ns-xxx.awsdns-xx.com.",
+  "ns-xxx.awsdns-xx.net.",
+]
 census_api_key      = "your-census-key"
 mapbox_api_key      = "your-mapbox-key"
 alphasophia_api_key = "your-alphasophia-key"

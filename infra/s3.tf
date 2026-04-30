@@ -7,9 +7,9 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 resource "aws_s3_bucket" "reports" {
-  bucket = "${var.app_name}-reports"
+  bucket = "${var.app_name}-reports-${terraform.workspace}"
 
-  tags = { Name = "${var.app_name}-reports" }
+  tags = { Name = "${var.app_name}-reports-${terraform.workspace}" }
 }
 
 resource "aws_s3_bucket_public_access_block" "reports" {

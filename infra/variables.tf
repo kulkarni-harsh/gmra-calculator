@@ -74,6 +74,12 @@ variable "resend_spf_value" {
   type        = string
 }
 
+variable "ns_records" {
+  description = "4 Route 53 nameserver values to pin in the NS record (must match what's configured in your registrar). Leave empty on first deploy — fill in after AWS assigns nameservers."
+  type        = list(string)
+  default     = []
+}
+
 variable "dmarc_value" {
   description = "TXT DMARC policy record value"
   type        = string

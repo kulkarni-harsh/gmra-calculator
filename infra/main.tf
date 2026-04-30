@@ -9,12 +9,13 @@ terraform {
   # S3 backend — bucket is created by infra/bootstrap first.
   # Init with: terraform init -backend-config=backend.hcl
   backend "s3" {
-    bucket = "gmra-calculator-tfstate-707057771327"
+    bucket = "gmra-calculator-tfstate-800728769883"
     key    = "terraform.tfstate"
     region = "us-east-1"
   }
 }
 
 provider "aws" {
-  region = var.aws_region
+  region  = var.aws_region
+  profile = terraform.workspace
 }

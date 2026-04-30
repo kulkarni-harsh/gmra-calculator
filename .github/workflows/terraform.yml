@@ -1,0 +1,78 @@
+name: Terraform
+
+on:
+  workflow_dispatch:
+    inputs:
+      workspace:
+        description: "Terraform workspace"
+        required: true
+        type: choice
+        options:
+          - client
+          - personal
+      action:
+        description: "Terraform action"
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+
+jobs:
+  terraform:
+    name: "${{ inputs.action }} (${{ inputs.workspace }})"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set AWS credentials
+        run: |
+          WORKSPACE="${{ inputs.workspace }}"
+          if [ "$WORKSPACE" = "client" ]; then
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID_CLIENT }}" >> $GITHUB_ENV
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY_CLIENT }}" >> $GITHUB_ENV
+          elif [ "$WORKSPACE" = "personal" ]; then
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID_PERSONAL }}" >> $GITHUB_ENV
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY_PERSONAL }}" >> $GITHUB_ENV
+          fi
+
+      - name: Write tfvars
+        run: |
+          WORKSPACE="${{ inputs.workspace }}"
+          if [ "$WORKSPACE" = "client" ]; then
+            cat <<'EOF' > client.tfvars
+          ${{ secrets.TFVARS_CLIENT }}
+          EOF
+          elif [ "$WORKSPACE" = "personal" ]; then
+            cat <<'EOF' > personal.tfvars
+          ${{ secrets.TFVARS_PERSONAL }}
+          EOF
+          fi
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.5"
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Select workspace
+        run: |
+          terraform workspace select "${{ inputs.workspace }}" || terraform workspace new "${{ inputs.workspace }}"
+
+      - name: Terraform Plan
+        if: inputs.action == 'plan' || inputs.action == 'apply'
+        run: terraform plan -var-file="${{ inputs.workspace }}.tfvars"
+
+      - name: Terraform Apply
+        if: inputs.action == 'apply'
+        run: terraform apply -var-file="${{ inputs.workspace }}.tfvars" -auto-approve
+
+      - name: Terraform Destroy
+        if: inputs.action == 'destroy'
+        run: terraform destroy -var-file="${{ inputs.workspace }}.tfvars" -auto-approve

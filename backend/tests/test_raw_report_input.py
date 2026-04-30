@@ -1,18 +1,21 @@
+from unittest.mock import AsyncMock, patch
+
 import pandas as pd
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.services.report_generator import (
     RawReportInput,
+    _aggregate_cpt_data_from_df,
     _build_zip_stats_df,
     _providers_to_df,
     _sites_of_care_to_df,
+    assemble_and_render_report,
 )
 from app.types.alphasophia import Provider
+from app.types.baseline_report_template import Upgrade
+from app.types.common_provider_siteofcare import Taxonomy
 from app.types.cpt import CPT
 from app.types.google_maps import SiteOfCare
-from app.types.common_provider_siteofcare import Location, Taxonomy
-from app.types.baseline_report_template import Upgrade
 
 
 def _make_provider(npi="1111111111", lat=40.0, lon=-74.0, drive_time=10.0) -> Provider:
@@ -157,9 +160,6 @@ def test_raw_report_input_instantiates():
     assert len(raw.zip_stats_df) == 1
 
 
-from app.services.report_generator import _aggregate_cpt_data_from_df
-
-
 def _make_peers_df() -> pd.DataFrame:
     return pd.DataFrame({
         "npi": ["111", "222"],
@@ -259,8 +259,6 @@ def minimal_raw() -> RawReportInput:
 
 
 # ── assemble_and_render_report tests ─────────────────────────────────────────
-
-from app.services.report_generator import assemble_and_render_report
 
 
 @pytest.mark.asyncio

@@ -192,7 +192,7 @@ class RawReportInput:
 
     # Full SexAgeCounts from census: {"M": {age_bucket: count}, "F": {...}, "Total": int}
     # Required to compute geriatric / pediatric relevant_pop slices.
-    combined_demo: dict
+    combined_demo: SexAgeCounts
 
     # Pre-computed content (not re-derived — produced by LLM / payment logic)
     analysis_text: str
@@ -867,9 +867,10 @@ async def assemble_and_render_report(raw: RawReportInput) -> str:
             )
             map_providers.append(p)
 
-    map_image_src, _iso, _ = await _generate_map_image(
+    map_image_src, _iso, _proxies = await _generate_map_image(
         map_providers, raw.source_lat, raw.source_lon, {}
     )
+    # _proxies are discarded: drive-time data stays authoritative in providers_df
     log.info("Map generated for report %s", raw.report_id)
 
     # ── 2. Population totals (derived from zip_stats_df) ──────────────────────

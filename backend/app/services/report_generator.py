@@ -11,6 +11,7 @@ import asyncio
 import base64
 import json
 import logging
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from io import BytesIO
 
@@ -804,7 +805,7 @@ def _build_zip_stats_df(
 
 
 def _extract_cpt_descriptions(
-    providers: list[Provider | SiteOfCare],
+    providers: Sequence[Provider | SiteOfCare],
     cpt_codes: list[str],
 ) -> dict[str, str]:
     """Extract CPT code → description mapping from the first provider that has each one."""
@@ -879,6 +880,7 @@ async def assemble_and_render_report(raw: RawReportInput) -> str:
     )
 
     # ── 1. Map image ──────────────────────────────────────────────────────────
+    map_image_src: str | None
     if raw.map_image_src is not None:
         map_image_src = raw.map_image_src
         log.info("Using pre-computed map image for report %s", raw.report_id)

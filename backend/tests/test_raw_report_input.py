@@ -11,6 +11,7 @@ from app.services.report_generator import (
     _build_zip_stats_df,
     _providers_to_df,
     _sites_of_care_to_df,
+    _SpecialtyMeta,
     assemble_and_render_report,
     run_html_report,
 )
@@ -370,7 +371,6 @@ async def test_run_html_report_returns_html_string():
     mock_pop.zip_scaled_populations = {"07001": 8000}
     mock_pop.actual_zips_df = pd.DataFrame({"zip": ["07001"], "lat": [40.0], "lon": [-74.0]})
 
-    from app.services.report_generator import _SpecialtyMeta
     mock_meta = _SpecialtyMeta(
         cpt_codes=["99213", "99214"],
         cpt_patient_type_map={"99213": "Established", "99214": "Established"},

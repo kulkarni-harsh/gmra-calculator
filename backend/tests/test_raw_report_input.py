@@ -44,9 +44,20 @@ def _make_provider(npi="1111111111", lat=40.0, lon=-74.0, drive_time=10.0) -> Pr
 def test_providers_to_df_columns():
     providers = [_make_provider()]
     df = _providers_to_df(providers, ["99213", "99214"])
-    assert set(["npi", "name", "latitude", "longitude", "drive_time_minutes",
-                "is_locum", "taxonomy_description", "cpt_total_services",
-                "cpt_99213", "cpt_99214"]).issubset(df.columns)
+    assert set(
+        [
+            "npi",
+            "name",
+            "latitude",
+            "longitude",
+            "drive_time_minutes",
+            "is_locum",
+            "taxonomy_description",
+            "cpt_total_services",
+            "cpt_99213",
+            "cpt_99214",
+        ]
+    ).issubset(df.columns)
 
 
 def test_providers_to_df_values():
@@ -82,19 +93,33 @@ def test_sites_of_care_to_df_columns():
     )
     soc.taxonomy = Taxonomy(description="Family Medicine")
     df = _sites_of_care_to_df([soc], ["99213", "99214"])
-    assert set(["place_id", "name", "latitude", "longitude", "drive_time_minutes",
-                "is_locum", "taxonomy_description", "npi_list",
-                "cpt_total_services", "cpt_99213", "cpt_99214"]).issubset(df.columns)
+    assert set(
+        [
+            "place_id",
+            "name",
+            "latitude",
+            "longitude",
+            "drive_time_minutes",
+            "is_locum",
+            "taxonomy_description",
+            "npi_list",
+            "cpt_total_services",
+            "cpt_99213",
+            "cpt_99214",
+        ]
+    ).issubset(df.columns)
     assert df.iloc[0]["cpt_total_services"] == 1000
     assert df.iloc[0]["npi_list"] == "111,222"
 
 
 def test_build_zip_stats_df():
-    actual_zips_df = pd.DataFrame({
-        "zip": ["07001", "07002"],
-        "lat": [40.0, 40.1],
-        "lon": [-74.0, -74.1],
-    })
+    actual_zips_df = pd.DataFrame(
+        {
+            "zip": ["07001", "07002"],
+            "lat": [40.0, 40.1],
+            "lon": [-74.0, -74.1],
+        }
+    )
     fracs = {"07001": 0.8, "07002": 0.5}
     pops = {"07001": 8000, "07002": 5000}
     df = _build_zip_stats_df(fracs, pops, actual_zips_df)
@@ -105,25 +130,29 @@ def test_build_zip_stats_df():
 
 
 def _minimal_raw() -> RawReportInput:
-    providers_df = pd.DataFrame({
-        "npi": ["1234567890"],
-        "name": ["Dr. Smith"],
-        "latitude": [40.0],
-        "longitude": [-74.0],
-        "drive_time_minutes": [15.0],
-        "is_locum": [False],
-        "taxonomy_description": ["Family Medicine"],
-        "cpt_total_services": [500],
-        "cpt_99213": [300],
-        "cpt_99214": [200],
-    })
-    zip_stats_df = pd.DataFrame({
-        "zip": ["07001"],
-        "overlap_fraction": [0.8],
-        "scaled_population": [8000],
-        "lat": [40.0],
-        "lon": [-74.0],
-    })
+    providers_df = pd.DataFrame(
+        {
+            "npi": ["1234567890"],
+            "name": ["Dr. Smith"],
+            "latitude": [40.0],
+            "longitude": [-74.0],
+            "drive_time_minutes": [15.0],
+            "is_locum": [False],
+            "taxonomy_description": ["Family Medicine"],
+            "cpt_total_services": [500],
+            "cpt_99213": [300],
+            "cpt_99214": [200],
+        }
+    )
+    zip_stats_df = pd.DataFrame(
+        {
+            "zip": ["07001"],
+            "overlap_fraction": [0.8],
+            "scaled_population": [8000],
+            "lat": [40.0],
+            "lon": [-74.0],
+        }
+    )
     return RawReportInput(
         report_id="TEST-001",
         specialty_name="Family Medicine",
@@ -165,15 +194,17 @@ def test_raw_report_input_instantiates():
 
 
 def _make_peers_df() -> pd.DataFrame:
-    return pd.DataFrame({
-        "npi": ["111", "222"],
-        "drive_time_minutes": [10.0, 20.0],
-        "is_locum": [False, False],
-        "taxonomy_description": ["Family Medicine", "Family Medicine"],
-        "cpt_total_services": [500, 300],
-        "cpt_99213": [300, 200],
-        "cpt_99214": [200, 100],
-    })
+    return pd.DataFrame(
+        {
+            "npi": ["111", "222"],
+            "drive_time_minutes": [10.0, 20.0],
+            "is_locum": [False, False],
+            "taxonomy_description": ["Family Medicine", "Family Medicine"],
+            "cpt_total_services": [500, 300],
+            "cpt_99213": [300, 200],
+            "cpt_99214": [200, 100],
+        }
+    )
 
 
 def test_aggregate_cpt_data_from_df_total_services():
@@ -237,9 +268,9 @@ def test_aggregate_cpt_data_from_df_provider_shares():
 
 
 def test_aggregate_cpt_data_from_df_empty_df():
-    df = pd.DataFrame(columns=["npi", "drive_time_minutes", "is_locum",
-                                "taxonomy_description", "cpt_total_services",
-                                "cpt_99213"])
+    df = pd.DataFrame(
+        columns=["npi", "drive_time_minutes", "is_locum", "taxonomy_description", "cpt_total_services", "cpt_99213"]
+    )
     result = _aggregate_cpt_data_from_df(
         peers_df=df,
         cpt_codes=["99213"],
@@ -282,7 +313,7 @@ async def test_assemble_total_population_from_zip_stats(minimal_raw):
     """total_population must equal sum of scaled_population in zip_stats_df."""
     captured = {}
 
-    def capture_render(tier, data):
+    def capture_render(_tier, data):
         captured["data"] = data
         return "<html/>"
 
@@ -300,24 +331,24 @@ async def test_assemble_total_population_from_zip_stats(minimal_raw):
 @pytest.mark.asyncio
 async def test_assemble_active_providers_excludes_locum(minimal_raw):
     """activeProviders must count only non-locum rows in providers_df."""
-    extra_row = pd.DataFrame({
-        "npi": ["9999999999"],
-        "name": ["Locum Dr."],
-        "latitude": [40.1],
-        "longitude": [-74.1],
-        "drive_time_minutes": [25.0],
-        "is_locum": [True],
-        "taxonomy_description": ["Family Medicine"],
-        "cpt_total_services": [100],
-        "cpt_99213": [60],
-        "cpt_99214": [40],
-    })
-    minimal_raw.providers_df = pd.concat(
-        [minimal_raw.providers_df, extra_row], ignore_index=True
+    extra_row = pd.DataFrame(
+        {
+            "npi": ["9999999999"],
+            "name": ["Locum Dr."],
+            "latitude": [40.1],
+            "longitude": [-74.1],
+            "drive_time_minutes": [25.0],
+            "is_locum": [True],
+            "taxonomy_description": ["Family Medicine"],
+            "cpt_total_services": [100],
+            "cpt_99213": [60],
+            "cpt_99214": [40],
+        }
     )
+    minimal_raw.providers_df = pd.concat([minimal_raw.providers_df, extra_row], ignore_index=True)
     captured = {}
 
-    def capture_render(tier, data):
+    def capture_render(_tier, data):
         captured["data"] = data
         return "<html/>"
 
@@ -337,9 +368,7 @@ async def test_assemble_active_providers_excludes_locum(minimal_raw):
 
 def _mock_state() -> ReportState:
     state = MagicMock(spec=ReportState)
-    state.zip_centroids_df = pd.DataFrame({
-        "zip": ["07001"], "lat": [40.0], "lon": [-74.0]
-    })
+    state.zip_centroids_df = pd.DataFrame({"zip": ["07001"], "lat": [40.0], "lon": [-74.0]})
     state.specialty_lookup = {}
     state.anchor_cpt_lookup = {}
     state.cpt_lookup_df = pd.DataFrame(columns=["code", "description"])
@@ -380,20 +409,22 @@ async def test_run_html_report_returns_html_string():
 
     with (
         patch("app.services.report_generator._resolve_specialty_meta", return_value=mock_meta),
-        patch("app.services.report_generator._geocode_with_fallback", new_callable=AsyncMock,
-              return_value=(40.0, -74.0)),
-        patch("app.services.report_generator._fetch_and_enrich_providers", new_callable=AsyncMock,
-              return_value=[]),
-        patch("app.services.report_generator._stamp_and_filter_providers", new_callable=AsyncMock,
-              return_value=([], {})),
-        patch("app.services.report_generator._generate_map_image", new_callable=AsyncMock,
-              return_value=(None, {}, [])),
-        patch("app.services.report_generator.find_nearby_google_places",
-              return_value=MagicMock(deduped=[], raw=[])),
+        patch(
+            "app.services.report_generator._geocode_with_fallback", new_callable=AsyncMock, return_value=(40.0, -74.0)
+        ),
+        patch("app.services.report_generator._fetch_and_enrich_providers", new_callable=AsyncMock, return_value=[]),
+        patch(
+            "app.services.report_generator._stamp_and_filter_providers", new_callable=AsyncMock, return_value=([], {})
+        ),
+        patch("app.services.report_generator._generate_map_image", new_callable=AsyncMock, return_value=(None, {}, [])),
+        patch("app.services.report_generator.find_nearby_google_places", return_value=MagicMock(deduped=[], raw=[])),
         patch("app.services.report_generator.get_sites_of_care_list", return_value=[]),
         patch("app.services.report_generator._fetch_population_data", return_value=mock_pop),
-        patch("app.services.report_generator.generate_market_analysis", new_callable=AsyncMock,
-              return_value="Analysis text."),
+        patch(
+            "app.services.report_generator.generate_market_analysis",
+            new_callable=AsyncMock,
+            return_value="Analysis text.",
+        ),
         patch("app.services.report_generator.render_report", return_value="<html>REPORT</html>"),
     ):
         html, _ = await run_html_report(payload, state, job_id="")

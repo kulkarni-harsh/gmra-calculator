@@ -1,5 +1,6 @@
 import pandas as pd
-from unittest.mock import MagicMock
+import pytest
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.services.report_generator import (
     RawReportInput,
@@ -247,3 +248,83 @@ def test_aggregate_cpt_data_from_df_empty_df():
     assert result.total_market_services == 0
     assert result.share_denom == 1  # guard against divide-by-zero
     assert len(result.provider_shares) == 0
+
+
+# ── Fixture ───────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture
+def minimal_raw() -> RawReportInput:
+    return _minimal_raw()
+
+
+# ── assemble_and_render_report tests ─────────────────────────────────────────
+
+from app.services.report_generator import assemble_and_render_report
+
+
+@pytest.mark.asyncio
+async def test_assemble_and_render_report_returns_html(minimal_raw):
+    with (
+        patch("app.services.report_generator._generate_map_image", new_callable=AsyncMock) as mock_map,
+        patch("app.services.report_generator.render_report", return_value="<html>TEST</html>") as mock_render,
+    ):
+        mock_map.return_value = (None, {}, [])
+        html = await assemble_and_render_report(minimal_raw)
+    assert html == "<html>TEST</html>"
+    mock_render.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_assemble_total_population_from_zip_stats(minimal_raw):
+    """total_population must equal sum of scaled_population in zip_stats_df."""
+    captured = {}
+
+    def capture_render(tier, data):
+        captured["data"] = data
+        return "<html/>"
+
+    with (
+        patch("app.services.report_generator._generate_map_image", new_callable=AsyncMock) as mock_map,
+        patch("app.services.report_generator.render_report", side_effect=capture_render),
+    ):
+        mock_map.return_value = (None, {}, [])
+        await assemble_and_render_report(minimal_raw)
+
+    # zip_stats_df has scaled_population=[8000] → total_population="8,000"
+    assert captured["data"].totalPopulation == "8,000"
+
+
+@pytest.mark.asyncio
+async def test_assemble_active_providers_excludes_locum(minimal_raw):
+    """activeProviders must count only non-locum rows in providers_df."""
+    extra_row = pd.DataFrame({
+        "npi": ["9999999999"],
+        "name": ["Locum Dr."],
+        "latitude": [40.1],
+        "longitude": [-74.1],
+        "drive_time_minutes": [25.0],
+        "is_locum": [True],
+        "taxonomy_description": ["Family Medicine"],
+        "cpt_total_services": [100],
+        "cpt_99213": [60],
+        "cpt_99214": [40],
+    })
+    minimal_raw.providers_df = pd.concat(
+        [minimal_raw.providers_df, extra_row], ignore_index=True
+    )
+    captured = {}
+
+    def capture_render(tier, data):
+        captured["data"] = data
+        return "<html/>"
+
+    with (
+        patch("app.services.report_generator._generate_map_image", new_callable=AsyncMock) as mock_map,
+        patch("app.services.report_generator.render_report", side_effect=capture_render),
+    ):
+        mock_map.return_value = (None, {}, [])
+        await assemble_and_render_report(minimal_raw)
+
+    assert captured["data"].activeProviders == 1
+    assert captured["data"].locumCount == 1

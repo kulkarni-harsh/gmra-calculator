@@ -838,6 +838,140 @@ def _get_upgrade_recommendations(
     return upgrades
 
 
+async def assemble_and_render_report(raw: RawReportInput) -> str:
+    """Render an HTML report from a RawReportInput.
+
+    All values that can be derived from the raw DataFrames are recalculated here.
+    Nothing derived is stored on RawReportInput — only raw data lives there.
+    """
+    log = logging.getLogger(__name__)
+
+    # Select the peer DataFrame (providers or sites-of-care)
+    peers_df: pd.DataFrame = (
+        raw.sites_of_care_df
+        if raw.use_site_of_care and raw.sites_of_care_df is not None
+        else raw.providers_df
+    )
+
+    # ── 1. Generate map ───────────────────────────────────────────────────────
+    # Build lightweight Provider proxies for map generation only.
+    # Drive times are already in providers_df; we do not update them from the map.
+    map_providers: list[Provider] = []
+    for _, row in raw.providers_df.iterrows():
+        if pd.notna(row.get("latitude")) and pd.notna(row.get("longitude")):
+            p = Provider(id=0, npi=None, name=None)
+            p.latitude = float(row["latitude"])
+            p.longitude = float(row["longitude"])
+            p.drive_time_minutes = (
+                float(row["drive_time_minutes"]) if pd.notna(row.get("drive_time_minutes")) else None
+            )
+            map_providers.append(p)
+
+    map_image_src, _iso, _ = await _generate_map_image(
+        map_providers, raw.source_lat, raw.source_lon, {}
+    )
+    log.info("Map generated for report %s", raw.report_id)
+
+    # ── 2. Population totals (derived from zip_stats_df) ──────────────────────
+    total_population = int(raw.zip_stats_df["scaled_population"].sum()) if not raw.zip_stats_df.empty else 0
+
+    name_lower = raw.specialty_name.lower()
+    if "geriatric" in name_lower:
+        relevant_pop = get_geriatric_population(raw.combined_demo)
+        population_label = "Geriatric (60+)"
+    elif "pediatric" in name_lower:
+        relevant_pop = get_pediatric_population(raw.combined_demo)
+        population_label = "Pediatric"
+    else:
+        relevant_pop = total_population
+        population_label = "General Population"
+
+    # ── 3. Provider counts (derived from peers_df) ────────────────────────────
+    peer_providers_count = int((~peers_df["is_locum"]).sum()) if not peers_df.empty else 0
+    locum_count = int(peers_df["is_locum"].sum()) if not peers_df.empty else 0
+
+    # ── 4. Density gap (derived from population + metadata) ───────────────────
+    if raw.target_density_per_100k is not None and relevant_pop > 0:
+        expected_providers = (relevant_pop / 100_000) * raw.target_density_per_100k
+        provider_gap = expected_providers - peer_providers_count
+    else:
+        expected_providers, provider_gap = 0.0, 0.0
+
+    verdict = _compute_verdict(raw.target_density_per_100k, provider_gap, raw.density_scope)
+
+    # ── 5. CPT aggregation (derived from peers_df) ────────────────────────────
+    cpt_agg = _aggregate_cpt_data_from_df(
+        peers_df=peers_df,
+        cpt_codes=raw.cpt_codes,
+        cpt_patient_type_map=raw.cpt_patient_type_map,
+        cpt_descriptions=raw.cpt_descriptions,
+        provider_state=raw.state,
+        rvu_table=raw.rvu_table,
+        gpci_table=raw.gpci_table,
+    )
+
+    # ── 6. Searched ZIP codes display string (derived from zip_stats_df) ──────
+    searched_zip_codes = [
+        f"{row['zip']} ({round(row['overlap_fraction'] * 100)}% · {int(row['scaled_population']):,} pop)"
+        for _, row in raw.zip_stats_df.iterrows()
+    ] if not raw.zip_stats_df.empty else []
+
+    # ── 7. Peer NPIs (derived from peers_df) ──────────────────────────────────
+    if raw.use_site_of_care and raw.sites_of_care_df is not None:
+        peer_npis = [
+            npi.strip()
+            for npi_str in raw.sites_of_care_df["npi_list"].dropna()
+            for npi in npi_str.split(",")
+            if npi.strip()
+        ]
+    else:
+        peer_npis = [str(npi) for npi in raw.providers_df["npi"].dropna()]
+
+    # ── 8. Assemble ReportTemplateDataV2 ──────────────────────────────────────
+    report_data = ReportTemplateDataV2(
+        reportId=raw.report_id,
+        dateIssued=pd.Timestamp.now().strftime("%m/%d/%Y"),
+        specialty=raw.specialty_name,
+        market=f"{raw.zip_code} {to_capital_case(raw.city)}, {to_capital_case(raw.state)}",
+        radius=f"{raw.drive_time_minutes} min drive",
+        reportTier=raw.tier_name,
+        showSection03=raw.show_section03,
+        address=to_capital_case(
+            f"{raw.address_line_1} {raw.address_line_2 if raw.address_line_2 else ''}".strip()
+        ),
+        clientName="",
+        tags=generate_tags(cpt_agg.cpt_rows),
+        verdictType=verdict.verdict_type,
+        verdictValue=verdict.verdict_value,
+        verdictSub=verdict.verdict_sub,
+        totalPopulation=f"{total_population:,}" if total_population > 0 else "N/A",
+        relevantPopulation=f"{relevant_pop:,}" if relevant_pop > 0 else "N/A",
+        populationLabel=population_label,
+        activeProviders=peer_providers_count,
+        targetDensity=round(expected_providers, 1),
+        providerGap=round(provider_gap, 1),
+        cptRows=cpt_agg.cpt_rows,
+        cptTotalVisits=f"{cpt_agg.total_market_services:,}",
+        analysisText=raw.analysis_text,
+        upgrades=raw.upgrades,
+        providerProfile=ProviderProfileV2(annualVisits=None),
+        competitorCount=peer_providers_count,
+        locumCount=locum_count,
+        showRelevantPopulation=relevant_pop != total_population,
+        taxonomyCodes=raw.taxonomy_codes,
+        searchedZipCodes=searched_zip_codes,
+        sourceTabs=raw.source_tabs,
+        peerNpis=peer_npis,
+        providerShares=cpt_agg.provider_shares,
+        mapImageSrc=map_image_src,
+        densityScope=raw.density_scope,
+    )
+
+    html = render_report("T1", report_data)
+    log.info("Report %s rendered (%d bytes)", raw.report_id, len(html))
+    return html
+
+
 # ── Public entry point ────────────────────────────────────────────────────────
 
 

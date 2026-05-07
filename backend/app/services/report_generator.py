@@ -485,7 +485,9 @@ def _aggregate_cpt_data_from_df(
             ProviderShareEntry(
                 share=round(int(row["cpt_total_services"]) / share_denom * 100),
                 taxonomy=str(row["taxonomy_description"]) if pd.notna(row["taxonomy_description"]) else "Unknown",
-                drive_time_minutes=float(row["drive_time_minutes"]) if pd.notna(row.get("drive_time_minutes")) else None,
+                drive_time_minutes=float(row["drive_time_minutes"])
+                if pd.notna(row.get("drive_time_minutes"))
+                else None,
                 is_locum=bool(row["is_locum"]),
             )
             for _, row in peers_df.iterrows()
@@ -731,8 +733,7 @@ def _providers_to_df(providers: list[Provider], cpt_codes: list[str]) -> pd.Data
     rows = []
     for p in providers:
         cpt_total = sum(
-            (p.get_cpt_profile(c).totalServices or 0) for c in cpt_codes
-            if p.get_cpt_profile(c) is not None
+            (p.get_cpt_profile(c).totalServices or 0) for c in cpt_codes if p.get_cpt_profile(c) is not None
         )
         is_locum = bool(cpt_total <= 400)
         row: dict = {
@@ -750,8 +751,16 @@ def _providers_to_df(providers: list[Provider], cpt_codes: list[str]) -> pd.Data
             row[f"cpt_{code}"] = cp.totalServices if cp is not None else 0
         rows.append(row)
     if not rows:
-        base_cols = ["npi", "name", "latitude", "longitude", "drive_time_minutes",
-                     "is_locum", "taxonomy_description", "cpt_total_services"]
+        base_cols = [
+            "npi",
+            "name",
+            "latitude",
+            "longitude",
+            "drive_time_minutes",
+            "is_locum",
+            "taxonomy_description",
+            "cpt_total_services",
+        ]
         return pd.DataFrame(columns=base_cols + [f"cpt_{c}" for c in cpt_codes])
     df = pd.DataFrame(rows)
     df["is_locum"] = df["is_locum"].astype(object)
@@ -792,15 +801,19 @@ def _build_zip_stats_df(
         centroid_row = actual_zips_df[actual_zips_df["zip"].astype(str) == zip_code]
         lat = float(centroid_row.iloc[0]["lat"]) if not centroid_row.empty else float("nan")
         lon = float(centroid_row.iloc[0]["lon"]) if not centroid_row.empty else float("nan")
-        rows.append({
-            "zip": zip_code,
-            "overlap_fraction": frac,
-            "scaled_population": zip_scaled_populations.get(zip_code, 0),
-            "lat": lat,
-            "lon": lon,
-        })
-    return pd.DataFrame(rows) if rows else pd.DataFrame(
-        columns=["zip", "overlap_fraction", "scaled_population", "lat", "lon"]
+        rows.append(
+            {
+                "zip": zip_code,
+                "overlap_fraction": frac,
+                "scaled_population": zip_scaled_populations.get(zip_code, 0),
+                "lat": lat,
+                "lon": lon,
+            }
+        )
+    return (
+        pd.DataFrame(rows)
+        if rows
+        else pd.DataFrame(columns=["zip", "overlap_fraction", "scaled_population", "lat", "lon"])
     )
 
 
@@ -874,9 +887,7 @@ async def assemble_and_render_report(raw: RawReportInput) -> str:
 
     # Select the peer DataFrame (providers or sites-of-care)
     peers_df: pd.DataFrame = (
-        raw.sites_of_care_df
-        if raw.use_site_of_care and raw.sites_of_care_df is not None
-        else raw.providers_df
+        raw.sites_of_care_df if raw.use_site_of_care and raw.sites_of_care_df is not None else raw.providers_df
     )
 
     # ── 1. Map image ──────────────────────────────────────────────────────────
@@ -897,9 +908,7 @@ async def assemble_and_render_report(raw: RawReportInput) -> str:
                     float(row["drive_time_minutes"]) if pd.notna(row.get("drive_time_minutes")) else None
                 )
                 map_providers.append(p)
-        map_image_src, _iso, _proxies = await _generate_map_image(
-            map_providers, raw.source_lat, raw.source_lon, {}
-        )
+        map_image_src, _iso, _proxies = await _generate_map_image(map_providers, raw.source_lat, raw.source_lon, {})
         # _proxies are discarded: drive-time data stays authoritative in providers_df
         log.info("Map generated for report %s", raw.report_id)
 
@@ -942,10 +951,14 @@ async def assemble_and_render_report(raw: RawReportInput) -> str:
     )
 
     # ── 6. Searched ZIP codes display string (derived from zip_stats_df) ──────
-    searched_zip_codes = [
-        f"{row['zip']} ({round(row['overlap_fraction'] * 100)}% · {int(row['scaled_population']):,} pop)"
-        for _, row in raw.zip_stats_df.iterrows()
-    ] if not raw.zip_stats_df.empty else []
+    searched_zip_codes = (
+        [
+            f"{row['zip']} ({round(row['overlap_fraction'] * 100)}% · {int(row['scaled_population']):,} pop)"
+            for _, row in raw.zip_stats_df.iterrows()
+        ]
+        if not raw.zip_stats_df.empty
+        else []
+    )
 
     # ── 7. Peer NPIs (derived from peers_df) ──────────────────────────────────
     if raw.use_site_of_care and raw.sites_of_care_df is not None:
@@ -967,9 +980,7 @@ async def assemble_and_render_report(raw: RawReportInput) -> str:
         radius=f"{raw.drive_time_minutes} min drive",
         reportTier=raw.tier_name,
         showSection03=raw.show_section03,
-        address=to_capital_case(
-            f"{raw.address_line_1} {raw.address_line_2 if raw.address_line_2 else ''}".strip()
-        ),
+        address=to_capital_case(f"{raw.address_line_1} {raw.address_line_2 if raw.address_line_2 else ''}".strip()),
         clientName="",
         tags=generate_tags(cpt_agg.cpt_rows),
         verdictType=verdict.verdict_type,

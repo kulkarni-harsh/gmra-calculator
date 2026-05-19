@@ -1,5 +1,7 @@
 """Tests for Settings configuration."""
 
+import pytest
+
 from app.core.config import Settings
 
 
@@ -39,3 +41,23 @@ def test_ecs_settings_read_from_env():
     assert s.WORKER_TASK_DEF_ARN == "arn:aws:ecs:us-east-1:123:task-definition/test-worker:5"
     assert s.WORKER_SUBNETS == "subnet-aaa,subnet-bbb"
     assert s.WORKER_SECURITY_GROUP == "sg-ccc"
+
+
+@pytest.mark.unit
+def test_settings_has_new_auth_fields():
+    """New Wix-integration settings should be available with sane defaults."""
+    s = Settings(
+        PROJECT_NAME="TEST",
+        VERSION="0.0.0",
+        API_PREFIX="/api",
+        CENSUS_API_KEY="x",
+        MAPBOX_API_KEY="x",
+        ALPHASOPHIA_API_KEY="x",
+        GOOGLE_API_KEY="x",
+    )
+
+    assert s.AUTH_ENFORCED is False
+    assert s.API_KEY_WIX == ""
+    assert s.API_KEY_REACT == ""
+    assert s.INTERNAL_ORIGINS == ""
+    assert s.OPENAPI_PUBLIC is True

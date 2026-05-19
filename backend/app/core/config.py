@@ -14,6 +14,14 @@ class Settings(BaseSettings):
     ALPHASOPHIA_API_KEY: str
     GOOGLE_API_KEY: str
     ALLOWED_ORIGINS: str = ""  # comma-separated extra origins; empty = no extras
+
+    # Wix-integration auth & rate limiting
+    AUTH_ENFORCED: bool = False
+    API_KEY_WIX: str = ""
+    API_KEY_REACT: str = ""
+    INTERNAL_ORIGINS: str = ""
+    OPENAPI_PUBLIC: bool = True
+
     AWS_DEFAULT_REGION: str = ""
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""

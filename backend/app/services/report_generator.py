@@ -11,6 +11,7 @@ import asyncio
 import base64
 import json
 import logging
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from io import BytesIO
 
@@ -135,6 +136,73 @@ class _Verdict:
     verdict_type: str
     verdict_value: str
     verdict_sub: str
+
+
+@dataclass
+class RawReportInput:
+    """All raw data needed to assemble a report.
+
+    DataFrames use the column contracts documented in the plan.
+    Derived values (population totals, CPT rows, gap metrics) are
+    never stored here — they are always recalculated by assemble_and_render_report.
+    """
+
+    # Request metadata
+    report_id: str
+    specialty_name: str
+    city: str
+    state: str
+    zip_code: str
+    address_line_1: str
+    address_line_2: str | None
+    drive_time_minutes: int
+    tier_name: str
+    show_section03: bool
+    source_lat: float
+    source_lon: float
+    use_site_of_care: bool
+
+    # CPT configuration
+    cpt_codes: list[str]
+    cpt_patient_type_map: dict[str, str]
+    cpt_descriptions: dict[str, str]  # code → description string
+
+    # Taxonomy / specialty metadata
+    taxonomy_codes: list[str]
+    source_tabs: list[str]
+    density_scope: str
+    target_density_per_100k: float | None
+
+    # Fee schedule tables (passed by reference from ReportState)
+    rvu_table: dict
+    gpci_table: dict
+
+    # Provider data: in-radius providers, post CPT fetch
+    # Columns: npi, name, latitude, longitude, drive_time_minutes, is_locum,
+    #          taxonomy_description, cpt_total_services, cpt_{code} for each cpt_codes entry
+    providers_df: pd.DataFrame
+
+    # Site-of-care data (None when use_site_of_care=False)
+    # Columns: place_id, name, latitude, longitude, drive_time_minutes, is_locum,
+    #          taxonomy_description, npi_list, cpt_total_services, cpt_{code} per cpt_codes
+    sites_of_care_df: pd.DataFrame | None
+
+    # ZIP-level population data
+    # Columns: zip, overlap_fraction, scaled_population, lat, lon
+    zip_stats_df: pd.DataFrame
+
+    # Full SexAgeCounts from census: {"M": {age_bucket: count}, "F": {...}, "Total": int}
+    # Required to compute geriatric / pediatric relevant_pop slices.
+    combined_demo: SexAgeCounts
+
+    # Pre-computed content (not re-derived — produced by LLM / payment logic)
+    analysis_text: str
+    upgrades: list[Upgrade]
+
+    # Optional pre-computed map image (base64 data URI from a prior pipeline run).
+    # When set, assemble_and_render_report skips map generation — avoids double Mapbox calls.
+    # Leave as None for the Excel-replay use case; the map will be generated inside.
+    map_image_src: str | None = None
 
 
 # ── Private helpers ───────────────────────────────────────────────────────────
@@ -399,6 +467,66 @@ def _aggregate_cpt_data(
     )
 
 
+def _aggregate_cpt_data_from_df(
+    peers_df: pd.DataFrame,
+    cpt_codes: list[str],
+    cpt_patient_type_map: dict[str, str],
+    cpt_descriptions: dict[str, str],
+    provider_state: str,
+    rvu_table: dict,
+    gpci_table: dict,
+) -> _CptAggregation:
+    """Aggregate CPT volume from a peers DataFrame (DataFrame-based counterpart to _aggregate_cpt_data)."""
+    share_denom = int(peers_df["cpt_total_services"].sum()) if not peers_df.empty else 0
+    share_denom = share_denom or 1  # guard divide-by-zero
+
+    provider_shares = sorted(
+        [
+            ProviderShareEntry(
+                share=round(int(row["cpt_total_services"]) / share_denom * 100),
+                taxonomy=str(row["taxonomy_description"]) if pd.notna(row["taxonomy_description"]) else "Unknown",
+                drive_time_minutes=float(row["drive_time_minutes"])
+                if pd.notna(row.get("drive_time_minutes"))
+                else None,
+                is_locum=bool(row["is_locum"]),
+            )
+            for _, row in peers_df.iterrows()
+        ],
+        key=lambda e: e.share,
+        reverse=True,
+    )
+
+    cpt_rows: list[CptRowV2] = []
+    total_market_services = 0
+    for code in cpt_codes:
+        col = f"cpt_{code}"
+        vol = int(peers_df[col].sum()) if col in peers_df.columns and not peers_df.empty else 0
+        vol = max(vol, 0)
+        total_market_services += vol
+        rate = get_medicare_rate(code, provider_state, rvu_table, gpci_table)
+        cpt_rows.append(
+            CptRowV2(
+                code=code,
+                desc=cpt_descriptions.get(code),
+                patientType=cpt_patient_type_map.get(code),
+                medicareRate=f"${rate:,.2f}" if rate is not None else None,
+                totalVolume=f"{vol:,}" if vol > 0 else None,
+            )
+        )
+
+    cpt_rows.sort(
+        key=lambda r: int(r.totalVolume.replace(",", "")) if r.totalVolume else 0,
+        reverse=True,
+    )
+
+    return _CptAggregation(
+        cpt_rows=cpt_rows,
+        total_market_services=total_market_services,
+        provider_shares=provider_shares,
+        share_denom=share_denom,
+    )
+
+
 def _fetch_population_data(
     expanded_zips_df: pd.DataFrame,
     source_lat: float,
@@ -600,6 +728,112 @@ def _build_debug_excel(
         return None
 
 
+def _providers_to_df(providers: list[Provider], cpt_codes: list[str]) -> pd.DataFrame:
+    """Convert in-radius Provider list to a flat DataFrame for RawReportInput."""
+    rows = []
+    for p in providers:
+        cpt_total = sum(
+            (p.get_cpt_profile(c).totalServices or 0) for c in cpt_codes if p.get_cpt_profile(c) is not None
+        )
+        is_locum = bool(cpt_total <= 400)
+        row: dict = {
+            "npi": p.npi,
+            "name": p.name,
+            "latitude": p.latitude,
+            "longitude": p.longitude,
+            "drive_time_minutes": p.drive_time_minutes,
+            "is_locum": is_locum,
+            "taxonomy_description": p.taxonomy.description,
+            "cpt_total_services": cpt_total,
+        }
+        for code in cpt_codes:
+            cp = p.get_cpt_profile(code)
+            row[f"cpt_{code}"] = cp.totalServices if cp is not None else 0
+        rows.append(row)
+    if not rows:
+        base_cols = [
+            "npi",
+            "name",
+            "latitude",
+            "longitude",
+            "drive_time_minutes",
+            "is_locum",
+            "taxonomy_description",
+            "cpt_total_services",
+        ]
+        return pd.DataFrame(columns=base_cols + [f"cpt_{c}" for c in cpt_codes])
+    df = pd.DataFrame(rows)
+    df["is_locum"] = df["is_locum"].astype(object)
+    return df
+
+
+def _sites_of_care_to_df(sites: list[SiteOfCare], cpt_codes: list[str]) -> pd.DataFrame:
+    """Convert SiteOfCare list to a flat DataFrame for RawReportInput."""
+    rows = []
+    for s in sites:
+        row: dict = {
+            "place_id": s.place_id,
+            "name": s.name,
+            "latitude": s.latitude,
+            "longitude": s.longitude,
+            "drive_time_minutes": s.drive_time_minutes,
+            "is_locum": s.is_locum,
+            "taxonomy_description": s.taxonomy.description,
+            "npi_list": ",".join(s.npi_list) if s.npi_list else "",
+            "cpt_total_services": s.cpt_total_services,
+        }
+        cpt_by_code = {c.code: c for c in s.cpt_list}
+        for code in cpt_codes:
+            cp = cpt_by_code.get(code)
+            row[f"cpt_{code}"] = cp.totalServices if cp is not None else 0
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def _build_zip_stats_df(
+    zip_overlap_fractions: dict[str, float],
+    zip_scaled_populations: dict[str, int],
+    actual_zips_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Build zip_stats_df from census output and candidate ZIP centroids."""
+    rows = []
+    for zip_code, frac in zip_overlap_fractions.items():
+        centroid_row = actual_zips_df[actual_zips_df["zip"].astype(str) == zip_code]
+        lat = float(centroid_row.iloc[0]["lat"]) if not centroid_row.empty else float("nan")
+        lon = float(centroid_row.iloc[0]["lon"]) if not centroid_row.empty else float("nan")
+        rows.append(
+            {
+                "zip": zip_code,
+                "overlap_fraction": frac,
+                "scaled_population": zip_scaled_populations.get(zip_code, 0),
+                "lat": lat,
+                "lon": lon,
+            }
+        )
+    return (
+        pd.DataFrame(rows)
+        if rows
+        else pd.DataFrame(columns=["zip", "overlap_fraction", "scaled_population", "lat", "lon"])
+    )
+
+
+def _extract_cpt_descriptions(
+    providers: Sequence[Provider | SiteOfCare],
+    cpt_codes: list[str],
+) -> dict[str, str]:
+    """Extract CPT code → description mapping from the first provider that has each one."""
+    descriptions: dict[str, str] = {}
+    for p in providers:
+        for code in cpt_codes:
+            if code not in descriptions:
+                cp = p.get_cpt_profile(code)
+                if cp is not None and cp.description:
+                    descriptions[code] = cp.description
+        if len(descriptions) == len(cpt_codes):
+            break
+    return descriptions
+
+
 def _get_upgrade_recommendations(
     payload: T1ReportRequest | T2ReportRequest | T3ReportRequest,
 ) -> list[Upgrade]:
@@ -641,6 +875,143 @@ def _get_upgrade_recommendations(
             )
         )
     return upgrades
+
+
+async def assemble_and_render_report(raw: RawReportInput) -> str:
+    """Render an HTML report from a RawReportInput.
+
+    All values that can be derived from the raw DataFrames are recalculated here.
+    Nothing derived is stored on RawReportInput — only raw data lives there.
+    """
+    log = logging.getLogger(__name__)
+
+    # Select the peer DataFrame (providers or sites-of-care)
+    peers_df: pd.DataFrame = (
+        raw.sites_of_care_df if raw.use_site_of_care and raw.sites_of_care_df is not None else raw.providers_df
+    )
+
+    # ── 1. Map image ──────────────────────────────────────────────────────────
+    map_image_src: str | None
+    if raw.map_image_src is not None:
+        map_image_src = raw.map_image_src
+        log.info("Using pre-computed map image for report %s", raw.report_id)
+    else:
+        # Build lightweight Provider proxies for map generation only.
+        # Drive times are already in providers_df; we do not update them from the map.
+        map_providers: list[Provider] = []
+        for _, row in raw.providers_df.iterrows():
+            if pd.notna(row.get("latitude")) and pd.notna(row.get("longitude")):
+                p = Provider(id=0, npi=None, name=None)
+                p.latitude = float(row["latitude"])
+                p.longitude = float(row["longitude"])
+                p.drive_time_minutes = (
+                    float(row["drive_time_minutes"]) if pd.notna(row.get("drive_time_minutes")) else None
+                )
+                map_providers.append(p)
+        map_image_src, _iso, _proxies = await _generate_map_image(map_providers, raw.source_lat, raw.source_lon, {})
+        # _proxies are discarded: drive-time data stays authoritative in providers_df
+        log.info("Map generated for report %s", raw.report_id)
+
+    # ── 2. Population totals (derived from zip_stats_df) ──────────────────────
+    total_population = int(raw.zip_stats_df["scaled_population"].sum()) if not raw.zip_stats_df.empty else 0
+
+    name_lower = raw.specialty_name.lower()
+    if "geriatric" in name_lower:
+        relevant_pop = get_geriatric_population(raw.combined_demo)
+        population_label = "Geriatric (60+)"
+    elif "pediatric" in name_lower:
+        relevant_pop = get_pediatric_population(raw.combined_demo)
+        population_label = "Pediatric"
+    else:
+        relevant_pop = total_population
+        population_label = "General Population"
+
+    # ── 3. Provider counts (derived from peers_df) ────────────────────────────
+    peer_providers_count = int((~peers_df["is_locum"]).sum()) if not peers_df.empty else 0
+    locum_count = int(peers_df["is_locum"].sum()) if not peers_df.empty else 0
+
+    # ── 4. Density gap (derived from population + metadata) ───────────────────
+    if raw.target_density_per_100k is not None and relevant_pop > 0:
+        expected_providers = (relevant_pop / 100_000) * raw.target_density_per_100k
+        provider_gap = expected_providers - peer_providers_count
+    else:
+        expected_providers, provider_gap = 0.0, 0.0
+
+    verdict = _compute_verdict(raw.target_density_per_100k, provider_gap, raw.density_scope)
+
+    # ── 5. CPT aggregation (derived from peers_df) ────────────────────────────
+    cpt_agg = _aggregate_cpt_data_from_df(
+        peers_df=peers_df,
+        cpt_codes=raw.cpt_codes,
+        cpt_patient_type_map=raw.cpt_patient_type_map,
+        cpt_descriptions=raw.cpt_descriptions,
+        provider_state=raw.state,
+        rvu_table=raw.rvu_table,
+        gpci_table=raw.gpci_table,
+    )
+
+    # ── 6. Searched ZIP codes display string (derived from zip_stats_df) ──────
+    searched_zip_codes = (
+        [
+            f"{row['zip']} ({round(row['overlap_fraction'] * 100)}% · {int(row['scaled_population']):,} pop)"
+            for _, row in raw.zip_stats_df.iterrows()
+        ]
+        if not raw.zip_stats_df.empty
+        else []
+    )
+
+    # ── 7. Peer NPIs (derived from peers_df) ──────────────────────────────────
+    if raw.use_site_of_care and raw.sites_of_care_df is not None:
+        peer_npis = [
+            npi.strip()
+            for npi_str in raw.sites_of_care_df["npi_list"].dropna()
+            for npi in npi_str.split(",")
+            if npi.strip()
+        ]
+    else:
+        peer_npis = [str(npi) for npi in raw.providers_df["npi"].dropna()]
+
+    # ── 8. Assemble ReportTemplateDataV2 ──────────────────────────────────────
+    report_data = ReportTemplateDataV2(
+        reportId=raw.report_id,
+        dateIssued=pd.Timestamp.now().strftime("%m/%d/%Y"),
+        specialty=raw.specialty_name,
+        market=f"{raw.zip_code} {to_capital_case(raw.city)}, {to_capital_case(raw.state)}",
+        radius=f"{raw.drive_time_minutes} min drive",
+        reportTier=raw.tier_name,
+        showSection03=raw.show_section03,
+        address=to_capital_case(f"{raw.address_line_1} {raw.address_line_2 if raw.address_line_2 else ''}".strip()),
+        clientName="",
+        tags=generate_tags(cpt_agg.cpt_rows),
+        verdictType=verdict.verdict_type,
+        verdictValue=verdict.verdict_value,
+        verdictSub=verdict.verdict_sub,
+        totalPopulation=f"{total_population:,}" if total_population > 0 else "N/A",
+        relevantPopulation=f"{relevant_pop:,}" if relevant_pop > 0 else "N/A",
+        populationLabel=population_label,
+        activeProviders=peer_providers_count,
+        targetDensity=round(expected_providers, 1),
+        providerGap=round(provider_gap, 1),
+        cptRows=cpt_agg.cpt_rows,
+        cptTotalVisits=f"{cpt_agg.total_market_services:,}",
+        analysisText=raw.analysis_text,
+        upgrades=raw.upgrades,
+        providerProfile=ProviderProfileV2(annualVisits=None),
+        competitorCount=peer_providers_count,
+        locumCount=locum_count,
+        showRelevantPopulation=relevant_pop != total_population,
+        taxonomyCodes=raw.taxonomy_codes,
+        searchedZipCodes=searched_zip_codes,
+        sourceTabs=raw.source_tabs,
+        peerNpis=peer_npis,
+        providerShares=cpt_agg.provider_shares,
+        mapImageSrc=map_image_src,
+        densityScope=raw.density_scope,
+    )
+
+    html = render_report("T1", report_data)
+    log.info("Report %s rendered (%d bytes)", raw.report_id, len(html))
+    return html
 
 
 # ── Public entry point ────────────────────────────────────────────────────────
@@ -872,58 +1243,59 @@ async def run_html_report(
         fallback_text=fallback_analysis,
     )
 
-    # 13. Assemble and render report
+    # 13. Build RawReportInput and delegate assembly to assemble_and_render_report.
+    # Derived values (population totals, CPT rows, active providers, gap, verdict, tags)
+    # are recalculated inside assemble_and_render_report from the DataFrames.
+    log.info("[10] Building RawReportInput and rendering")
     report_id = job_id or f"MREC-{ulid.ulid()}"
-
-    # Upgrades
-    upgrades = _get_upgrade_recommendations(payload)
-
-    report_data = ReportTemplateDataV2(
-        reportId=report_id,
-        dateIssued=pd.Timestamp.now().strftime("%m/%d/%Y"),
-        specialty=payload.specialty_name,
-        market=f"{payload.zip_code} {to_capital_case(payload.city)}, {to_capital_case(payload.state)}",
-        radius=f"{payload.drive_time_minutes} min drive",
-        reportTier=payload.tier_name,
-        showSection03="T1" not in payload.__class__.__name__,
-        address=to_capital_case(f"{payload.address_line_1} {payload.address_line_2 if payload.address_line_2 else ''}"),
-        clientName="",
-        tags=generate_tags(cpt_agg.cpt_rows),
-        verdictType=verdict.verdict_type,
-        verdictValue=verdict.verdict_value,
-        verdictSub=verdict.verdict_sub,
-        totalPopulation=f"{pop.total_population:,}" if pop.total_population > 0 else "N/A",
-        relevantPopulation=f"{pop.relevant_pop:,}" if pop.relevant_pop > 0 else "N/A",
-        populationLabel=pop.population_label,
-        activeProviders=peer_providers_count,
-        targetDensity=round(expected_providers, 1),
-        providerGap=round(provider_gap, 1),
-        cptRows=cpt_agg.cpt_rows,
-        cptTotalVisits=f"{cpt_agg.total_market_services:,}",
-        analysisText=analysis_text,
-        upgrades=upgrades,
-        providerProfile=ProviderProfileV2(annualVisits=None),
-        competitorCount=peer_providers_count,
-        locumCount=locum_count,
-        showRelevantPopulation=pop.relevant_pop != pop.total_population,
-        taxonomyCodes=meta.taxonomy_codes,
-        searchedZipCodes=[
-            f"{z} ({round(pop.zip_overlap_fractions[z] * 100)}% · {pop.zip_scaled_populations.get(z, 0):,} pop)"
-            if z in pop.zip_overlap_fractions
-            else z
-            for z in sorted(pop.zip_overlap_fractions) or pop.actual_zips_df["zip"].astype(str).tolist()
-        ],
-        sourceTabs=meta.source_tabs,
-        peerNpis=(
-            [npi for s in peers for npi in s.npi_list]  # type: ignore[union-attr]
-            if use_site_of_care
-            else [p.npi for p in peers if p.npi]  # type: ignore[union-attr]
+    raw = RawReportInput(
+        report_id=report_id,
+        specialty_name=payload.specialty_name,
+        city=payload.city,
+        state=provider_state,
+        zip_code=payload.zip_code,
+        address_line_1=payload.address_line_1,
+        address_line_2=payload.address_line_2,
+        drive_time_minutes=payload.drive_time_minutes,
+        tier_name=payload.tier_name,
+        show_section03="T1" not in payload.__class__.__name__,
+        source_lat=source_lat,
+        source_lon=source_lon,
+        use_site_of_care=use_site_of_care,
+        cpt_codes=effective_cpt_codes,
+        cpt_patient_type_map=meta.cpt_patient_type_map,
+        cpt_descriptions=_extract_cpt_descriptions(providers_in_radius, effective_cpt_codes),
+        taxonomy_codes=meta.taxonomy_codes,
+        source_tabs=meta.source_tabs,
+        density_scope=density_scope,
+        target_density_per_100k=target_density,
+        rvu_table=state.rvu_table,
+        gpci_table=state.gpci_table,
+        providers_df=_providers_to_df(providers_in_radius, effective_cpt_codes),
+        sites_of_care_df=_sites_of_care_to_df(_sites_of_care_list, effective_cpt_codes)
+        if _sites_of_care_list
+        else None,
+        zip_stats_df=_build_zip_stats_df(
+            pop.zip_overlap_fractions,
+            pop.zip_scaled_populations,
+            pop.actual_zips_df,
         ),
-        providerShares=cpt_agg.provider_shares,
-        mapImageSrc=map_image_src,
-        densityScope=density_scope,
+        combined_demo=pop.combined_demo,
+        analysis_text=analysis_text,
+        upgrades=_get_upgrade_recommendations(payload),
+        map_image_src=map_image_src,
     )
-
-    html = render_report("T1", report_data)
-    log.info("[10] Done — T1 report '%s' rendered (%d bytes)", report_id, len(html))
+    _debug_upload(
+        job_id,
+        "10_raw_report_input_meta",
+        {
+            "report_id": raw.report_id,
+            "specialty_name": raw.specialty_name,
+            "cpt_codes": raw.cpt_codes,
+            "providers_count": len(raw.providers_df),
+            "zip_stats_count": len(raw.zip_stats_df),
+        },
+    )
+    html = await assemble_and_render_report(raw)
+    log.info("[11] Done — report '%s' rendered (%d bytes)", report_id, len(html))
     return html, debug_excel_bytes

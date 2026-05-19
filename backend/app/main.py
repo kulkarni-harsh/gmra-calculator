@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from contextlib import asynccontextmanager
 
 import pandas as pd
@@ -8,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.router import api_router
 from app.core.config import settings
@@ -38,6 +40,28 @@ async def lifespan(app: FastAPI):
     del app.state.specialty_master_df
 
 
+req_logger = logging.getLogger("app.request")
+
+
+class RequestLogMiddleware(BaseHTTPMiddleware):
+    """Emit a structured log line for every request after it completes."""
+
+    async def dispatch(self, request: Request, call_next):  # type: ignore[override]
+        start = time.perf_counter()
+        response = await call_next(request)
+        duration_ms = (time.perf_counter() - start) * 1000
+        client_tag = getattr(request.state, "client", "anonymous")
+        req_logger.info(
+            "request client=%s method=%s path=%s status=%d duration_ms=%.1f",
+            client_tag,
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration_ms,
+        )
+        return response
+
+
 def _rate_limit_handler(_request: Request, exc: RateLimitExceeded) -> JSONResponse:  # pragma: no cover - thin wrapper
     return JSONResponse(
         status_code=429,
@@ -63,6 +87,8 @@ def create_app() -> FastAPI:
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
     app.add_middleware(SlowAPIMiddleware)
+
+    app.add_middleware(RequestLogMiddleware)
 
     # CORS
     origins = []

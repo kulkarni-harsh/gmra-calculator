@@ -66,3 +66,14 @@ def test_protected_endpoint_accepts_internal_origin(auth_on):
     client = TestClient(app)
     r = client.get("/api/providers/specialties", headers={"Origin": "https://app.merc.com"})
     assert r.status_code == 200
+
+
+@pytest.mark.integration
+def test_request_log_includes_client_tag(auth_on, caplog):
+    """Every authenticated request emits a structured request.log line."""
+    caplog.set_level("INFO", logger="app.request")
+    client = TestClient(app)
+    r = client.get("/api/providers/specialties", headers={"X-API-Key": "wix-key-abc"})
+    assert r.status_code == 200
+    log_messages = [rec.getMessage() for rec in caplog.records if rec.name == "app.request"]
+    assert any("client=wix" in m for m in log_messages), log_messages

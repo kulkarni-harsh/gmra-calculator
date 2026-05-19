@@ -1,9 +1,10 @@
 # app/api/endpoints/report_t3.py
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.schemas.report_requests import T3ReportRequest
 from app.services.email import send_request_confirmation
 from app.services.job_store import JobAlreadyExistsError, claim_job_for_generation
@@ -15,7 +16,8 @@ router = APIRouter()
 
 
 @router.post("/generate")
-async def submit_t3_report_job(payload: T3ReportRequest):
+@limiter.limit("120/minute")
+async def submit_t3_report_job(request: Request, payload: T3ReportRequest):  # noqa: ARG001
     """Verify Stripe payment, enqueue T3 In-depth Market Analysis report generation.
     Poll GET /api/jobs/status/{job_id} for completion."""
     try:

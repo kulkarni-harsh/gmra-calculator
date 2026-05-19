@@ -1,8 +1,9 @@
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.schemas.provider_request import ProviderRequest
 from app.services.email import send_request_confirmation
 from app.services.job_store import JobAlreadyExistsError, claim_job_for_generation
@@ -14,7 +15,8 @@ router = APIRouter()
 
 
 @router.post("/generate")
-async def submit_report_job(payload: ProviderRequest):
+@limiter.limit("120/minute")
+async def submit_report_job(request: Request, payload: ProviderRequest):  # noqa: ARG001
     """
     Verify Stripe payment, then enqueue report generation.
     Returns a job_id immediately. Poll GET /status/{job_id} to check progress.

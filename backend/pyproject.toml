@@ -89,6 +89,10 @@ pythonpath = ["."]
 testpaths = ["tests"]
 addopts = "-q"
 asyncio_mode = "auto"
+markers = [
+    "unit: fast, isolated unit tests",
+    "integration: tests that wire the full app stack",
+]
 
 [dependency-groups]
 dev = [

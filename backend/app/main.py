@@ -3,12 +3,16 @@ import logging
 from contextlib import asynccontextmanager
 
 import pandas as pd
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.logging import configure_logging
+from app.core.rate_limit import limiter
 from app.utils.common import load_fee_schedule_tables
 from app.utils.validator import validate_speciality_master_df
 
@@ -34,14 +38,33 @@ async def lifespan(app: FastAPI):
     del app.state.specialty_master_df
 
 
+def _rate_limit_handler(_request: Request, exc: RateLimitExceeded) -> JSONResponse:  # pragma: no cover - thin wrapper
+    return JSONResponse(
+        status_code=429,
+        content={"detail": f"Rate limit exceeded: {exc.detail}"},
+        headers={"Retry-After": "60"},
+    )
+
+
 def create_app() -> FastAPI:
+    docs_url = "/docs" if settings.OPENAPI_PUBLIC else None
+    openapi_url = "/openapi.json" if settings.OPENAPI_PUBLIC else None
+
     app = FastAPI(
         title=settings.PROJECT_NAME,
         version=settings.VERSION,
-        # debug=settings.DEBUG,
         lifespan=lifespan,
+        docs_url=docs_url,
+        openapi_url=openapi_url,
+        redoc_url=None,
     )
 
+    # slowapi wiring
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
+    app.add_middleware(SlowAPIMiddleware)
+
+    # CORS
     origins = []
     if settings.ALLOWED_ORIGINS:
         origins = [o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()]

@@ -17,9 +17,27 @@ resource "aws_route53_record" "ns" {
   records = var.ns_records
 }
 
-# Apex: yourdomain.com → ALB
+# --- Public-site DNS (apex + www) ---
+# When wix_apex_a_records / wix_www_cname_target are set, apex + www point at
+# Wix (which serves the public site). Otherwise they keep pointing at the ALB
+# (legacy / pre-cutover / rollback). Only one of each pair exists at a time.
+
+# Apex → Wix (when configured)
+resource "aws_route53_record" "apex_wix" {
+  count = length(var.wix_apex_a_records) > 0 ? 1 : 0
+
+  zone_id = aws_route53_zone.main.zone_id
+  name    = var.domain_name
+  type    = "A"
+  ttl     = 3600
+  records = var.wix_apex_a_records
+}
+
+# Apex → ALB (fallback when Wix not yet configured)
 # Uses an ALIAS record (AWS-specific). Unlike CNAME, ALIAS works at the root domain.
-resource "aws_route53_record" "apex" {
+resource "aws_route53_record" "apex_alb" {
+  count = length(var.wix_apex_a_records) > 0 ? 0 : 1
+
   zone_id = aws_route53_zone.main.zone_id
   name    = var.domain_name
   type    = "A"
@@ -31,10 +49,48 @@ resource "aws_route53_record" "apex" {
   }
 }
 
-# www: www.yourdomain.com → ALB
-resource "aws_route53_record" "www" {
+# Preserve existing state when migrating from the old single-resource layout.
+moved {
+  from = aws_route53_record.apex
+  to   = aws_route53_record.apex_alb[0]
+}
+
+# www → Wix (when configured)
+resource "aws_route53_record" "www_wix" {
+  count = length(var.wix_www_cname_target) > 0 ? 1 : 0
+
   zone_id = aws_route53_zone.main.zone_id
   name    = "www.${var.domain_name}"
+  type    = "CNAME"
+  ttl     = 3600
+  records = [var.wix_www_cname_target]
+}
+
+# www → ALB (fallback when Wix not yet configured)
+resource "aws_route53_record" "www_alb" {
+  count = length(var.wix_www_cname_target) > 0 ? 0 : 1
+
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "www.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.main.dns_name
+    zone_id                = aws_lb.main.zone_id
+    evaluate_target_health = true
+  }
+}
+
+moved {
+  from = aws_route53_record.www
+  to   = aws_route53_record.www_alb[0]
+}
+
+# api: api.yourdomain.com → ALB
+# This is the hostname the Wix Velo backend calls. Always pointed at the ALB.
+resource "aws_route53_record" "api" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "api.${var.domain_name}"
   type    = "A"
 
   alias {

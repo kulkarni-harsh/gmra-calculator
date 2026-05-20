@@ -4,8 +4,13 @@ output "alb_dns_name" {
 }
 
 output "app_url" {
-  description = "Your app's public URL"
+  description = "Your app's public URL (served by Wix once apex DNS is cut over)"
   value       = "https://${var.domain_name}"
+}
+
+output "api_url" {
+  description = "Backend API base URL. Hand this to the Wix Velo team as their BASE."
+  value       = "https://api.${var.domain_name}/api"
 }
 
 output "name_servers" {

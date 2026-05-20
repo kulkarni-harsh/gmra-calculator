@@ -138,3 +138,21 @@ variable "frontend_enabled" {
   type        = bool
   default     = true
 }
+
+# --- Wix custom-domain DNS ---
+# Wix hosts the public-facing site at apex (and www). The Wix dashboard gives
+# you A record IP(s) for the apex and a CNAME target for www. Fill these in
+# once the Wix site is connected; while empty, apex/www remain pointed at the
+# ALB (rollback / pre-cutover behaviour).
+
+variable "wix_apex_a_records" {
+  description = "Wix-provided A record IP addresses for the apex domain. When empty, apex stays pointed at the ALB."
+  type        = list(string)
+  default     = []
+}
+
+variable "wix_www_cname_target" {
+  description = "Wix-provided CNAME target for the www subdomain (e.g. 'a-record.wixdns.net' or similar). When empty, www stays pointed at the ALB."
+  type        = string
+  default     = ""
+}

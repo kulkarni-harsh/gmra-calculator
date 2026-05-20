@@ -29,3 +29,8 @@ api_key_react    = "GENERATE_WITH_openssl_rand_base64_36"
 auth_enforced    = false                          # flip to true after Wix smoke test
 internal_origins = "https://app.merc.com"         # comma-separated; our own React origins
 openapi_public   = true                           # set false in prod
+
+# Wix custom-domain DNS — leave empty until Wix dashboard gives values.
+# Once filled in, apex + www point at Wix; api.<domain> always stays on the ALB.
+wix_apex_a_records   = []   # e.g. ["23.236.62.147"]  — from Wix → Connect a Domain → Pointing
+wix_www_cname_target = ""   # e.g. "your-site.wixsite.com"  — Wix-provided CNAME target

@@ -33,10 +33,12 @@ resource "aws_route53_record" "apex_wix" {
   records = var.wix_apex_a_records
 }
 
-# Apex → ALB (fallback when Wix not yet configured)
+# Apex → ALB (fallback when Wix not yet configured AND the React frontend is
+# being served by ECS). When frontend_enabled=false and no Wix vars are set,
+# apex is intentionally left out of DNS — the site is dark on this domain.
 # Uses an ALIAS record (AWS-specific). Unlike CNAME, ALIAS works at the root domain.
 resource "aws_route53_record" "apex_alb" {
-  count = length(var.wix_apex_a_records) > 0 ? 0 : 1
+  count = (length(var.wix_apex_a_records) == 0 && var.frontend_enabled) ? 1 : 0
 
   zone_id = aws_route53_zone.main.zone_id
   name    = var.domain_name
@@ -66,9 +68,10 @@ resource "aws_route53_record" "www_wix" {
   records = [var.wix_www_cname_target]
 }
 
-# www → ALB (fallback when Wix not yet configured)
+# www → ALB (fallback when Wix not yet configured AND the React frontend is
+# being served by ECS). Otherwise www is intentionally left out of DNS.
 resource "aws_route53_record" "www_alb" {
-  count = length(var.wix_www_cname_target) > 0 ? 0 : 1
+  count = (length(var.wix_www_cname_target) == 0 && var.frontend_enabled) ? 1 : 0
 
   zone_id = aws_route53_zone.main.zone_id
   name    = "www.${var.domain_name}"

@@ -8,6 +8,10 @@ Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `ci`.
 
 ---
 
+## 2026-05-20
+
+- feat(auth): expose API to Wix Velo backend via X-API-Key header. New modules `app/core/auth.py`, `app/core/rate_limit.py`. Rate limit 120/min on `POST /reports/{tier}/generate`. Behind `AUTH_ENFORCED` env flag. (`docs/superpowers/plans/2026-05-19-wix-backend-integration.md`)
+
 ## 2026-04-26
 
 - feat: replace always-on ECS worker service with on-demand Fargate task; worker self-terminates after ~60 s idle (`docs/superpowers/plans/2026-04-04-on-demand-worker.md`)

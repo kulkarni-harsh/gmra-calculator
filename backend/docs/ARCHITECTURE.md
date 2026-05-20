@@ -46,6 +46,15 @@ Worker (on-demand Fargate task — spawned by API, self-terminates after 60 s id
   └─ SQS delete_message
 ```
 
+## Auth & rate limiting
+
+API access is gated by `app/core/auth.py` (`require_api_key` FastAPI dependency) applied at the router level in `app/api/router.py`. Health and Stripe webhook endpoints are exempt.
+
+- `app/core/auth.py` — `require_api_key` FastAPI dependency. Validates `X-API-Key` (constant-time compare via `hmac.compare_digest`) and falls back to an Origin-header allowlist for our own React frontend. Gated by `settings.AUTH_ENFORCED`; safe default is `False` (off).
+- `app/core/rate_limit.py` — `slowapi` limiter keyed on `(client_tag, remote_ip)`. Default 300/min; report-generation endpoints overridden to 120/min via `@limiter.limit("120/minute")` decorators.
+
+See `backend/docs/wix-integration-guide.md` for the Wix team hand-off guide.
+
 ## Modules
 
 See `backend/docs/MODULES.md` for the per-module breakdown.

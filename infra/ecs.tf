@@ -207,7 +207,7 @@ resource "aws_ecs_service" "frontend" {
   name            = "${var.app_name}-frontend"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.frontend.arn
-  desired_count   = 1
+  desired_count   = var.frontend_enabled ? 1 : 0
   launch_type     = "FARGATE"
 
   network_configuration {

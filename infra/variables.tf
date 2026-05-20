@@ -132,3 +132,9 @@ variable "openapi_public" {
   type        = bool
   default     = true
 }
+
+variable "frontend_enabled" {
+  description = "When false, the React frontend ECS service is stopped (desired_count=0) and the ALB default route forwards to the backend. Use when Wix handles the frontend."
+  type        = bool
+  default     = true
+}

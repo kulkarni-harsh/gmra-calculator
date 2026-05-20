@@ -10,8 +10,8 @@ case "$WORKSPACE" in
     PUBLISHABLE_STRIPE_KEY="pk_test_51TBuNhHhWMiyKgBo9ft6mCt4Hs1sSWMUtuVVCCXthHaDYWdjk7DB7IVZcSfyR1ynpk4HqRLtIspKQckfvNY0O7CC00IQPnMXDp"
     ;;
   personal)
-    ACCOUNT_ID="YOUR_PERSONAL_ACCOUNT_ID"   # replace with real account ID
-    PUBLISHABLE_STRIPE_KEY="pk_live_..."                 # replace with personal Stripe key
+    ACCOUNT_ID="707057771327"
+    PUBLISHABLE_STRIPE_KEY="pk_test_51TBuNhHhWMiyKgBo9ft6mCt4Hs1sSWMUtuVVCCXthHaDYWdjk7DB7IVZcSfyR1ynpk4HqRLtIspKQckfvNY0O7CC00IQPnMXDp"
     ;;
   *)
     echo "Unknown workspace '${WORKSPACE}'. Usage: ./deploy.sh [tag] [client|personal]"
@@ -29,6 +29,16 @@ FRONTEND_REPO="${ECR_BASE}/gmra-calculator-frontend"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Derive frontend_enabled from the workspace's tfvars so the script stays in
+# sync with the infra config. Default true if the var is absent (matches the
+# variable default in variables.tf).
+TFVARS_FILE="${SCRIPT_DIR}/infra/${WORKSPACE}.tfvars"
+if [[ -f "$TFVARS_FILE" ]] && grep -qE '^frontend_enabled\s*=\s*false' "$TFVARS_FILE"; then
+  FRONTEND_ENABLED="false"
+else
+  FRONTEND_ENABLED="true"
+fi
+
 # ── Args ──────────────────────────────────────────────────────────────────────
 TAG="${1:-latest}"
 
@@ -38,6 +48,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "  Workspace : $WORKSPACE"
 echo "  Account   : $ACCOUNT_ID"
 echo "  Tag       : $TAG"
+echo "  Frontend  : $FRONTEND_ENABLED"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # ── ECR login ─────────────────────────────────────────────────────────────────
@@ -53,16 +64,26 @@ docker buildx build \
   -t "${BACKEND_REPO}:${TAG}" \
   "${SCRIPT_DIR}/backend"
 
-log "Building & pushing frontend image (tag: $TAG)..."
-docker buildx build \
-  --platform linux/amd64 \
-  --push \
-  --build-arg "VITE_STRIPE_PUBLISHABLE_KEY=${PUBLISHABLE_STRIPE_KEY}" \
-  -t "${FRONTEND_REPO}:${TAG}" \
-  "${SCRIPT_DIR}/frontend"
+if [[ "$FRONTEND_ENABLED" == "true" ]]; then
+  log "Building & pushing frontend image (tag: $TAG)..."
+  docker buildx build \
+    --platform linux/amd64 \
+    --push \
+    --build-arg "VITE_STRIPE_PUBLISHABLE_KEY=${PUBLISHABLE_STRIPE_KEY}" \
+    -t "${FRONTEND_REPO}:${TAG}" \
+    "${SCRIPT_DIR}/frontend"
+else
+  log "Skipping frontend image (frontend_enabled=false)."
+fi
+
+# ── Determine which services to redeploy ──────────────────────────────────────
+SERVICES=(backend worker)
+if [[ "$FRONTEND_ENABLED" == "true" ]]; then
+  SERVICES=(frontend backend worker)
+fi
 
 # ── Force new ECS deployments ─────────────────────────────────────────────────
-for SERVICE in frontend backend worker; do
+for SERVICE in "${SERVICES[@]}"; do
   log "Deploying ECS service: $SERVICE..."
   aws ecs update-service \
     --region "$AWS_REGION" \
@@ -76,7 +97,7 @@ done
 
 # ── Wait for stability ────────────────────────────────────────────────────────
 log "Waiting for services to stabilize..."
-for SERVICE in frontend backend worker; do
+for SERVICE in "${SERVICES[@]}"; do
   log "  Waiting on gmra-calculator-${SERVICE}..."
   aws ecs wait services-stable \
     --region "$AWS_REGION" \

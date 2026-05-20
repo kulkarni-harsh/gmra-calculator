@@ -111,7 +111,7 @@ resource "aws_ecs_service" "backend" {
   name            = "${var.app_name}-backend"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.backend.arn
-  desired_count   = 1
+  desired_count   = var.backend_enabled ? 1 : 0
   launch_type     = "FARGATE"
 
   network_configuration {
@@ -189,7 +189,7 @@ resource "aws_ecs_service" "worker" {
   name            = "${var.app_name}-worker"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.worker.arn
-  desired_count   = 1
+  desired_count   = var.worker_enabled ? 1 : 0
   launch_type     = "FARGATE"
 
   network_configuration {

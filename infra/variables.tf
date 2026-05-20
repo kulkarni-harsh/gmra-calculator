@@ -139,6 +139,18 @@ variable "frontend_enabled" {
   default     = true
 }
 
+variable "worker_enabled" {
+  description = "When false, the worker ECS service runs with desired_count=0 (no Fargate tasks, no cost). Set false during development or when no report jobs are expected."
+  type        = bool
+  default     = true
+}
+
+variable "backend_enabled" {
+  description = "When false, the backend ECS service runs with desired_count=0. Note: api.yourdomain.com will return 503 while disabled — only use during development when Wix integration is not needed."
+  type        = bool
+  default     = true
+}
+
 # --- Wix custom-domain DNS ---
 # Wix hosts the public-facing site at apex (and www). The Wix dashboard gives
 # you A record IP(s) for the apex and a CNAME target for www. Fill these in

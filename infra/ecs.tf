@@ -202,12 +202,18 @@ resource "aws_ecs_service" "worker" {
 }
 
 # --- Frontend ECS Service ---
+# Only exists when the React frontend is being served by ECS. When
+# frontend_enabled=false (e.g. Wix handles the UI), the service is not
+# created — AWS rejects ECS services whose load_balancer block references
+# a target group with no listener forwarding to it, so desired_count=0
+# alone is not enough.
 
 resource "aws_ecs_service" "frontend" {
+  count           = var.frontend_enabled ? 1 : 0
   name            = "${var.app_name}-frontend"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.frontend.arn
-  desired_count   = var.frontend_enabled ? 1 : 0
+  desired_count   = 1
   launch_type     = "FARGATE"
 
   network_configuration {

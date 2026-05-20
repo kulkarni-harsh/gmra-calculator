@@ -102,3 +102,33 @@ variable "stripe_publishable_key" {
   description = "Stripe publishable key (starts with pk_test_ or pk_live_) — baked into the frontend Docker build"
   type        = string
 }
+
+variable "api_key_wix" {
+  description = "Static key used by the Wix Velo backend to call MERC API. Generate with `openssl rand -base64 36`."
+  type        = string
+  sensitive   = true
+}
+
+variable "api_key_react" {
+  description = "Static key used by our own React frontend (mostly via same-origin bypass, but needed for SSR/local dev)."
+  type        = string
+  sensitive   = true
+}
+
+variable "auth_enforced" {
+  description = "When true, the API requires an X-API-Key header (or matching internal Origin). Set to false during initial rollout."
+  type        = bool
+  default     = false
+}
+
+variable "internal_origins" {
+  description = "Comma-separated list of allowed Origin header values that bypass the API-key check (our own React deployments)."
+  type        = string
+  default     = ""
+}
+
+variable "openapi_public" {
+  description = "When true, /docs and /openapi.json are publicly reachable. Set false in prod."
+  type        = bool
+  default     = true
+}

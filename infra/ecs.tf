@@ -43,16 +43,21 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "SQS_QUEUE_URL", value = aws_sqs_queue.jobs.url },
         { name = "S3_BUCKET_NAME", value = aws_s3_bucket.reports.bucket },
         { name = "FRONTEND_URL", value = "https://${var.domain_name}" },
+        { name = "AUTH_ENFORCED", value = tostring(var.auth_enforced) },
+        { name = "INTERNAL_ORIGINS", value = var.internal_origins },
+        { name = "OPENAPI_PUBLIC", value = tostring(var.openapi_public) },
       ]
 
       secrets = [
-        { name = "CENSUS_API_KEY",        valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:CENSUS_API_KEY::" },
-        { name = "MAPBOX_API_KEY",        valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:MAPBOX_API_KEY::" },
-        { name = "ALPHASOPHIA_API_KEY",   valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:ALPHASOPHIA_API_KEY::" },
-        { name = "RESEND_API_KEY",        valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:RESEND_API_KEY::" },
-        { name = "STRIPE_SECRET_KEY",     valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:STRIPE_SECRET_KEY::" },
+        { name = "CENSUS_API_KEY", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:CENSUS_API_KEY::" },
+        { name = "MAPBOX_API_KEY", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:MAPBOX_API_KEY::" },
+        { name = "ALPHASOPHIA_API_KEY", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:ALPHASOPHIA_API_KEY::" },
+        { name = "RESEND_API_KEY", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:RESEND_API_KEY::" },
+        { name = "STRIPE_SECRET_KEY", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:STRIPE_SECRET_KEY::" },
         { name = "STRIPE_WEBHOOK_SECRET", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:STRIPE_WEBHOOK_SECRET::" },
         { name = "GOOGLE_API_KEY", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:GOOGLE_API_KEY::" },
+        { name = "API_KEY_WIX", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:API_KEY_WIX::" },
+        { name = "API_KEY_REACT", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:API_KEY_REACT::" },
       ]
 
       logConfiguration = {
@@ -157,11 +162,11 @@ resource "aws_ecs_task_definition" "worker" {
       ]
 
       secrets = [
-        { name = "CENSUS_API_KEY",        valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:CENSUS_API_KEY::" },
-        { name = "MAPBOX_API_KEY",        valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:MAPBOX_API_KEY::" },
-        { name = "ALPHASOPHIA_API_KEY",   valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:ALPHASOPHIA_API_KEY::" },
-        { name = "RESEND_API_KEY",        valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:RESEND_API_KEY::" },
-        { name = "STRIPE_SECRET_KEY",     valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:STRIPE_SECRET_KEY::" },
+        { name = "CENSUS_API_KEY", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:CENSUS_API_KEY::" },
+        { name = "MAPBOX_API_KEY", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:MAPBOX_API_KEY::" },
+        { name = "ALPHASOPHIA_API_KEY", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:ALPHASOPHIA_API_KEY::" },
+        { name = "RESEND_API_KEY", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:RESEND_API_KEY::" },
+        { name = "STRIPE_SECRET_KEY", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:STRIPE_SECRET_KEY::" },
         { name = "STRIPE_WEBHOOK_SECRET", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:STRIPE_WEBHOOK_SECRET::" },
         { name = "GOOGLE_API_KEY", valueFrom = "${aws_secretsmanager_secret.api_keys.arn}:GOOGLE_API_KEY::" },
       ]

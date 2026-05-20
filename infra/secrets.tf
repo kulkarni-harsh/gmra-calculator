@@ -18,6 +18,8 @@ resource "aws_secretsmanager_secret_version" "api_keys" {
     RESEND_API_KEY        = var.resend_api_key
     STRIPE_SECRET_KEY     = var.stripe_secret_key
     STRIPE_WEBHOOK_SECRET = var.stripe_webhook_secret
-    GOOGLE_API_KEY = var.google_api_key
+    GOOGLE_API_KEY        = var.google_api_key
+    API_KEY_WIX           = var.api_key_wix
+    API_KEY_REACT         = var.api_key_react
   })
 }

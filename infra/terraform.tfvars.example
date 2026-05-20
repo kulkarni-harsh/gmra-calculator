@@ -22,3 +22,10 @@ resend_spf_value   = "v=spf1 include:amazonses.com ~all"
 stripe_secret_key      = "sk_live_..."   # or sk_test_…
 stripe_webhook_secret  = "whsec_..."
 stripe_publishable_key = "pk_live_..."   # or pk_test_…
+
+# Wix partnership integration
+api_key_wix      = "GENERATE_WITH_openssl_rand_base64_36"
+api_key_react    = "GENERATE_WITH_openssl_rand_base64_36"
+auth_enforced    = false                          # flip to true after Wix smoke test
+internal_origins = "https://app.merc.com"         # comma-separated; our own React origins
+openapi_public   = true                           # set false in prod

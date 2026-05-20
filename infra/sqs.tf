@@ -2,7 +2,7 @@
 # Inspect this in the AWS console to debug stuck jobs.
 resource "aws_sqs_queue" "jobs_dlq" {
   name                      = "${var.app_name}-jobs-dlq"
-  message_retention_seconds = 1209600  # 14 days — plenty of time to investigate
+  message_retention_seconds = 1209600 # 14 days — plenty of time to investigate
 }
 
 # Main jobs queue

@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.core.config import settings
 from app.core.rate_limit import limiter
@@ -16,7 +16,7 @@ router = APIRouter()
 
 @router.post("/generate")
 @limiter.limit("120/minute")
-async def submit_report_job(request: Request, payload: ProviderRequest):  # noqa: ARG001
+async def submit_report_job(request: Request, response: Response, payload: ProviderRequest):  # noqa: ARG001
     """
     Verify Stripe payment, then enqueue report generation.
     Returns a job_id immediately. Poll GET /status/{job_id} to check progress.

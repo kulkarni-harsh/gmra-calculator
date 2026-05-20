@@ -1,7 +1,7 @@
 # app/api/endpoints/report_t2.py
 import logging
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.core.config import settings
 from app.core.rate_limit import limiter
@@ -17,7 +17,7 @@ router = APIRouter()
 
 @router.post("/generate")
 @limiter.limit("120/minute")
-async def submit_t2_report_job(request: Request, payload: T2ReportRequest):  # noqa: ARG001
+async def submit_t2_report_job(request: Request, response: Response, payload: T2ReportRequest):  # noqa: ARG001
     """Verify Stripe payment, enqueue T2 Current Market Analysis report generation.
     Poll GET /api/jobs/status/{job_id} for completion."""
     try:

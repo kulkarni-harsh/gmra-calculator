@@ -67,14 +67,14 @@ def test_providers_to_df_values():
     assert df.iloc[0]["cpt_99213"] == 300
     assert df.iloc[0]["cpt_99214"] == 200
     assert df.iloc[0]["cpt_total_services"] == 500
-    assert df.iloc[0]["is_locum"] is False
+    assert bool(df.iloc[0]["is_locum"]) is False
 
 
 def test_providers_to_df_is_locum_threshold():
     p = _make_provider()
     p.cpt_list = [CPT(code="99213", totalServices=100, totalCharges=0.0)]
     df = _providers_to_df([p], ["99213"])
-    assert df.iloc[0]["is_locum"] is True  # 100 <= 400
+    assert bool(df.iloc[0]["is_locum"]) is True  # 100 <= 400
 
 
 def test_sites_of_care_to_df_columns():

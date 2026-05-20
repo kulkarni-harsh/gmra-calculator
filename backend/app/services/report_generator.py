@@ -763,7 +763,6 @@ def _providers_to_df(providers: list[Provider], cpt_codes: list[str]) -> pd.Data
         ]
         return pd.DataFrame(columns=base_cols + [f"cpt_{c}" for c in cpt_codes])
     df = pd.DataFrame(rows)
-    df["is_locum"] = df["is_locum"].astype(object)
     return df
 
 

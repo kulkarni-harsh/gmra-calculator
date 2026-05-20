@@ -6,31 +6,66 @@ End-to-end walkthrough: from health check through Stripe payment to report gener
 
 ## 0. Setup
 
-### Postman Collection Variables
+### Environments
 
-Create a new Postman Collection and add these variables:
+Create two Postman **Environments** (not just variables) so you can switch with one click:
 
-| Variable | Initial value | Notes |
-|---|---|---|
-| `base_url` | `http://localhost:8000` | Switch to `https://api.yourdomain.com` for staging/prod |
-| `api_key` | *(leave blank)* | Fill in once auth is enabled |
-| `stripe_secret_key` | `sk_test_51TBu...` | Your Stripe test key — from `client.tfvars` |
-| `client_secret` | *(auto-filled)* | Set by the payment intent request |
-| `payment_intent_id` | *(auto-filled)* | Extracted from `client_secret` |
-| `job_id` | *(auto-filled)* | Set by the generate request |
+**Personal / Staging**
+
+| Variable | Value |
+|---|---|
+| `base_url` | `https://api.tryingmybest.site` |
+| `stripe_secret_key` | `sk_test_51TBuNh...` (from `personal.tfvars`) |
+| `api_key` | *(blank — auth off)* |
+
+**Client / Prod**
+
+| Variable | Value |
+|---|---|
+| `base_url` | `https://api.medicalrealestatecalculator.com` |
+| `stripe_secret_key` | `sk_test_51TBuNh...` (same test key for now) |
+| `api_key` | *(blank — auth off until you flip `auth_enforced`)* |
+
+> Swagger UI (interactive docs) is at `{{base_url}}/docs` — available in personal env (`openapi_public = true`), hidden in client env (`openapi_public = false`). Use `https://api.tryingmybest.site/docs` to browse the full schema interactively.
+
+### Collection Variables (shared across both environments)
+
+In the Collection, add:
+
+| Variable | Notes |
+|---|---|
+| `client_secret` | Auto-filled by the payment intent request (Tests tab script) |
+| `payment_intent_id` | Auto-filled — extracted from `client_secret` |
+| `job_id` | Auto-filled by the generate request |
 
 ### Auth Header (only when AUTH_ENFORCED=true)
 
-Add a **Collection-level header**:
+Add a **Collection-level header** (disabled by default):
 ```
 X-API-Key: {{api_key}}
 ```
 
-When `AUTH_ENFORCED=false` (local dev default), leave `api_key` blank and the header is ignored.
+Right now `auth_enforced = false` in both tfvars, so no key is required. When you flip it to `true` and deploy, fill in `api_key` in the environment and enable the header.
+
+### Stripe CLI — deployed env setup (one-time)
+
+For the **deployed** environment, the Stripe webhook is called by Stripe directly — no CLI listener needed. But you still need the CLI to **confirm test payments**. Install it once:
+
+```bash
+brew install stripe/stripe-cli/stripe
+stripe login   # opens browser, links to your Stripe dashboard
+```
+
+The Stripe dashboard must have a webhook endpoint registered:
+- **URL:** `https://api.tryingmybest.site/api/payments/webhook/stripe`
+- **Events:** `payment_intent.succeeded`
+- The signing secret from that webhook endpoint must match `stripe_webhook_secret` in your tfvars / Secrets Manager.
+
+To check: go to Stripe Dashboard → Developers → Webhooks.
 
 ### Allowed test emails
 
-The backend hard-validates `customer_email`. Only these work in test mode:
+The backend hard-validates `customer_email`. Only these addresses work:
 - `harshsk17@gmail.com`
 - `harsh.kulkarni.42774@gmail.com`
 - `david@gm-ra.com`
@@ -119,22 +154,15 @@ The full flow is:
 Create Payment Intent → Confirm Payment (Stripe) → Submit Generate → Poll Status
 ```
 
-### 4a. Install Stripe CLI (one-time)
+### 4a. Stripe CLI (already installed from §0 setup)
 
-```bash
-brew install stripe/stripe-cli/stripe
-stripe login
-```
+For the deployed environment you do **not** run `stripe listen`. Stripe calls your live webhook URL directly. The CLI is only needed to confirm test PaymentIntents (step 2 of each tier below).
 
-### 4b. Start the webhook listener (keep this terminal open during testing)
-
-This forwards Stripe events to your local server so the webhook fires correctly:
-
+If you ever want to test locally, you would run:
 ```bash
 stripe listen --forward-to http://localhost:8000/api/payments/webhook/stripe
 ```
-
-Stripe CLI will print a **webhook signing secret** like `whsec_...`. If it differs from what's in your `.env`, paste the CLI value into `STRIPE_WEBHOOK_SECRET` in `.env` and restart the server.
+But for the deployed env, skip that entirely.
 
 ---
 
@@ -175,27 +203,30 @@ pm.collectionVariables.set("payment_intent_id", clientSecret.split("_secret_")[0
 pm.collectionVariables.set("job_id", body.job_id);
 ```
 
-### Step 2: Confirm the Payment via Stripe CLI
+### Step 2: Confirm the Payment
 
-Run in your terminal:
+**Option A — Stripe CLI (simplest):**
+
 ```bash
 stripe payment_intents confirm {{payment_intent_id}} \
   --payment-method pm_card_visa
 ```
 
-Or confirm via Postman directly against Stripe's API:
+Replace `{{payment_intent_id}}` with the actual `pi_xxx` value from Step 1 (copy from the Postman response or the auto-filled collection variable).
+
+**Option B — Postman request direct to Stripe:**
 
 ```
 POST https://api.stripe.com/v1/payment_intents/{{payment_intent_id}}/confirm
-Authorization: Basic {{stripe_secret_key}}:    ← colon then blank password; encode as Base64
+Authorization: Basic   ← set Type to "Basic Auth", username = sk_test_51TBu..., password blank
 Content-Type: application/x-www-form-urlencoded
 
 payment_method=pm_card_visa
 ```
 
-> Stripe test payment method tokens: `pm_card_visa` (succeeds), `pm_card_chargeDeclined` (fails).
+After confirming, the PaymentIntent status becomes `succeeded` and Stripe fires the `payment_intent.succeeded` webhook to your deployed endpoint automatically. You'll see the job move from `awaiting_payment` to `pending` in the status poll.
 
-After confirming, the PaymentIntent status becomes `succeeded`.
+> Stripe test payment method tokens: `pm_card_visa` (succeeds), `pm_card_chargeDeclined` (fails).
 
 ### Step 3: Submit Report Generation
 

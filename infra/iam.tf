@@ -61,6 +61,15 @@ resource "aws_iam_role_policy" "ecs_task_permissions" {
         Resource = "*"
       },
       {
+        Effect = "Allow"
+        Action = [
+          "aws-marketplace:ViewSubscriptions",
+          "aws-marketplace:Subscribe",
+          "aws-marketplace:Unsubscribe",
+        ]
+        Resource = "*"
+      },
+      {
         Sid    = "DynamoDBJobs"
         Effect = "Allow"
         Action = [

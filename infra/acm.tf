@@ -1,16 +1,15 @@
-# ACM (AWS Certificate Manager) — free SSL cert for your domain.
-# Covers the apex (yourdomain.com), www (www.yourdomain.com), and api (api.yourdomain.com).
-# api.<domain> is the backend hostname (always served by ALB). apex + www stay
-# in the cert during the Wix cutover so the ALB can serve them as fallback
-# until Wix DNS is live; they can be removed in a later iteration once Wix has
-# fully taken over the public site.
+# ACM (AWS Certificate Manager) — free SSL cert for the ALB.
+# Primary name is api.<domain> (always served by ALB). apex and www are added
+# as SANs only when the public site is actually being served on this domain
+# (either Wix vars are set, or frontend_enabled=true). When neither, the cert
+# has a single name and the apex/www aren't in DNS — see route53.tf.
 
 resource "aws_acm_certificate" "main" {
-  domain_name = var.domain_name
-  subject_alternative_names = [
-    "www.${var.domain_name}",
-    "api.${var.domain_name}",
-  ]
+  domain_name = "api.${var.domain_name}"
+  subject_alternative_names = concat(
+    (length(var.wix_apex_a_records) > 0 || var.frontend_enabled) ? [var.domain_name] : [],
+    (length(var.wix_www_cname_target) > 0 || var.frontend_enabled) ? ["www.${var.domain_name}"] : [],
+  )
   validation_method = "DNS"
 
   # Must destroy old cert before creating new one when domain changes
